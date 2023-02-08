@@ -10,8 +10,24 @@ purpose: Validating protein pair functionality
 
 # Table of contents
 
-- Background
-- Overview
-- Requirments
-- Workflow
-- Outputs
+- [Background](#background)
+- [Overview](#overview)
+- [Requirments](#requirments)
+- [Workflow](#workflow)
+- [Outputs](#outputs)
+
+# Overview
+
+placeholder
+
+# Requirments
+
+For a more detailed exposition on the modular/importable code, please see [package components](/docs/package_components.md)
+
+# Workflow
+
+placeholder
+
+# Outputs
+
+placeholder
