@@ -9,5 +9,8 @@ class testComp1(unittest.TestCase):
     def test_extension(self):
         self.assertIn(path[-4:], ['.csv','.tsv'])
 
+    def test_pdImport(self):
+	self.assertIs(
+
 if __name__ == '__main__':
     unittest.main()

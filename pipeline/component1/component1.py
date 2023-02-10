@@ -1,6 +1,8 @@
 from input import path
+import pandas as pd
+import numpy as np
 
-def test(data=path):
-	return data
+df = pd.read_csv(path)
+print(type(df))
 
-data = test()
+
