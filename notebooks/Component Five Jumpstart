@@ -1,3 +1,7 @@
+**Notes 2/15:
+update type of ML (regression, run by evan and team)
+
+
 s5.0_relation.py
 
 Params: Population Distribution
@@ -46,6 +50,16 @@ def check_input_cleaning(sample_data):
     includes if statement that raises an error if a column that shouldn't be there (e.g. ID#) is
     Output: returns value count for columns we do need, and raises an error if we are missing data
     Clean out NAN's
+    
+Test: assert str(type('nan object')) not in sample_data
+
+def check_strings(sample_data, sequence1 = sample_data['meso_seq], sequence2 = sample_data['thermo_seq']):
+    checks that input data has two protein sequences
+    raise error if number of sequences not = 2
+    raise error if len(sequence1) =/ len(sequence2)
+    Output: Nothing if test passes
+
+Test: Use unit test w/ self.assertTrue(False) method
 -----------------------------------------------------------------------------------------
 Component 3: Checks that distribution of input data follows sample distribution
 Use case:
@@ -73,7 +87,7 @@ Use case:
 def train_model(sample_data):
     import scipy, numpy
     Split data into dev and test (0.8/0.2 for now)
-    Train model (need to specify which kind of ML model we will use)
+    Train model (need to specify which kind of ML model we will use - I think linear regression)
     Output: Print('Training successful!')
 
 Test: Need some ideas here
@@ -83,8 +97,8 @@ Component 6: Test the model with sample data.
 Use case:
 
 def test_model(sample_data):
-    Runs data through model
-    Output: Returns model_score, confusion matrix
+    Runs data through model (linear regression (KNN?)
+    Output: Returns model_score, confusion matrix, MSE
 
 Test: Need ideas
 -----------------------------------------------------------------------------------------
