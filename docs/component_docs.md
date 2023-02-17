@@ -20,12 +20,78 @@ placeholder
 placeholder
 
 # Component 3
+## Software Component Three: c3.0_pfam.py
+    
+    **Params:** sequence data from component 1 and 2
 
-placeholder
+    **Inputs:** protein pair amino acid sequences
+
+    **Outputs:** family identification, pfam E value, and identity scores
+
+    **Metrics:**
+
+    **Packages:** pandas, unittest, biopython, HMMER, pfam database (database, optional)
+
+### **Subcomponent 1**: Send sequence and get result
+
+**Use case**: User sends their AA sequence of interest and gets a basic pfam result
+
+Currently, we are doing two approaches for this:
+1. Using interpro's API, and sending HTTPs request, we query pfam
+    - pro: minimal amount of packages needed
+    - issue: depedent on an online server and potentially slow
+2. Downloading HMMER and pfam and running things locally
+    - pro: quick
+    - issue: requires more packages from users (hence we are thinking of making this optional)
+
+**Test**: check if you get an empty result/call, catch as an exception
+
+```py
+assert pfam_in == [], "empty output"
+```
+
+### **Subcomponent 2**: parse and filter results
+
+**Use case**: User obtains relevant outputs from pfam
+
+**Test**: work-in-progress
+
+```py
+# pseudo-code
+def check_result(dataframe):
+    
+      if no family info in dataframe[]:
+          raise Exception "The pair do not have a family or they do not have the same family"
+      else:
+          pass
+          
+      if no E value in dataframe[]:
+          raise ValueError
+      else:
+          pass
+```
+
+### **Subcompoent 3**: apply pfam to all pairs
+
+**Use case**: User applies pfam to all their desired pair data
+
+**Test**: work-in-progress
+
+### **Subcomponent 4**: compute metric of interst of all pairs
+
+**Use case**: User obtain all relevant metrics of interst for all pairs
+
+**Test**: context-dependent + work-in-progress
+
+#### Plan Outline
+1. Have the two approaches for the user to query pfam in Python script code
+2. for the first approach, figure out how to do efficent HTTPs requests and get the correct information
+3. for the second approach, synergize HMMER and pfam locally
+4. parse, filter, and compute metrics of interest for a large dataset
 
 # Component 4
-
-placeholder
+## Work-in-progress
+This component won't be done this quarter as we will only ensure that the pfam functionality works first, so there will be no collecting. Once 3D structure prediction comes in, we formally work on this.
 
 # Component 5
 ## Software Component Five: c5.0_relation.py
@@ -204,6 +270,6 @@ def calculate_functionality(model_score, dataframe):
 5. Input new user data and return a functionality score for the input protein pair
 
 # Component 6
-
-Placeholder
+## Work-in-progress
+We do not anticpate to reach this component this Winter quarter, but the Spring quarter! 
 
