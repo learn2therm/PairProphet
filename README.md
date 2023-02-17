@@ -1,3 +1,4 @@
+Ryan was here
 # ValidProt
 
 # Background
@@ -30,4 +31,8 @@ placeholder
 
 # Outputs
 
+<<<<<<< HEAD
 Logan was here
+=======
+placeholder
+>>>>>>> 20759c85978a1038564bc6769ece0268d574b704
