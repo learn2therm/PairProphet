@@ -2,7 +2,7 @@
 
 Scripts that are executed to take data and create an experimental ML model. This document details each component stage of the whole pipeline at a high-level.
 
-For more detailed information, click [here](./package_components.md)
+For more detailed information, click [here](./component_docs.md)
 
 1. `c1.0_db_formatter.py`
 
