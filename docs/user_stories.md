@@ -6,14 +6,14 @@ Rachel has a large library of paired protein sequences but is unsure whether the
 
 
 ### Use cases:
-1. Sequence functionality matching
-Input - SQL database of paired amino acid sequences with species metadata
-Output - Score or set of scores mapped to pairwise to input database that is indicative or functional similarity.
+1. Sequence functionality matching:
+- Input - SQL database of paired amino acid sequences with species metadata
+- Output - Score or set of scores mapped to pairwise to input database that is indicative or functional similarity.
 
-2. Thermostable sequence prediction
-Input - Mesophilic protein sequence with known (?) functionality.
-Output - AA sequence options for thermophilic analogue with similarity scores.
+2. Thermostable sequence prediction:
+- Input - Mesophilic protein sequence with known (?) functionality.
+- Output - AA sequence options for thermophilic analogue with similarity scores.
 
-3. Analytic paper trail
-Input - Paired AA sequences as in 1
-Output - Detailed analysis and data relating to score generation (e.g. 3D folding data, Pfam/GO, etc.)
+3. Analytic paper trail:
+- Input - Paired AA sequences as in 1
+- Output - Detailed analysis and data relating to score generation (e.g. 3D folding data, Pfam/GO, etc.)
