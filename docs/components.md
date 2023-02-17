@@ -1,8 +1,10 @@
 # Scripts Components
 
-Scripts that are executed to take data and create an experimental ML model. This document details each component stage of the whole pipeline
+Scripts that are executed to take data and create an experimental ML model. This document details each component stage of the whole pipeline at a high-level.
 
-1. `s1.0_db_formatter.py`
+For more detailed information, click [here](./package_components.md)
+
+1. `c1.0_db_formatter.py`
 
 *format dataframe per user's needs*
     
@@ -14,7 +16,7 @@ Scripts that are executed to take data and create an experimental ML model. This
 
     Metrics: something
 
-2. `s2.0_Sample_selection.py`
+2. `c2.0_Sample_selection.py`
 
 *strategically sample to best train our model and quere the avialble software tools at adequate speeds*
         - Compute PDF's of population
@@ -28,7 +30,7 @@ Scripts that are executed to take data and create an experimental ML model. This
 
     Metrics: something
 
-3.`s3.0_pfam_input.py`
+3.`c3.0_pfam_input.py`
 
 *give AA sequence to pfam, get basic results*
 
@@ -40,7 +42,7 @@ Scripts that are executed to take data and create an experimental ML model. This
 
     Metrics: something
 
-4. `s3.1_pfam_parse.py`
+4. `c3.1_pfam_parse.py`
 
 *parse and filter the results from pfam*
 
@@ -52,7 +54,7 @@ Scripts that are executed to take data and create an experimental ML model. This
 
     Metrics: something
 
-5.`s3.2_pfam_apply.py`
+5.`c3.2_pfam_apply.py`
 
 *apply results to pair data*
     
@@ -64,7 +66,7 @@ Scripts that are executed to take data and create an experimental ML model. This
 
     Metrics: something
 
-6.`s3.3_pfam_compute.py`
+6.`c3.3_pfam_compute.py`
 
 *compute metric of interest*
 
@@ -78,7 +80,7 @@ Scripts that are executed to take data and create an experimental ML model. This
 
 <nb. we can have even more steps here re: 3D structure prediction>
 
-7. `s4.0_data_collection.py`
+7. `c4.0_data_collection.py`
 
 *collect data from various softwares*
 
@@ -90,9 +92,10 @@ Scripts that are executed to take data and create an experimental ML model. This
 
     Metrics: something
 
-8. `s5.0_relation.py`
+8. `c5.0_relation.py`
 
-*Create experimental dataset from outputs of collect (pfam, 3D, etc.) that can be used to formulate ML model*
+*create experimental dataset from outputs of collect (pfam, 3D, etc.) that can be used to formulate ML model*
+
 
     Params: something
 
@@ -102,7 +105,7 @@ Scripts that are executed to take data and create an experimental ML model. This
 
     Metrics: something
 
-9. `s6.0_filter.py`
+9. `c6.0_filter.py`
 
 *filter the learn2therm dataset based on this analytical tool*
 
