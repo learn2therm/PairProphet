@@ -1,0 +1,4 @@
+src/version.o: /Users/humoodalanzi/Downloads/make-4.4/src/version.c \
+  src/config.h
+
+src/config.h:
