@@ -13,11 +13,70 @@ This document offers a comprehensive exposition of all the components as well as
 
 # Component 1
 
-placeholder
+    **Params:** 
+
+        **Inputs:** Protein pair database file. Begin with functionality for DuckDB relational input and for existing .csv (smaller datasets). 
+    
+    Input file should contain at minimum:
+    
+        1. AA sequence for both members of pair.
+        2. Clear indexing/column names to identify which belongs in meso-thermo groups.
+    
+    Optional inputs:
+    
+        1. Taxonomy
+        2. 16S sequence
+        3. Optimal growth temperature
+        4. Known function strings
+	5. E-values
+
+    **Outputs:** Pandas dataframe(s) containing data sample of specified size.
+
+    **Metrics:** 
+
+    **Packages:** os, pandas, numpy, duckdb
+    
+### **Subcomponent 1**: 
+
+**Use case**: User supplies path to database or .csv file and desired sample size. Pulls data into DataFrame 
+
+**Test**: Test assert that DataFrame was generated, compare shape with desired result. Check for obvious errors such as inconsistent data type within columns. Make sure all entries have associated amino acid sequence containing only canonical amino acid 1-letter codes.
+
+### **Subcomponent 2**: 
+
+**Use case**: User has not supplied E-values for protein pairs, computes on-the-fly for Component 2 processing.
+
+**Test**: 
 
 # Component 2
 
-placeholder
+    **Params:** 
+
+        **Inputs:** DataFrame from Component 1.
+
+    **Outputs:** Data analytics for generating training set. Culled training set for ML model based on input parameters.
+
+    **Metrics:** 
+
+    **Packages:** pandas, numpy, scipy.stats, matplotlib.pyplot, seaborn, math
+    
+### **Subcomponent 1**: 
+
+**Use case**: Basic statistics and plots associated with Data funneled from Component 1 are exported for user. Includes PDF and other relevant distributions.
+
+**Test**: (If relevant) Test that plots were generated and statistical variables exist.
+
+### **Subcomponent 2**: 
+
+**Use case**: Decides if sample size is sufficient for downstream processing. Re-samples without replacement if needed. Return to Component 1.1
+
+**Test**: (If relevant) Test that sample is representative of mean or matches parameters supplied by user (e.g. specific E-values, etc.)
+
+### **Subcomponent 3**: 
+
+**Use case**: Compiled sample set is sufficient for downstream processing. Collect sequences into DataFrame for pfam analysis. Other information stored in another indexed DataFrame.
+
+**Test**: DataFrame shape matches expected value. Software acknowledges optional parameters from original data input.
 
 # Component 3
 ## Software Component Three: c3.0_pfam.py
