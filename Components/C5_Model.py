@@ -1,3 +1,4 @@
+#imports
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
@@ -8,17 +9,53 @@ import sklearn.preprocessing
 import sklearn.model_selection
 import sklearn.neighbors
 
-df = pd.read_csv("/Users/loganroberts/Learn2Therm/ValidProt/data/Sample.csv")
+df = pd.read_csv("/Users/loganroberts/Learn2Therm/ValidProt/data/learn2therm_sample_50k.csv")
 
-df = df.drop(columns = ['Unnamed: 0', 'prot_pair_index', 'meso_seq', 'thermo_seq'])
+#columns to drop. Determined during data exploration in Jupyter Notebook.
+df = df.drop(columns = ['Unnamed: 0','thermo_index', 'm_protein_seq', 't_protein_seq', 'm_protein_desc', 't_protein_desc',
+                        'query_align_cov_16s', 'subject_align_cov_16s', 'meso_index', 'meso_protein_int_index', 'local_gap_compressed_percent_id_16s', 
+                        'scaled_local_query_percent_id_16s', 'scaled_local_symmetric_percent_id_16s','bit_score_16s'])
 
-def train_reg(dataframe, columns = [],  target = []):
+
+input_features = [columns for columns in df]
+input_features.remove('bit_score')
+
+target_feature = 'bit_score'
+
+
+def split_data(dataframe):
     """
-    Takes a dataframe and trains a standard Linear Regression model with selected data.
+    Takes dataframe and splits it into dev and test sets.
     
     Params
     ----------
-    dataframe: Pandas dataframe
+    dataframe: Pandas dataframe 
+
+    Returns
+    -------
+    -Dev and test data
+    
+    """
+    
+    #test input data type
+    if "pandas.core.frame.DataFrame" not in str(type(dataframe)):
+        raise ValueError("Wrong input type!")
+    else:
+        pass
+    
+    #split data
+    dev, test = sklearn.model_selection.train_test_split(dataframe, test_size=0.15, random_state=1)
+    
+    return dev, test
+
+
+def train_reg(dev, test, columns = [],  target = []):
+    """
+    Takes dev and test dataframes and trains a standard Linear Regression model with selected data.
+    
+    Params
+    ----------
+    dev, test: Pandas dataframe previously split
     columns: list of strings, representing input features
     target: list of strings, representing target feature(s)
 
@@ -31,13 +68,13 @@ def train_reg(dataframe, columns = [],  target = []):
     """
     
     #test input arguments
-    assert "pandas.core.frame.DataFrame" in str(type(dataframe))
+    assert "pandas.core.frame.DataFrame" in str(type(dev))
+    assert "pandas.core.frame.DataFrame" in str(type(test))
     assert "str" in str(type(columns[0]))
     assert "str" in str(type(target[0]))
-    
-    #split data
-    dev, test = sklearn.model_selection.train_test_split(dataframe, test_size=0.20, random_state=1)
-    
+    assert columns[0] in dev
+    assert target in test
+   
     #split into input and output feature(s)
     dev_X = dev[columns].values
     test_X = test[columns].values
@@ -58,10 +95,9 @@ def train_reg(dataframe, columns = [],  target = []):
     model = model.fit(dev_X, dev_y)
     
     return pearson_corr, model, test_X, test_y
-    
 
-p_corr, model, test_X, test_y = train_reg(df, columns = ['meso_ogt', 'thermo_ogt', 'scaled_local_symmetric_percent_id',
-                                                         'local_E_value','local_gap_compressed_percent_id'], target = ['scaled_local_query_percent_id'])
+p_corr, model, test_X, test_y = train_reg(split_data(df)[0], split_data(df)[1], columns = input_features, target = target_feature)
+
 
 def test_reg(model, test_X, test_y):
     
@@ -99,6 +135,7 @@ def test_reg(model, test_X, test_y):
     
     return preds
 
+
 def plot_regression(model, test_X, test_y):
     """
     Takes a test Linear Regression ML model and plots the predictions against actual values.
@@ -121,9 +158,8 @@ def plot_regression(model, test_X, test_y):
     assert "numpy.ndarray" in str(type(test_X))
     assert "numpy.ndarray" in str(type(test_y))
     
-    
-    preds = test_reg(model, test_X, test_y)
     R2 = model.score(test_X, test_y)
+    preds = test_reg(model, test_X, test_y)
     
     # make a plot to show the fit
     fig, ax = plt.subplots()
