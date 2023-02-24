@@ -123,6 +123,7 @@ def plot_regression(model, test_X, test_y):
     
     
     preds = test_reg(model, test_X, test_y)
+    R2 = model.score(test_X, test_y)
     
     # make a plot to show the fit
     fig, ax = plt.subplots()
@@ -138,4 +139,3 @@ def plot_regression(model, test_X, test_y):
     plt.plot(np.ravel(test_y), slope*np.ravel(test_y) + intercept, c='green', lw=1)
     print('y = {}x + {}'.format(round(float(slope),4), round(float(intercept),4)))
     print('R2 = {}'.format(round(R2,4)))
-
