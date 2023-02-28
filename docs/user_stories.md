@@ -17,3 +17,8 @@ Rachel has a large library of paired protein sequences but is unsure whether the
 3. Analytic paper trail:
 - Input - Paired AA sequences as in 1.
 - Output - Detailed analysis and data relating to score generation (e.g. 3D folding data, Pfam/GO, etc.).
+
+### Components
+To see a high-level exposition of the components, click [here](./components.md).
+
+To see a thorough exposition of each component, click [here](./component_docs.md).

@@ -1,4 +1,3 @@
-Ryan was here
 # ValidProt
 
 # Background
@@ -19,7 +18,7 @@ purpose: Validating protein pair functionality
 
 # Overview
 
-placeholder
+placeholder/work-in-progress
 
 # Requirments
 
@@ -27,12 +26,8 @@ For a more detailed exposition on the modular/importable code, please see [packa
 
 # Workflow
 
-placeholder
+placeholder/work-in-progress
 
 # Outputs
 
-<<<<<<< HEAD
-Logan was here
-=======
-placeholder
->>>>>>> 20759c85978a1038564bc6769ece0268d574b704
+placeholder/work-in-progress
