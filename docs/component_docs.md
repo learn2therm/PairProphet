@@ -4,6 +4,7 @@ This document offers a comprehensive exposition of all the components as well as
 
 # Table of contents
 
+- [Component 0](#component-0)
 - [Component 1](#component-1)
 - [Component 2](#component-2)
 - [Component 3](#component-3)
@@ -11,26 +12,41 @@ This document offers a comprehensive exposition of all the components as well as
 - [Component 5](#component-5)
 - [Component 6](#component-6)
 
+# Component 0
+
+    **Params:** 
+
+        **Inputs:** Protein pair database file for learn2therm.
+
+        **Outputs:** New database file containing only relevant proteins and pairs. 
+
+    Component 0 is specifically concerned with the learn2therm database and is not intended for use by users with other data files.
+    Additionally, this code should only be executed once to generate all files necessary for downstream processing. Users can input
+    their own similarly formatted data starting in component 1.
+
+    **Packages:** os, pandas, numpy, duckdb
+
 # Component 1
 
     **Params:** 
 
-        **Inputs:** Protein pair database file. Begin with functionality for DuckDB relational input and for existing .csv (smaller datasets). 
+        **Inputs:** Protein pair database file or pandas dataframe formatted according to instructions in README.
     
     Input file should contain at minimum:
     
-        1. AA sequence for both members of pair.
+        1. AA sequence for both members of each pair.
         2. Clear indexing/column names to identify which belongs in meso-thermo groups.
+        3. Some metrics for model training (e.g. alignment/coverage scores). 
     
     Optional inputs:
     
-        1. Taxonomy
-        2. 16S sequence
+        1. Optimal growth temperatures for each protein host.
+        2. 16S sequence alignment metrics.
         3. Optimal growth temperature
         4. Known function strings
-	5. E-values
+        5. Bit score
 
-    **Outputs:** Pandas dataframe(s) containing data sample of specified size.
+        **Outputs:** Pandas dataframe(s) containing data sample of specified size.
 
     **Metrics:** 
 
@@ -52,9 +68,11 @@ This document offers a comprehensive exposition of all the components as well as
 
     **Params:** 
 
-        **Inputs:** DataFrame from Component 1.
+        **Inputs:** Protein pair database file or pandas dataframe formatted according to instructions in README. Sampling 
+                    parameters for training set.
 
-    **Outputs:** Data analytics for generating training set. Culled training set for ML model based on input parameters.
+        **Outputs:** DataFrame containing training data. Exported analytics for user reference (optional).
+                     parameters.
 
     **Metrics:** 
 

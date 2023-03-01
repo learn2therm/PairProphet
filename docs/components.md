@@ -6,9 +6,9 @@ Currently, this document will be rather sparse until we have a functional pipeli
 
 For more detailed information, click [here](./component_docs.md)
 
-1. `c1.0_db_formatter.py`
+0. `c0.0_db_formatter.py`
 
-*format dataframe per user's needs*
+*reformats learn2therm database for use in ValidProt pipeline*
     
     Params: something
 
@@ -18,9 +18,21 @@ For more detailed information, click [here](./component_docs.md)
 
     Metrics: something
 
-2. `c2.0_Sample_selection.py`
+1. `c1.0_test_input.py`
 
-*strategically sample to best train our model and quere the avialble software tools at adequate speeds*
+*Input pipeline for test datasets*
+    
+    Params: something
+
+    Inputs: something
+
+    Outputs: something
+
+    Metrics: something
+
+2. `c2.0_sampling.py`
+
+*statistically samples formatted data for model training*
         - Compute PDF's of population
         - Determine new sampling ratios
         - Figure out how to cover the entire space of feature (make good training material)
