@@ -2,6 +2,11 @@
 The package you need to run this script are the following:
 - numpy
 - biopython
+- HMMER (http://hmmer.org/documentation.html)
+
+You also need to have:
+- pfam db locally
+- protein db
 '''
 
 # system dependecies
