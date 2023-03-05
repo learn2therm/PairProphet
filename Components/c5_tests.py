@@ -129,3 +129,61 @@ class TestModelTraining(unittest.TestCase):
         #asserts that function returns 4 objects to be assigned to pearson_corr, model, test_X, test_y
         assert len(train_reg(split_data(df)[0], split_data(df)[1], columns = input_features, 
                                           target = target)) == 5
+
+class TestModelPerformance(unittest.TestCase):
+
+    def test_asserts(self):
+        model, dev_X, dev_y, test_X, test_y = train_reg(
+            split_data(df)[0], split_data(df)[1], 
+            columns=input_features, target='t_protein_desc'
+        )
+        # assert that input types are correct
+        with self.assertRaises(AssertionError):
+            test_reg(model, [1, 2, 3], test_y)
+            
+    def test_model_output(self):
+        model, dev_X, dev_y, test_X, test_y = train_reg(
+            split_data(df)[0], split_data(df)[1], 
+            columns=input_features, target='t_protein_desc'
+        )
+        # assert output type is correct
+        output = test_reg(model, test_X, test_y)
+        self.assertIsInstance(output, np.ndarray)
+        
+    def test_pred_dimension(self):
+        model, dev_X, dev_y, test_X, test_y = train_reg(
+            split_data(df)[0], split_data(df)[1], 
+            columns=input_features, target='t_protein_desc'
+        )
+        # want to check that the number of predictions is equal to the number of test examples
+        preds = test_reg(model, test_X, test_y)
+        self.assertEqual(len(test_y), len(preds))
+
+class TestWrapper(unittest.TestCase):
+    
+    def test_wrapper_input(self):
+        #test that input data type is correct
+        try:
+            kNN_wrapper([1,2,3])
+            self.assertTrue(False)
+        except AssertionError:
+            self.assertTrue(True)
+
+    def test_wrapper_output(self):
+        model, dev_X, dev_y, test_X, test_y = train_reg(
+            split_data(df)[0], split_data(df)[1], 
+            columns=input_features, target='t_protein_desc'
+        )
+        # assert output type is correct
+        output = test_reg(model, test_X, test_y)
+        self.assertIsInstance(output, np.ndarray)
+        
+    def test_output_dimension(self):
+        model, dev_X, dev_y, test_X, test_y = train_reg(
+            split_data(df)[0], split_data(df)[1], 
+            columns=input_features, target='t_protein_desc'
+        )
+        # want to check that the number of predictions is equal to the number of test examples
+        preds = test_reg(model, test_X, test_y)
+        self.assertEqual(len(test_y), len(preds))
+
