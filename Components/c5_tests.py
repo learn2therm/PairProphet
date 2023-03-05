@@ -126,7 +126,7 @@ class TestModelTraining(unittest.TestCase):
         assert abs(div) < 0.3, "Warning! High JSD between dev and test set!"
         
     def test_output_format(self):
-        #asserts that function returns 4 objects to be assigned to pearson_corr, model, test_X, test_y
+        #asserts that function returns 5 objects to be assigned to model, dev_X, dev_y, test_X, test_y
         assert len(train_reg(split_data(df)[0], split_data(df)[1], columns = input_features, 
                                           target = target)) == 5
 
