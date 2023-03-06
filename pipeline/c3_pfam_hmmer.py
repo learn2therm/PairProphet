@@ -7,11 +7,14 @@ The package you need to run this script are the following:
 You also need to have:
 - pfam db locally
 - protein db
+
+The script executes the HMMER against pfam and parses the results
 '''
 
 # system dependecies
-import subprocess
 from pathlib import Path
+import subprocess
+
 
 
 # library dependencies
@@ -37,7 +40,7 @@ ID_DB_PATH = Path("/Users/humoodalanzi/pfam/proteins_id.zip")
 
 def hmmer_wrapper(seq: pd.core.series.Series, input_filename: str, pfam_path: str, input_filename_with_ext: str, output_filename_with_ext: str, cpu: int = 4):
     """
-    Executes the HMMER against pfam and parsing the results
+    Executes the HMMER against pfam and parses the results
 
     Parameters:
     ------------
