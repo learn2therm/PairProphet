@@ -1,5 +1,5 @@
 '''
-The package you need to run this script are the following:
+The packages you need to run this script are the following:
 - numpy
 - biopython
 - HMMER (http://hmmer.org/documentation.html)
@@ -8,7 +8,7 @@ You also need to have:
 - pfam db locally
 - protein db
 
-The script executes the HMMER against pfam and parses the results
+The script executes HMMER against pfam and parses the results
 '''
 
 # system dependecies
@@ -40,7 +40,7 @@ ID_DB_PATH = Path("/Users/humoodalanzi/pfam/proteins_id.zip")
 
 def hmmer_wrapper(seq: pd.core.series.Series, input_filename: str, pfam_path: str, input_filename_with_ext: str, output_filename_with_ext: str, cpu: int = 4):
     """
-    Executes the HMMER against pfam and parses the results
+    Executes HMMER against pfam and parses the results
 
     Parameters:
     ------------
@@ -69,32 +69,54 @@ def hmmer_wrapper(seq: pd.core.series.Series, input_filename: str, pfam_path: st
     
     # Create a list of SeqRecord objects
     # Write the list of SeqRecord objects to a FASTA file
-    def read_seq(lists: pd.core.series.Series, inputname: str = "input"):
+    def read_seq(lists: pd.core.frame.DataFrame, inputname: str = "input"):
         """
         Returns a list of SeqRecord objects and creates a corresponding input Fasta of them
 
         Parameters:
         ------------
-        list : pandas.core.series.Series
-            a list of string amino acid sequences
+        list : pandas.core.frame.DataFrame
+            a dataframe with string amino acid sequences in a 'seq' column
         input name : str, default = 'input'
             a name for the input fasta file
 
-        
+    
         Returns:
         ------------
-        fasta :
-            an input fasta file from a list of SeqRecord objects of originally string the amino acid sequences
+        file : TextIOWrapper
+            the input fasta file created from the list of SeqRecord objects
 
         Raises
         -------
-        TypeError
+        ValueError : 
+            if the input dataframe is empty
+        AttributeError :
+        if any of the sequences are invalid
         """
+        # check if input is empty
+        if lists.empty:
+            raise ValueError("Input dataframe is empty")
+    
+        # check if sequences are valid
+        for seq in lists['seq']:
+            try:
+                Seq(seq)
+            except:
+                raise AttributeError("Invalid sequence")
+
+        # function    
         records = []
         for index, seq in lists.itertuples():
-            record = SeqRecord(Seq(seq), id=str(index))
-            records.append(record)
-        
+            try:
+                record = SeqRecord(Seq(seq), id=str(index))
+                records.append(record)
+            except AttributeError:
+                raise AttributeError(f"Invalid sequence: {seq}")
+    
+        # raise error if seq not valid
+        if not records:
+            raise AttributeError("No valid sequences found in input")
+    
         with open(f"{inputname}.fasta", "w") as file:
                 SeqIO.write(records, file, "fasta")
         return file
