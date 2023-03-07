@@ -18,8 +18,8 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio import SearchIO
 
-# local dependencies/utils {need to figure out if I need one big class for the wrapper}
-from c3_pfam_hmmer import hmmer_wrapper
+# local dependencies/utils
+from c3_pfam_hmmer import read_seq
 
 ## Paths
 PFAM_PATH = Path("/Users/humoodalanzi/pfam/Pfam-A.hmm")
