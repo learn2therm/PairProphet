@@ -16,15 +16,19 @@ This document offers a comprehensive exposition of all the components as well as
 
     **Params:** 
 
-        **Inputs:** Protein pair database file for learn2therm.
+        **Inputs:** learn2therm protein pair database file
 
-        **Outputs:** New database file containing only relevant proteins and pairs. 
+        **Outputs:** Augmented database file containing relevant proteins and pairs for ValidProt. Keeps original tables intact.
+                     It is recommended to have a backup copy of the original database as well as 100 GB of free storage and at 
+                     least 30 GB of available memory. 
 
     Component 0 is specifically concerned with the learn2therm database and is not intended for use by users with other data files.
-    Additionally, this code should only be executed once to generate all files necessary for downstream processing. Users can input
-    their own similarly formatted data starting in component 1.
+    Additionally, this code need only be executed once to generate all files necessary for downstream processing. Users can input
+    their own similarly formatted data for classification starting in component 1. Component 0 can feed both component 1 and 
+    component 2. Additionally, users have the option to export intermediate metadata on the flow of information between learn2therm
+    and ValidProt as Sankey plots.
 
-    **Packages:** os, pandas, numpy, duckdb
+    **Packages:** os, sys, time, pandas, numpy, duckdb, plotly, kaleidoscope
 
 # Component 1
 
@@ -32,37 +36,34 @@ This document offers a comprehensive exposition of all the components as well as
 
         **Inputs:** Protein pair database file or pandas dataframe formatted according to instructions in README.
     
-    Input file should contain at minimum:
-    
-        1. AA sequence for both members of each pair.
-        2. Clear indexing/column names to identify which belongs in meso-thermo groups.
-        3. Some metrics for model training (e.g. alignment/coverage scores). 
-    
-    Optional inputs:
-    
-        1. Optimal growth temperatures for each protein host.
-        2. 16S sequence alignment metrics.
-        3. Optimal growth temperature
-        4. Known function strings
-        5. Bit score
+                    Input file should contain at minimum:
+
+                        1. AA sequence for both members of each pair.
+                        2. Clear indexing/column names to identify which belongs in meso-thermo groups.
+                        3. Most recent metrics for model training (e.g. alignment/coverage scores). Included in docs
+                           and c1 docstrings.
 
         **Outputs:** Pandas dataframe(s) containing data sample of specified size.
 
-    **Metrics:** 
+    Component 1 formats data for the ValidProt model. The resulting dataframe is pruned to contain only feature and 
+    target data.
 
-    **Packages:** os, pandas, numpy, duckdb
+    **Packages:** os, sys, pandas, numpy, duckdb
     
 ### **Subcomponent 1**: 
 
-**Use case**: User supplies path to database or .csv file and desired sample size. Pulls data into DataFrame 
+**Use case**: User supplies path to database or .csv file and desired sample size. Pulls data into DataFrame using one of several sampling
+              methods. 
 
-**Test**: Test assert that DataFrame was generated, compare shape with desired result. Check for obvious errors such as inconsistent data type within columns. Make sure all entries have associated amino acid sequence containing only canonical amino acid 1-letter codes.
+**Test**: Test assert that DataFrame was generated, compare shape with desired result. Check for obvious errors such as inconsistent data type within columns. Make sure all sampling configurations function as expected.
 
 ### **Subcomponent 2**: 
 
 **Use case**: User has not supplied E-values for protein pairs, computes on-the-fly for Component 2 processing.
 
-**Test**: 
+    Subcomponent 2 is under development and will not be release with the initial version of ValidProt. Users will
+    need to format and clean their own data.
+          
 
 # Component 2
 
@@ -71,10 +72,12 @@ This document offers a comprehensive exposition of all the components as well as
         **Inputs:** Protein pair database file or pandas dataframe formatted according to instructions in README. Sampling 
                     parameters for training set.
 
-        **Outputs:** DataFrame containing training data. Exported analytics for user reference (optional).
+        **Outputs:** DataFrame containing training data. Exported analytics and plots for user reference (optional).
                      parameters.
 
-    **Metrics:** 
+    Component 2 is a sampler for training the learn2therm database. Users can select the desired sampling method, and the function
+    can seek data subsets satisfying those parameters. For example, rare features can be oversampled or common ones undersampled 
+    to give the model broader applicability across protein pairs.
 
     **Packages:** pandas, numpy, scipy.stats, matplotlib.pyplot, seaborn, math
     
