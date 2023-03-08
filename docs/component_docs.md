@@ -170,8 +170,37 @@ def check_result(dataframe):
 4. parse, filter, and compute metrics of interest for a large dataset
 
 # Component 4
-## Work-in-progress
-This component won't be done this quarter as we will only ensure that the pfam functionality works first, so there will be no collecting. Once 3D structure prediction comes in, we formally work on this.
+## Software Component Four: c3.0_PDB_RCSB.py
+
+    **Params:**
+
+    **Inputs:** DNA/RNA/protein sequence (FASTA) or Pfam IDs (domain information)
+
+    **Outputs:** DataFrame containing proteins that share sequence or structure similarity to query sequence. Desired parameters include e-value or bitscore and percentage similarity for example.
+
+Component 4 is responsible for searching the RCSB Protein Data Bank (PDB) to identify proteins that share structural or sequence similarity with the query protein. This component first searches for experimentally solved structures, and if not available, then searches for computationally generated structures. The output of this component also includes proteins with sequence similarity to the query protein, allowing for comparison with the results from Pfam (component 3).
+
+This component is in developing phase this quarter as we will only ensure that the pfam functionality works first, so there will be no collecting. Once 3D structure prediction comes in, we formally work on this.
+
+### **Subcomponent 1**: Send request and get results
+
+**Use case**: Searches using single DNA/RNA/protein sequence (FASTA) or Pfam IDs (can be one or multiple Pfam ID(s)) and gets a list of PDB IDs or a more comprehensive lists of result (includes PDB IDs, e-values, bitscores, similarity, etc.)
+
+We're currently use PyPDB for this.
+
+**Test:** Proper import of PyPDB and expected query formats.
+
+### **Subcomponent 2**: Extract desired information
+
+**Use case**: Flatten the nested dictionary and then filter it. This involves recursively iterating through the nested dictionary to extract all key-value pairs and converting them into a single flat dictionary. Once the nested dictionary is flattened, we can then filter the resulting dictionary to keep only the desired information
+
+**Test:** Absences of dropped parameters.
+
+### **Subcomponent 3**: Format output into DataFrame 
+
+**Use case:** Convert Python dictionary to DataFrame. Manipulate the DataFrame using pandas functions to sort, filter, or group the data.
+
+**Test:** Expected shape and size with correct columns DataFrame.
 
 # Component 5
 ## Software Component Five: c5.0_relation.py
