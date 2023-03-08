@@ -11,12 +11,10 @@ import sklearn.feature_selection
 import c5_classification
 import c5_input_cleaning
 
-from c5_classification import split_data
-from c5_classification import train_reg
-from c5_classification import test_reg
-from c5_classification import plot_regression
-from c5_classification import kNN_wrapper
-from c5_classification import JSD_dev_and_test
+from c5_classification import train_model
+from c5_classification import test_model
+from c5_classification import plot_model
+from c5_classification import RF_wrapper
 
 from c5_input_cleaning import check_input_type
 from c5_input_cleaning import clean_input_columns
@@ -43,10 +41,12 @@ list_of_cats
 # process dataframe
 df = df_original[df_original.t_protein_desc.isin(list_of_cats)]
 
+df['protein_match'] = df['t_protein_desc'] == df['m_protein_desc']
+
 
 #columns we don't want from our own database
 df = df.drop(columns=['Unnamed: 0', 'thermo_index', 'm_protein_seq',
-                't_protein_seq', 'm_protein_desc', 'query_align_cov_16s',
+                't_protein_seq', 'm_protein_desc', 't_protein_desc', 'query_align_cov_16s',
                 'subject_align_cov_16s', 'meso_index', 'meso_protein_int_index',
                 'local_gap_compressed_percent_id_16s', 'scaled_local_query_percent_id_16s',
                 'scaled_local_symmetric_percent_id_16s', 'bit_score_16s', 'm_ogt', 
@@ -66,8 +66,6 @@ def c5_wrapper(dataframe):
     cleaned = input_cleaning_wrapper(dataframe)
 
     #run through model
-    model = kNN_wrapper(cleaned)
+    model = RF_wrapper(cleaned)
 
     return model
-
-
