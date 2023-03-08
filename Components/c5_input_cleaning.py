@@ -8,21 +8,33 @@ import sklearn.model_selection
 import sklearn.neighbors
 import unittest
 
-#load dataframe
+# load dataframe
 df_original = pd.read_csv('learn2therm_sample_50k.csv')
 
-#keep columns we are interested in
-columns_to_keep = ['bit_score','local_gap_compressed_percent_id','scaled_local_query_percent_id',
-                      'scaled_local_symmetric_percent_id','query_align_len', 'query_align_cov',
-                      'subject_align_len', 'subject_align_cov', 'm_protein_len', 't_protein_len', 't_protein_desc']
+# keep columns we are interested in
+columns_to_keep = [
+    'bit_score',
+    'local_gap_compressed_percent_id',
+    'scaled_local_query_percent_id',
+    'scaled_local_symmetric_percent_id',
+    'query_align_len',
+    'query_align_cov',
+    'subject_align_len',
+    'subject_align_cov',
+    'm_protein_len',
+    't_protein_len',
+    't_protein_desc']
+
 
 def check_input_type(dataframe):
     """
     Takes in input dataframe and asserts that it is the correct data type.
     """
-    assert "pandas.core.frame.DataFrame" in str(type(dataframe)), 'Not a pandas dataframe!'
-    
+    assert "pandas.core.frame.DataFrame" in str(
+        type(dataframe)), 'Not a pandas dataframe!'
+
     return dataframe
+
 
 def clean_input_columns(dataframe):
     """
@@ -35,11 +47,12 @@ def clean_input_columns(dataframe):
 
     for title in dataframe:
         if title not in columns_to_keep:
-            dataframe = dataframe.drop(columns = title)
+            dataframe = dataframe.drop(columns=title)
         else:
             pass
 
     return dataframe
+
 
 def verify_input_columns(dataframe):
     """
@@ -48,7 +61,7 @@ def verify_input_columns(dataframe):
 
     Input: Pandas dataframe.
     Output: Pandas dataframe.
-    """    
+    """
     for title in columns_to_keep:
 
         if title not in dataframe:
@@ -57,6 +70,7 @@ def verify_input_columns(dataframe):
             pass
 
     return dataframe
+
 
 def check_input_NANs(dataframe):
     """
@@ -74,15 +88,16 @@ def check_input_NANs(dataframe):
     else:
         print("DataFrame does not have any NaN values.")
 
-    #Drop rows with NaN's
+    # Drop rows with NaN's
     dataframe = dataframe.dropna()
     print('Dataframe now has {} rows.'.format(len(dataframe)))
 
     return dataframe
 
+
 def verify_protein_pairs(dataframe):
     """
-    Checks that input data has two protein sequences. Will need to generalize this function other data sets 
+    Checks that input data has two protein sequences. Will need to generalize this function other data sets
     to simply make sure two sequences are entered. Code below is for our protein database
     """
     assert 'm_protein_len' in dataframe, 'Dataframe missing mesophillic sequence!'
@@ -91,27 +106,24 @@ def verify_protein_pairs(dataframe):
     print('OK!')
     return dataframe
 
+
 def input_cleaning_wrapper(dataframe):
-    
-    #check type of dataframe
+
+    # check type of dataframe
     check = check_input_type(dataframe)
-    
-    #clean out unnecessary columns
+
+    # clean out unnecessary columns
     clean = clean_input_columns(check)
-    
-    #verify necessary columns are present
+
+    # verify necessary columns are present
     verify_input = verify_input_columns(clean)
-    
-    #check for NaN's
+
+    # check for NaN's
     check_NANs = check_input_NANs(verify_input)
-    
-    #verify every protein has a pair
+
+    # verify every protein has a pair
     verify_pairs = verify_protein_pairs(check_NANs)
-    
+
     print('The new shape of the dataframe is:{}'.format(verify_pairs.shape))
-    
+
     return verify_pairs
-
-
-
-
