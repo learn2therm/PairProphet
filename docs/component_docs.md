@@ -178,6 +178,10 @@ def check_result(dataframe):
 
     **Outputs:** DataFrame containing proteins that share sequence or structure similarity to query sequence. Desired parameters include e-value or bitscore and percentage similarity for example.
 
+    **Metrics:**
+
+    **Packages:** pandas, json, pypdb
+
 Component 4 is responsible for searching the RCSB Protein Data Bank (PDB) to identify proteins that share structural or sequence similarity with the query protein. This component first searches for experimentally solved structures, and if not available, then searches for computationally generated structures. The output of this component also includes proteins with sequence similarity to the query protein, allowing for comparison with the results from Pfam (component 3).
 
 This component is in developing phase this quarter as we will only ensure that the pfam functionality works first, so there will be no collecting. Once 3D structure prediction comes in, we formally work on this.
