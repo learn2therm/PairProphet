@@ -26,6 +26,7 @@ PFAM_PATH = Path("/Users/humoodalanzi/pfam/Pfam-A.hmm")
 ID_DB_PATH = Path("/Users/humoodalanzi/pfam/proteins_id.zip")
 
 
+
 class TestReadSeq(unittest.TestCase):
     """
     Tests for read_seq function
@@ -33,13 +34,13 @@ class TestReadSeq(unittest.TestCase):
 
     # inputs in setup function
     def setUp(self):
-        self.sequences = pd.DataFrame({'seq': ['MTITLVEGSEQLRKQVAYVEELRS',
+        self.sequences = pd.DataFrame({'protein_seq': ['MTITLVEGSEQLRKQVAYVEELRS',
                                            'MFRDYVYDYLMRLWRVEYRH',
                                            'MVTVLHESDQSLQGQAYLAEELRS',
                                            'MTRTLVEGSEQLRKQVAYVEELRS']})
         self.inputname = 'test_input'
-        self.empty_seq = pd.DataFrame({'seq': []})
-        self.invalid_seq = pd.DataFrame({'seq': ['AAGCTYY']})
+        self.empty_seq = pd.DataFrame({'protein_seq': []})
+        self.invalid_seq = pd.DataFrame({'protein_seq': ['AAGCTYY']})
         read_seq(self.sequences, self.inputname)
 
         # create a new empty dataframe instance
@@ -57,7 +58,7 @@ class TestReadSeq(unittest.TestCase):
         records = list(SeqIO.parse(f"{self.inputname}.fasta", "fasta"))
         self.assertEqual(len(records), len(self.sequences))
         for i, record in enumerate(records):
-            self.assertEqual(str(record.seq), self.sequences.iloc[i]['seq'])
+            self.assertEqual(str(record.seq), self.sequences.iloc[i]['protein_seq'])
     
     def test_invalid_input(self):
         """Tests if the function raises an error with invalid input"""
@@ -81,9 +82,11 @@ class TestReadSeq(unittest.TestCase):
             read_seq(self.invalid_seq, self.inputname)
             print(cm.exception)
 
+
     # tear down of set up
     def tearDown(self):
         try:
             os.remove(f"{self.inputname}.fasta")
         except FileNotFoundError:
             pass
+    

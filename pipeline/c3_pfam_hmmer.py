@@ -15,12 +15,15 @@ You also need to have:
 from pathlib import Path
 import subprocess
 
+## job stuff
+from joblib import delayed, Parallel
+import logging
+
 
 
 # library dependencies
 from collections import defaultdict
 import pandas as pd
-
 
 
 ## biopython
@@ -33,8 +36,8 @@ from Bio import SearchIO
 # local dependencies/utils
 
 ## Paths
-PFAM_PATH = Path("/Users/humoodalanzi/pfam/Pfam-A.hmm")
-ID_DB_PATH = Path("/Users/humoodalanzi/pfam/proteins_id.zip")
+PFAM_PATH = Path("/Users/humoodalanzi/pfam/Pfam-A.hmm") # ./Pfam-A.hmm
+ID_DB_PATH = Path("/Users/humoodalanzi/pfam/proteins_id.zip") # ./proteins_id.zip
 
 
 
@@ -167,14 +170,26 @@ def run_hmmer(DB_PATH: str, input_filename: str, output_filename: str, num_cpu: 
 
 
 if __name__ == '__main__':
+    # Logging
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    fh = logging.FileHandler('hmmer.log', mode='w')
+    formatter = logging.Formatter('%(filename)-12s %(asctime)s;%(funcName)-12s: %(levelname)-8s %(message)s')
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
+
+    logger.info("TEST LOG")
+
     ### Data prep and processing
 
     # reading the data
     protein_database = pd.read_csv(ID_DB_PATH, index_col=0)
+    logger.info('Loaded database')
 
     # separating the meso and thermo
     meso_seq_db = protein_database.loc[protein_database["identity"] == "m"]
     thermo_seq_db = protein_database.loc[protein_database["identity"] == "t"]
+    logger.info('Data seperated into t and m')
 
     ## processing meso to be suitable for HMMER
     meso_seq_pre = meso_seq_db[["protein_seq", "protein_int_index"]]
@@ -187,7 +202,20 @@ if __name__ == '__main__':
     thermo_seq_list = thermo_seq_pre.set_index("protein_int_index").iloc[:15]
     thermo_seq_list.index.name = None
 
+    logger.info('Sampled t and m data')
 
     #### Execution
-    hmmer_wrapper(meso_seq_list, "meso_input", PFAM_PATH, "meso_input.fasta", "meso_output.domtblout", 4)
-    hmmer_wrapper(thermo_seq_list, "thermo_input", PFAM_PATH, "thermo_input.fasta", "thermo_output.domtblout", 4)
+    def hmmer_wrapper_parallel(chunk_index, seq, which):
+        """Executes hmmer wrapper in parrallel"""
+        hmmer_wrapper(seq=seq, input_filename=f"{which}_input_{chunk_index}", 
+                      input_filename_with_ext=f"{which}_input_{chunk_index}.fasta", 
+                      output_filename_with_ext=f"{which}_output_{chunk_index}.domtblout", 
+                      pfam_path=PFAM_PATH, cpu=1)
+
+    # chunking the data to 100 sequence bits
+    meso_chunks = [meso_seq_list[i:i+100] for i in range(0,len(meso_seq_list),100)]
+    thermo_chunks = [thermo_seq_list[i:i+100] for i in range(0,len(thermo_seq_list),100)]
+
+    # parallel computing on how many CPUs (n_jobs=)
+    Parallel(n_jobs=2)(delayed(hmmer_wrapper_parallel)(i, chunk, "meso") for i, chunk in enumerate(meso_chunks))
+    Parallel(n_jobs=2)(delayed(hmmer_wrapper_parallel)(i, chunk, "thermo") for i, chunk in enumerate(thermo_chunks))
