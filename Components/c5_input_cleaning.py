@@ -1,15 +1,16 @@
-import matplotlib.pyplot as plt
-import seaborn as sns
+"""
+This module takes a dataframe from the data scraping component
+and cleans it so that it can be passed through a machine
+learning algorithm.
+"""
+
 import pandas as pd
-import numpy as np
-import scipy.stats
-import sklearn.preprocessing
-import sklearn.model_selection
-import sklearn.neighbors
-import unittest
 
 # load dataframe
-df_original = pd.read_csv('learn2therm_sample_50k.csv')
+df = pd.read_csv('learn2therm_sample_50k.csv')
+
+#create new Boolean column for protein functionality match
+df['protein_match'] = df['t_protein_desc'].eq(df['m_protein_desc'])
 
 # keep columns we are interested in
 columns_to_keep = [
@@ -23,7 +24,7 @@ columns_to_keep = [
     'subject_align_cov',
     'm_protein_len',
     't_protein_len',
-    't_protein_desc']
+    'protein_match']
 
 
 def check_input_type(dataframe):
@@ -39,7 +40,8 @@ def check_input_type(dataframe):
 def clean_input_columns(dataframe):
     """
     We want to clean certain columns out of the Pfam dataframe.
-    Need to eliminate identifier columns + columns that don't have linear relationship with bit score.
+    Need to eliminate identifier columns + columns that don't have
+    relationship with the target.
 
     Input: Pandas dataframe (from Pfam)
     Output: Updated dataframe.
@@ -72,7 +74,7 @@ def verify_input_columns(dataframe):
     return dataframe
 
 
-def check_input_NANs(dataframe):
+def check_input_nans(dataframe):
     """
     Checks for NaN values in input dataframe. Removes rows with NaN values present.
 
@@ -108,6 +110,14 @@ def verify_protein_pairs(dataframe):
 
 
 def input_cleaning_wrapper(dataframe):
+    """
+    Takes in a pandas dataframe and runs it through each of the cleaning
+    and verification steps.
+
+    Input: Pandas dataframe
+    Output: Pandas dataframe
+
+    """
 
     # check type of dataframe
     check = check_input_type(dataframe)
@@ -119,10 +129,10 @@ def input_cleaning_wrapper(dataframe):
     verify_input = verify_input_columns(clean)
 
     # check for NaN's
-    check_NANs = check_input_NANs(verify_input)
+    check_nans = check_input_nans(verify_input)
 
     # verify every protein has a pair
-    verify_pairs = verify_protein_pairs(check_NANs)
+    verify_pairs = verify_protein_pairs(check_nans)
 
     print('The new shape of the dataframe is:{}'.format(verify_pairs.shape))
 

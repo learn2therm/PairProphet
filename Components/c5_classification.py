@@ -1,7 +1,13 @@
+"""
+This module takes in a pandas dataframe from 
+c5_input_cleaning and runs it through a 
+RandomForestClassifier model from scitkit learn.
+Returns a Boolean prediction for protein pair
+functionality.
+"""
+
 import matplotlib.pyplot as plt
 import pandas as pd
-import numpy as np
-import scipy.stats
 import sklearn.preprocessing
 import sklearn.model_selection
 import sklearn.neighbors
@@ -28,10 +34,10 @@ list_of_cats
 # process dataframe
 df = df_original[df_original.t_protein_desc.isin(list_of_cats)]
 
-df['protein_match'] = df['t_protein_desc'] == df['m_protein_desc']
-
+df['protein_match'] = df['t_protein_desc'].eq(df['m_protein_desc'])
 
 # columns we don't want from our own database
+# this will be cleaned in c5_input_cleaning.py
 df = df.drop(
     columns=[
         'Unnamed: 0',
@@ -167,7 +173,7 @@ def plot_model(model, test_X, test_y):
     return score
 
 
-def RF_wrapper(dataframe):
+def rf_wrapper(dataframe):
     """
     Takes dataframe and runs it through kNN model.
 
@@ -204,40 +210,3 @@ def RF_wrapper(dataframe):
     plot_model(model, test_X, test_y)
 
     return preds
-
-# define function for Jensen-Shannon Divergence
-# def JSD_dev_and_test(data_sample_1, data_sample_2, axis=None):
-#     """Jensen-Shannon divergence between two data samples.
-
-#     Formatted for use with scipy bootstrapping. Creates a vector of values covering
-#     the data range, the fits scipy historgram PDFs to both data samples. Each PDF is
-#     evaluated at the vector of values, and those PDF values are used to compute
-#     JSD. Note that becaue the empirical distribution is a histogram, JSD will rarely
-#     be less than about ~0.1 due to discretization artifacts.
-
-#     Parameters
-#     ----------
-#     data_sample_1 : numpy array or pandas series
-#         observations in sample 1
-#     data_sample_2 : numpy array or pandas series
-#         observations in sample 2
-#     axis : ignored
-
-#     Returns
-#     -------
-#     float : Value of JSD
-#     """
-#     # get the min and max values to compute PDF
-#     global_minimum = min([data_sample_1.min(), data_sample_2.min()])
-#     global_maximum = min([data_sample_1.max(), data_sample_2.max()])
-#     width = global_maximum - global_minimum
-
-#     x = np.linspace(global_minimum - 0.1*width, global_maximum + 0.1*width, 1000)
-
-#     # create empirical PDFs for the samples
-#     s1_distro = scipy.stats.rv_histogram(np.histogram(data_sample_1))
-#     s2_distro = scipy.stats.rv_histogram(np.histogram(data_sample_2))
-
-#     # compute JSD
-#     JSD = scipy.spatial.distance.jensenshannon(s1_distro.pdf(x), s2_distro.pdf(x))
-#     return [JSD]
