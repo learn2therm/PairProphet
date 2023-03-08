@@ -20,9 +20,7 @@ from joblib import delayed, Parallel
 import logging
 
 
-
 # library dependencies
-from collections import defaultdict
 import pandas as pd
 
 
@@ -30,7 +28,6 @@ import pandas as pd
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from Bio import SearchIO
 
 
 # local dependencies/utils
@@ -207,10 +204,12 @@ if __name__ == '__main__':
     #### Execution
     def hmmer_wrapper_parallel(chunk_index, seq, which):
         """Executes hmmer wrapper in parrallel"""
-        hmmer_wrapper(seq=seq, input_filename=f"{which}_input_{chunk_index}", 
+        hmmer_wrapper(seq=seq, 
+                      input_filename=f"{which}_input_{chunk_index}", 
                       input_filename_with_ext=f"{which}_input_{chunk_index}.fasta", 
                       output_filename_with_ext=f"{which}_output_{chunk_index}.domtblout", 
-                      pfam_path=PFAM_PATH, cpu=1)
+                      pfam_path=PFAM_PATH, 
+                      cpu=1)
 
     # chunking the data to 100 sequence bits
     meso_chunks = [meso_seq_list[i:i+100] for i in range(0,len(meso_seq_list),100)]
