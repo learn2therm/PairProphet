@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 
 from c5_classification import train_model
-from c5_classification import test_model
+from c5_classification import evaluate_model
 from c5_classification import rf_wrapper
 
 from c5_input_cleaning import check_input_type
@@ -138,14 +138,14 @@ class TestModelPerformance(unittest.TestCase):
         )
         # assert that input types are correct
         with self.assertRaises(AssertionError):
-            test_model(model, [1, 2, 3], test_y)
+            evaluate_model(model, [1, 2, 3], test_y)
 
     def test_model_output(self):
         model, dev_X, dev_y, test_X, test_y = train_model(
             df, columns=input_features, target='protein_match'
         )
         # assert output type is correct
-        output = test_model(model, test_X, test_y)
+        output = evaluate_model(model, test_X, test_y)
         self.assertIsInstance(output, np.ndarray)
 
     def test_pred_dimension(self):
@@ -153,7 +153,7 @@ class TestModelPerformance(unittest.TestCase):
             df, columns=input_features, target='protein_match' )
         # want to check that the number of predictions is equal to the number
         # of test examples
-        preds = test_model(model, test_X, test_y)
+        preds = evaluate_model(model, test_X, test_y)
         self.assertEqual(len(test_y), len(preds))
 
 
@@ -177,7 +177,7 @@ class TestWrapper(unittest.TestCase):
             columns=input_features, target='protein_match'
         )
         # assert output type is correct
-        output = test_model(model, test_X, test_y)
+        output = evaluate_model(model, test_X, test_y)
         self.assertIsInstance(output, np.ndarray)
 
     def test_output_dimension(self):
@@ -187,5 +187,5 @@ class TestWrapper(unittest.TestCase):
         )
         # want to check that the number of predictions is equal to the number
         # of test examples
-        preds = test_model(model, test_X, test_y)
+        preds = evaluate_model(model, test_X, test_y)
         self.assertEqual(len(test_y), len(preds))

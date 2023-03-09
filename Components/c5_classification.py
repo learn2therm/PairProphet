@@ -114,7 +114,7 @@ def train_model(dataframe, columns=[], target=[]):
 # maybe combine with plotting model
 
 
-def test_model(model, test_X, test_y):
+def evaluate_model(model, test_X, test_y):
     """
     Takes a trained model and test data and tests the model.
 
@@ -161,6 +161,7 @@ def plot_model(model, test_X, test_y):
     assert "numpy.ndarray" in str(type(test_y))
 
     score = model.score(test_X, test_y)
+    preds = model.predict(test_X)
 
     # plot confusion matrix
     confusion_matrix = sklearn.metrics.confusion_matrix(preds, test_y)
@@ -203,7 +204,7 @@ def rf_wrapper(dataframe):
     )
 
     # test the model and return predictions
-    preds = test_model(model, test_X, test_y)
+    preds = evaluate_model(model, test_X, test_y)
 
     # plot the results of the model
     plot_model(model, test_X, test_y)
