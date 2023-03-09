@@ -118,8 +118,10 @@ class TestModelTraining(unittest.TestCase):
             self.assertTrue(True)
 
     def test_output_format(self):
-        # asserts that function returns 4 objects to be assigned to
-        # pearson_corr, model, test_X, test_y
+        """
+        Asserts that function returns 5 objects to be assigned to
+        model, dev_X, dev_y, test_X, test_y.
+        """
         assert len(train_model(df, columns=input_features,
                                target=target)) == 5
 
@@ -133,7 +135,7 @@ class TestModelPerformance(unittest.TestCase):
     """
 
     def test_asserts(self):
-        model, dev_X, dev_y, test_X, test_y = train_model(
+        model, _, _, test_X, test_y = train_model(
             df, columns=input_features, target='protein_match'
         )
         # assert that input types are correct
@@ -141,7 +143,7 @@ class TestModelPerformance(unittest.TestCase):
             evaluate_model(model, [1, 2, 3], test_y)
 
     def test_model_output(self):
-        model, dev_X, dev_y, test_X, test_y = train_model(
+        model, _, _, test_X, test_y = train_model(
             df, columns=input_features, target='protein_match'
         )
         # assert output type is correct
@@ -149,8 +151,8 @@ class TestModelPerformance(unittest.TestCase):
         self.assertIsInstance(output, np.ndarray)
 
     def test_pred_dimension(self):
-        model, dev_X, dev_y, test_X, test_y = train_model(
-            df, columns=input_features, target='protein_match' )
+        model, _, _, test_X, test_y = train_model(
+            df, columns=input_features, target='protein_match')
         # want to check that the number of predictions is equal to the number
         # of test examples
         preds = evaluate_model(model, test_X, test_y)
@@ -172,7 +174,7 @@ class TestWrapper(unittest.TestCase):
             self.assertTrue(True)
 
     def test_wrapper_output(self):
-        model, dev_X, dev_y, test_X, test_y = train_model(
+        model, _, _, test_X, test_y = train_model(
             df,
             columns=input_features, target='protein_match'
         )
@@ -181,11 +183,10 @@ class TestWrapper(unittest.TestCase):
         self.assertIsInstance(output, np.ndarray)
 
     def test_output_dimension(self):
-        model, dev_X, dev_y, test_X, test_y = train_model(
+        model, _, _, test_X, test_y = train_model(
             df,
             columns=input_features, target='protein_match'
         )
-        # want to check that the number of predictions is equal to the number
-        # of test examples
+        # want to check that the # of predictions is equal to # of examples
         preds = evaluate_model(model, test_X, test_y)
         self.assertEqual(len(test_y), len(preds))

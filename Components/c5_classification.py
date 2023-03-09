@@ -198,7 +198,7 @@ def rf_wrapper(dataframe):
     input_features.remove(target)
 
     # train the model based off data split
-    model, dev_X, dev_y, test_X, test_y = train_model(
+    model, _, _, test_X, test_y = train_model(
         dataframe, columns=input_features,
         target=target
     )
