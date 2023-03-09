@@ -18,6 +18,8 @@ from c5_input_cleaning import verify_protein_pairs
 # import training dataframe to run all of the tests
 df = pd.read_csv('learn2therm_sample_50k.csv')
 
+df['protein_match'] = df['t_protein_desc'].eq(df['m_protein_desc'])
+
 """
 Unit tests for C5 input and data cleaning functions
 """
@@ -108,15 +110,16 @@ class TestModelTraining(unittest.TestCase):
     """
 
     def test_invalid_inputs(self):
-         # test that input data type is correct
+        # test that input data type is correct
         try:
-            train_model([1, 2, 3], columns= 'string', target = 'string')
+            train_model([1, 2, 3], columns='string', target='string')
             self.assertTrue(False)
         except AssertionError:
             self.assertTrue(True)
 
     def test_output_format(self):
-        # asserts that function returns 4 objects to be assigned to pearson_corr, model, test_X, test_y
+        # asserts that function returns 4 objects to be assigned to
+        # pearson_corr, model, test_X, test_y
         assert len(train_model(df, columns=input_features,
                                target=target)) == 5
 

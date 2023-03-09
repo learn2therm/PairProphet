@@ -1,26 +1,10 @@
-import matplotlib.pyplot as plt
+"""
+Wrapper functions for all of the machine learning component.
+"""
+
 import pandas as pd
-import numpy as np
-import scipy.stats
-import sklearn.preprocessing
-import sklearn.model_selection
-import sklearn.neighbors
-import sklearn.ensemble
-import sklearn.feature_selection
 
-import c5_classification
-import c5_input_cleaning
-
-from c5_classification import train_model
-from c5_classification import test_model
-from c5_classification import plot_model
 from c5_classification import rf_wrapper
-
-from c5_input_cleaning import check_input_type
-from c5_input_cleaning import clean_input_columns
-from c5_input_cleaning import verify_input_columns
-from c5_input_cleaning import check_input_NANs
-from c5_input_cleaning import verify_protein_pairs
 from c5_input_cleaning import input_cleaning_wrapper
 
 # autopep8 --in-place --aggressive --aggressive c5_pipeline.py

@@ -9,7 +9,7 @@ import pandas as pd
 # load dataframe
 df = pd.read_csv('learn2therm_sample_50k.csv')
 
-#create new Boolean column for protein functionality match
+# create new Boolean column for protein functionality match
 df['protein_match'] = df['t_protein_desc'].eq(df['m_protein_desc'])
 
 # keep columns we are interested in

@@ -1,6 +1,6 @@
 """
-This module takes in a pandas dataframe from 
-c5_input_cleaning and runs it through a 
+This module takes in a pandas dataframe from
+c5_input_cleaning and runs it through a
 RandomForestClassifier model from scitkit learn.
 Returns a Boolean prediction for protein pair
 functionality.
@@ -141,7 +141,7 @@ def test_model(model, test_X, test_y):
 
 def plot_model(model, test_X, test_y):
     """
-    Takes a test KNN Classifier model and plots the confusion matrix.
+    Takes a test classifier model and plots the confusion matrix.
 
     Params
     ----------
@@ -161,7 +161,6 @@ def plot_model(model, test_X, test_y):
     assert "numpy.ndarray" in str(type(test_y))
 
     score = model.score(test_X, test_y)
-    preds = test_model(model, test_X, test_y)
 
     # plot confusion matrix
     confusion_matrix = sklearn.metrics.confusion_matrix(preds, test_y)
