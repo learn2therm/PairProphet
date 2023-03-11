@@ -13,6 +13,7 @@ import sklearn.model_selection
 import sklearn.neighbors
 import sklearn.ensemble
 import sklearn.feature_selection
+from c5_input_cleaning import df
 
 
 # learn how to repeat this
@@ -31,7 +32,7 @@ categories_dict = {item: None for item in categories.index}
 list_of_cats = list(categories_dict.keys())
 list_of_cats
 
-# process dataframe
+process dataframe
 df = df_original[df_original.t_protein_desc.isin(list_of_cats)]
 
 df['protein_match'] = df['t_protein_desc'].eq(df['m_protein_desc'])
@@ -110,8 +111,6 @@ def train_model(dataframe, columns=[], target=[]):
     model = model.fit(dev_X, dev_y.ravel())
 
     return model, dev_X, dev_y, test_X, test_y
-
-# maybe combine with plotting model
 
 
 def evaluate_model(model, test_X, test_y):
