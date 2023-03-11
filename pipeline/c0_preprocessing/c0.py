@@ -304,7 +304,7 @@ def sankey_plots(con, min_ogt_diff):
     perc_tp_validprot = np.round(100*size_tp_validprot/size_tp_l2t, 1)
     perc_tp_small_diff = np.round(100*size_tp_small_diff/size_tp_l2t, 1)
 
-    # Builds and saves taxa pair Sankey in current ./plots
+    # Builds and saves taxa pair Sankey in data folder
     fig1 = go.Figure(data=[go.Sankey(
     arrangement = 'snap',
     node = dict(
@@ -326,7 +326,7 @@ def sankey_plots(con, min_ogt_diff):
       ))])
 
     fig1.update_layout(title_text='Taxa Pairs', font_family = 'Arial', font_size=16)
-    fig1.write_image(os.path.join('.', newdir, 'taxa_pair_sankey.png'), engine = 'kaleido',
+    fig1.write_image(os.path.join('../../data', newdir, 'taxa_pair_sankey.png'), engine = 'kaleido',
                      scale = 6, width = 1280, height = 640)
 
     # Parameters for taxa Sankey
@@ -378,7 +378,7 @@ def sankey_plots(con, min_ogt_diff):
     perc_t_validprot = np.round(100*size_t_validprot/size_t_l2t, 1)
     perc_t_small_diff = np.round(100*(size_tt_small_diff+size_tm_small_diff)/size_tp_l2t, 1)
 
-    # Builds and saves taxa Sankey in current ./plots
+    # Builds and saves taxa Sankey in data folder
     fig2 = go.Figure(data=[go.Sankey(
     arrangement = 'snap',
     node = dict(
@@ -405,7 +405,7 @@ def sankey_plots(con, min_ogt_diff):
 
     fig2.update_layout(title_text="Taxa Representation", font_size=16, font_family = 'Arial',
                        font_color = 'black')
-    fig2.write_image(os.path.join('.', newdir, 'taxa_sankey.png'), engine = 'kaleido',
+    fig2.write_image(os.path.join('../../data', newdir, 'taxa_sankey.png'), engine = 'kaleido',
                      scale = 6, width = 1280, height = 640)
 
     # Parameters for protein pair Sankey
@@ -418,7 +418,7 @@ def sankey_plots(con, min_ogt_diff):
     perc_pp_validprot = np.round(100*size_pp_validprot/size_pp_l2t, 1)
     perc_pp_small_diff = np.round(100*size_pp_small_diff/size_pp_l2t, 1)
 
-    # Builds and saves protein pair Sankey in current ./plots
+    # Builds and saves protein pair Sankey in data folder
     fig3 = go.Figure(data=[go.Sankey(
     arrangement = 'snap',
     node = dict(
@@ -439,7 +439,7 @@ def sankey_plots(con, min_ogt_diff):
       ))])
 
     fig3.update_layout(title_text='Protein Pairs', font_family = 'Arial', font_size=16)
-    fig3.write_image(os.path.join('.', newdir, 'protein_pair_sankey.png'), engine = 'kaleido',
+    fig3.write_image(os.path.join('../../data', newdir, 'protein_pair_sankey.png'), engine = 'kaleido',
                      scale = 6, width = 1280, height = 640)
 
     # Parameters for protein Sankey
@@ -496,7 +496,7 @@ def sankey_plots(con, min_ogt_diff):
     perc_p_small_diff = np.round(100*(size_pt_small_diff+size_pm_small_diff)/size_pp_l2t, 1)
     perc_p_null = np.round(100*size_p_null/size_p_l2t, 1)
 
-    # Builds and saves protein Sankey in current ./plots
+    # Builds and saves protein Sankey in data folder
     fig4 = go.Figure(data=[go.Sankey(
     arrangement = 'snap',
     node = dict(
@@ -522,5 +522,5 @@ def sankey_plots(con, min_ogt_diff):
       ))])
 
     fig4.update_layout(title_text="Protein Representation", font_family = 'Arial', font_size=16)
-    fig4.write_image(os.path.join('.', newdir, 'protein_sankey.png'), engine = 'kaleido', scale = 6,
+    fig4.write_image(os.path.join('../../data', newdir, 'protein_sankey.png'), engine = 'kaleido', scale = 6,
                      width = 1280, height = 640)

@@ -26,7 +26,7 @@ def get_db_path(filename = 'validprot_testing'):
     '''
 
     # Get path for test dataset import
-    db_path = os.path.abspath(os.path.join('..', filename))
+    db_path = os.path.abspath(os.path.join('..', '..', 'data', filename))
 
     if os.path.exists(db_path) is False:
         raise ValueError(f'Could not find {filename} in current directory')
