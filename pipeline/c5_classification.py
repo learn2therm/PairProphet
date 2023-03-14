@@ -7,16 +7,13 @@ functionality.
 """
 
 import matplotlib.pyplot as plt
-import pandas as pd
+# import pandas as pd
 import sklearn.preprocessing
 import sklearn.model_selection
 import sklearn.neighbors
 import sklearn.ensemble
 import sklearn.feature_selection
-
-
-# learn how to repeat this
-df_original = pd.read_csv('learn2therm_sample_50k.csv')
+# from c5_input_cleaning import df
 
 """
 This cleaning step is done because we want to use thermophyllic protein
@@ -25,41 +22,41 @@ value counts in order to build a better model with our "dummy" target.
 This code will be deleted when we get our real target from Component 3.
 """
 
-categories = df_original['t_protein_desc'].value_counts()
-categories = categories.iloc[categories.values > 500]
-categories_dict = {item: None for item in categories.index}
-list_of_cats = list(categories_dict.keys())
-list_of_cats
+# categories = df_original['t_protein_desc'].value_counts()
+# categories = categories.iloc[categories.values > 500]
+# categories_dict = {item: None for item in categories.index}
+# list_of_cats = list(categories_dict.keys())
+# list_of_cats
 
-# process dataframe
-df = df_original[df_original.t_protein_desc.isin(list_of_cats)]
+# # process dataframe
+# df = df_original[df_original.t_protein_desc.isin(list_of_cats)]
 
-df['protein_match'] = df['t_protein_desc'].eq(df['m_protein_desc'])
+# df['protein_match'] = df['t_protein_desc'] == df['m_protein_desc']
 
 # columns we don't want from our own database
 # this will be cleaned in c5_input_cleaning.py
-df = df.drop(
-    columns=[
-        'Unnamed: 0',
-        'thermo_index',
-        'm_protein_seq',
-        't_protein_seq',
-        'm_protein_desc',
-        't_protein_desc',
-        'query_align_cov_16s',
-        'subject_align_cov_16s',
-        'meso_index',
-        'meso_protein_int_index',
-        'local_gap_compressed_percent_id_16s',
-        'scaled_local_query_percent_id_16s',
-        'scaled_local_symmetric_percent_id_16s',
-        'bit_score_16s',
-        'm_ogt',
-        't_ogt',
-        'taxa_pair_index',
-        'thermo_protein_int_index',
-        'prot_pair_index',
-        'ogt_difference'])
+# df = df.drop(
+#     columns=[
+#         'Unnamed: 0',
+#         'thermo_index',
+#         'm_protein_seq',
+#         't_protein_seq',
+#         'm_protein_desc',
+#         't_protein_desc',
+#         'query_align_cov_16s',
+#         'subject_align_cov_16s',
+#         'meso_index',
+#         'meso_protein_int_index',
+#         'local_gap_compressed_percent_id_16s',
+#         'scaled_local_query_percent_id_16s',
+#         'scaled_local_symmetric_percent_id_16s',
+#         'bit_score_16s',
+#         'm_ogt',
+#         't_ogt',
+#         'taxa_pair_index',
+#         'thermo_protein_int_index',
+#         'prot_pair_index',
+#         'ogt_difference'])
 
 
 def train_model(dataframe, columns=[], target=[]):
@@ -106,7 +103,13 @@ def train_model(dataframe, columns=[], target=[]):
     test_X = scaler.fit_transform(test_X)
 
     # train model
-    model = sklearn.ensemble.RandomForestClassifier()
+    model = sklearn.ensemble.RandomForestClassifier(
+        n_estimators=150,
+        max_depth=None,
+        max_samples=0.5,
+        max_features=0.5,
+        min_weight_fraction_leaf=0.000215,
+        min_samples_split=10)
     model = model.fit(dev_X, dev_y.ravel())
 
     return model, dev_X, dev_y, test_X, test_y
@@ -207,6 +210,6 @@ def rf_wrapper(dataframe):
     preds = evaluate_model(model, test_X, test_y)
 
     # plot the results of the model
-    plot_model(model, test_X, test_y)
+    score = plot_model(model, test_X, test_y)
 
-    return preds
+    return preds, score

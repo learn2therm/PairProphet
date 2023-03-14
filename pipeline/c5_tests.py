@@ -15,21 +15,17 @@ from c5_input_cleaning import verify_input_columns
 from c5_input_cleaning import check_input_nans
 from c5_input_cleaning import verify_protein_pairs
 
-# import training dataframe to run all of the tests
 df = pd.read_csv('learn2therm_sample_50k.csv')
 
-df['protein_match'] = df['t_protein_desc'].eq(df['m_protein_desc'])
+# create new Boolean column for protein functionality match
+df['protein_match'] = df['t_protein_desc'] == df['m_protein_desc']
 
-"""
-Unit tests for C5 input and data cleaning functions
-"""
-
-
+#unit tests for input cleaning
 class TestInputType(unittest.TestCase):
+    """
+    Tests that input data is a pandas dataframe
+    """
     def test_input_type(self):
-        """
-        Tests that input data is a pandas dataframe.
-        """
         try:
             check_input_type([4, 3])
             self.assertTrue(False)
@@ -43,8 +39,7 @@ class TestInputCleaning(unittest.TestCase):
     columns have been removed and necessary columns remain in the
     dataframe.
     """
-   # pass through some titles that should not be in the dataframe
-
+    # pass through some titles that should not be in the dataframe
     def test_input_cleaning(self):
         for title in ['Unnamed: 0', 'm_seq', 't_seq', 'prot_pair_index']:
             assert title not in clean_input_columns(df)
@@ -83,10 +78,7 @@ class TestProteinPairs(unittest.TestCase):
         except AssertionError:
             self.assertTrue(True)
 
-
-"""
-Unit tests for kNN model functions.
-"""
+#unit tests for ML model
 
 input_features = [
     'local_gap_compressed_percent_id',
@@ -101,7 +93,6 @@ input_features = [
     't_protein_len']
 
 target = 'protein_match'
-
 
 class TestModelTraining(unittest.TestCase):
     """
