@@ -206,8 +206,8 @@ We're currently use PyPDB for this.
 
 **Test:** Expected shape and size with correct columns DataFrame.
 
-# Component 5
-## Software Component Five: c5.0_relation.py
+# Component 5 - Training and Validation
+## Software Component Five: train_val_script.py
 
     **Params:** Pandas dataframe containing sampled data from our protein database from Components 0-2 + metric of interest from                   Component 3.
 
