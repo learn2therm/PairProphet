@@ -12,7 +12,7 @@ import sklearn.model_selection
 import sklearn.neighbors
 import sklearn.ensemble
 import sklearn.feature_selection
-from train_val_input_cleaning import df
+import sklearn.metrics
 
 
 def train_model(dataframe, columns=[], target=[]):
@@ -71,8 +71,6 @@ def train_model(dataframe, columns=[], target=[]):
 
     return model, train_X, train_y, val_X, val_y
 
-# maybe combine with plotting model
-
 
 def evaluate_model(model, val_X, val_y):
     """
@@ -96,7 +94,10 @@ def evaluate_model(model, val_X, val_y):
 
     preds = model.predict(val_X)
 
-    return preds
+    # not printed during model validation step
+    precision_score = sklearn.metrics.precision_score(val_y, preds)
+
+    return preds, precision_score
 
 
 def plot_model(model, val_X, val_y):
@@ -164,7 +165,7 @@ def rf_wrapper(dataframe):
     )
 
     # test the model and return predictions
-    preds = evaluate_model(model, val_X, val_y)
+    preds, _ = evaluate_model(model, val_X, val_y)
 
     # plot the results of the model
     score = plot_model(model, val_X, val_y)

@@ -11,9 +11,9 @@ from train_val_classification import rf_wrapper
 
 from train_val_input_cleaning import check_input_type
 from train_val_input_cleaning import clean_input_columns
-from train_val_input_cleaning  import verify_input_columns
-from train_val_input_cleaning  import check_input_nans
-from train_val_input_cleaning  import verify_protein_pairs
+from train_val_input_cleaning import verify_input_columns
+from train_val_input_cleaning import check_input_nans
+from train_val_input_cleaning import verify_protein_pairs
 
 df = pd.read_csv('learn2therm_sample_50k.csv')
 
@@ -21,6 +21,7 @@ df = pd.read_csv('learn2therm_sample_50k.csv')
 df['protein_match'] = df['t_protein_desc'] == df['m_protein_desc']
 
 # unit tests for input cleaning
+
 
 class TestInputType(unittest.TestCase):
     """
@@ -98,6 +99,7 @@ input_features = [
 
 target = 'protein_match'
 
+
 class TestModelTraining(unittest.TestCase):
     """
     Checks input and output formats for model training
@@ -142,7 +144,7 @@ class TestModelPerformance(unittest.TestCase):
             df, columns=input_features, target='protein_match'
         )
         # assert output type is correct
-        output = evaluate_model(model, val_X, val_y)
+        output, _ = evaluate_model(model, val_X, val_y)
         self.assertIsInstance(output, np.ndarray)
 
     def test_pred_dimension(self):
@@ -150,7 +152,7 @@ class TestModelPerformance(unittest.TestCase):
             df, columns=input_features, target='protein_match')
         # want to check that the number of predictions is equal to the number
         # of test examples
-        preds = evaluate_model(model, val_X, val_y)
+        preds, _ = evaluate_model(model, val_X, val_y)
         self.assertEqual(len(val_y), len(preds))
 
 
@@ -174,7 +176,7 @@ class TestWrapper(unittest.TestCase):
             columns=input_features, target='protein_match'
         )
         # assert output type is correct
-        output = evaluate_model(model, val_X, val_y)
+        output, _ = evaluate_model(model, val_X, val_y)
         self.assertIsInstance(output, np.ndarray)
 
     def test_output_dimension(self):
@@ -183,5 +185,5 @@ class TestWrapper(unittest.TestCase):
             columns=input_features, target='protein_match'
         )
         # want to check that the # of predictions is equal to # of examples
-        preds = evaluate_model(model, val_X, val_y)
+        preds, _ = evaluate_model(model, val_X, val_y)
         self.assertEqual(len(val_y), len(preds))

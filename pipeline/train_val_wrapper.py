@@ -2,12 +2,10 @@
 Wrapper functions for all of the machine learning component.
 """
 
-import pandas as pd
 from train_val_classification import rf_wrapper
 from train_val_input_cleaning import input_cleaning_wrapper
 from train_val_input_cleaning import df
 
-# autopep8 --in-place --aggressive --aggressive c5_pipeline.py
 
 def train_val_wrapper(dataframe):
     """
@@ -31,6 +29,5 @@ def train_val_wrapper(dataframe):
     classifier = rf_wrapper(cleaned)
 
     return classifier
-
 
 print(train_val_wrapper(df))

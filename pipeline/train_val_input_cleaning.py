@@ -88,14 +88,13 @@ def check_input_nans(dataframe):
     has_nan = dataframe.isna().any().any()
     nan_rows = dataframe[dataframe.isna().any(axis=1)]
 
-    # if has_nan:
-    #     print('Dataframe has {} rows with NaN values!'.format(len(nan_rows)))
-    # else:
-    #     print("DataFrame does not have any NaN values.")
+    if has_nan:
+        print('Dataframe has {} rows with NaN values!'.format(len(nan_rows)))
+    else:
+        print("DataFrame does not have any NaN values.")
 
     # Drop rows with NaN's
     dataframe = dataframe.dropna()
-    # print('Dataframe now has {} rows.'.format(len(dataframe)))
 
     return dataframe
 
@@ -139,6 +138,3 @@ def input_cleaning_wrapper(dataframe):
     print('The new shape of the dataframe is:{}'.format(verify_pairs.shape))
 
     return verify_pairs
-
-
-df = input_cleaning_wrapper(df)
