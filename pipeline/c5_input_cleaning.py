@@ -4,12 +4,12 @@ and cleans it so that it can be passed through a machine
 learning algorithm.
 """
 
-# import pandas as pd
+import pandas as pd
 
-# sample dataframe can be passed into wrapper. Commented out for now
-# df = pd.read_csv('learn2therm_sample_50k.csv')
+# sample dataframe can be passed into wrapper for training
+df = pd.read_csv('learn2therm_sample_50k.csv')
 
-# df['protein_match'] = df['t_protein_desc'] == df['m_protein_desc']
+df['protein_match'] = df['t_protein_desc'] == df['m_protein_desc']
 
 # keep columns we are interested in
 columns_to_keep = [
@@ -84,14 +84,14 @@ def check_input_nans(dataframe):
     has_nan = dataframe.isna().any().any()
     nan_rows = dataframe[dataframe.isna().any(axis=1)]
 
-    if has_nan:
-        print('Dataframe has {} rows with NaN values!'.format(len(nan_rows)))
-    else:
-        print("DataFrame does not have any NaN values.")
+    # if has_nan:
+    #     print('Dataframe has {} rows with NaN values!'.format(len(nan_rows)))
+    # else:
+    #     print("DataFrame does not have any NaN values.")
 
     # Drop rows with NaN's
     dataframe = dataframe.dropna()
-    print('Dataframe now has {} rows.'.format(len(dataframe)))
+    # print('Dataframe now has {} rows.'.format(len(dataframe)))
 
     return dataframe
 
@@ -104,7 +104,6 @@ def verify_protein_pairs(dataframe):
     assert 'm_protein_len' in dataframe, 'Dataframe missing mesophillic sequence!'
     assert 't_protein_len' in dataframe, 'Dataframe missing thermophillic sequence!'
 
-    print('OK!')
     return dataframe
 
 

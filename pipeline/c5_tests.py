@@ -20,11 +20,14 @@ df = pd.read_csv('learn2therm_sample_50k.csv')
 # create new Boolean column for protein functionality match
 df['protein_match'] = df['t_protein_desc'] == df['m_protein_desc']
 
-#unit tests for input cleaning
+# unit tests for input cleaning
+
+
 class TestInputType(unittest.TestCase):
     """
     Tests that input data is a pandas dataframe
     """
+
     def test_input_type(self):
         try:
             check_input_type([4, 3])
@@ -40,6 +43,7 @@ class TestInputCleaning(unittest.TestCase):
     dataframe.
     """
     # pass through some titles that should not be in the dataframe
+
     def test_input_cleaning(self):
         for title in ['Unnamed: 0', 'm_seq', 't_seq', 'prot_pair_index']:
             assert title not in clean_input_columns(df)
@@ -78,7 +82,8 @@ class TestProteinPairs(unittest.TestCase):
         except AssertionError:
             self.assertTrue(True)
 
-#unit tests for ML model
+# unit tests for ML model
+
 
 input_features = [
     'local_gap_compressed_percent_id',
@@ -93,6 +98,7 @@ input_features = [
     't_protein_len']
 
 target = 'protein_match'
+
 
 class TestModelTraining(unittest.TestCase):
     """
@@ -111,7 +117,7 @@ class TestModelTraining(unittest.TestCase):
     def test_output_format(self):
         """
         Asserts that function returns 5 objects to be assigned to
-        model, dev_X, dev_y, test_X, test_y.
+        model, train_X, train_y, dev_X, dev_y.
         """
         assert len(train_model(df, columns=input_features,
                                target=target)) == 5
@@ -126,28 +132,28 @@ class TestModelPerformance(unittest.TestCase):
     """
 
     def test_asserts(self):
-        model, _, _, test_X, test_y = train_model(
+        model, _, _, val_X, val_y = train_model(
             df, columns=input_features, target='protein_match'
         )
         # assert that input types are correct
         with self.assertRaises(AssertionError):
-            evaluate_model(model, [1, 2, 3], test_y)
+            evaluate_model(model, [1, 2, 3], val_y)
 
     def test_model_output(self):
-        model, _, _, test_X, test_y = train_model(
+        model, _, _, val_X, val_y = train_model(
             df, columns=input_features, target='protein_match'
         )
         # assert output type is correct
-        output = evaluate_model(model, test_X, test_y)
+        output = evaluate_model(model, val_X, val_y)
         self.assertIsInstance(output, np.ndarray)
 
     def test_pred_dimension(self):
-        model, _, _, test_X, test_y = train_model(
+        model, _, _, val_X, val_y = train_model(
             df, columns=input_features, target='protein_match')
         # want to check that the number of predictions is equal to the number
         # of test examples
-        preds = evaluate_model(model, test_X, test_y)
-        self.assertEqual(len(test_y), len(preds))
+        preds = evaluate_model(model, val_X, val_y)
+        self.assertEqual(len(val_y), len(preds))
 
 
 class TestWrapper(unittest.TestCase):
@@ -165,19 +171,19 @@ class TestWrapper(unittest.TestCase):
             self.assertTrue(True)
 
     def test_wrapper_output(self):
-        model, _, _, test_X, test_y = train_model(
+        model, _, _, val_X, val_y = train_model(
             df,
             columns=input_features, target='protein_match'
         )
         # assert output type is correct
-        output = evaluate_model(model, test_X, test_y)
+        output = evaluate_model(model, val_X, val_y)
         self.assertIsInstance(output, np.ndarray)
 
     def test_output_dimension(self):
-        model, _, _, test_X, test_y = train_model(
+        model, _, _, val_X, val_y = train_model(
             df,
             columns=input_features, target='protein_match'
         )
         # want to check that the # of predictions is equal to # of examples
-        preds = evaluate_model(model, test_X, test_y)
-        self.assertEqual(len(test_y), len(preds))
+        preds = evaluate_model(model, val_X, val_y)
+        self.assertEqual(len(val_y), len(preds))

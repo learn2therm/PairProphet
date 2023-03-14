@@ -5,12 +5,7 @@ Wrapper functions for all of the machine learning component.
 import pandas as pd
 from c5_classification import rf_wrapper
 from c5_input_cleaning import input_cleaning_wrapper
-# from c5_input_cleaning import df
-
-df = pd.read_csv('learn2therm_sample_50k.csv')
-
-# create new Boolean column for protein functionality match
-df['protein_match'] = df['t_protein_desc'] == df['m_protein_desc']
+from c5_input_cleaning import df
 
 # autopep8 --in-place --aggressive --aggressive c5_pipeline.py
 
@@ -20,8 +15,8 @@ def c5_wrapper(dataframe):
     Passes result through RF Classifier model.
 
     Input
-    ---------- 
-    Pandas dataframe 
+    ----------
+    Pandas dataframe
 
     Returns
     -------
@@ -36,5 +31,6 @@ def c5_wrapper(dataframe):
     classifier = rf_wrapper(cleaned)
 
     return classifier
+
 
 print(c5_wrapper(df))
