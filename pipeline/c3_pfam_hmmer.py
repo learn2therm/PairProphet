@@ -35,6 +35,7 @@ from Bio.SeqRecord import SeqRecord
 ## Paths
 PFAM_PATH = Path("/Users/humoodalanzi/pfam/Pfam-A.hmm") # ./Pfam-A.hmm
 ID_DB_PATH = Path("/Users/humoodalanzi/pfam/proteins_id.zip") # ./proteins_id.zip
+# SAMPLE_DB_PATH = Path("./learn2therm_sample_50k.csv") # ./learn2therm_sample_50k.csv
 
 
 
@@ -110,7 +111,7 @@ def read_seq(lists: pd.core.frame.DataFrame, inputname: str = "input"):
     if lists.empty:
         raise ValueError("Input dataframe is empty")
     
-    # check if sequences are valid
+    # check if sequences are valid (for ID_DB_PATH)
     for seq in lists['protein_seq']:
         try:
             Seq(seq)
@@ -181,11 +182,17 @@ if __name__ == '__main__':
 
     # reading the data
     protein_database = pd.read_csv(ID_DB_PATH, index_col=0)
+    ### sample
+    # df_sample = pd.read_csv(SAMPLE_DB_PATH, index_col=0)
     logger.info('Loaded database')
 
     # separating the meso and thermo
     meso_seq_db = protein_database.loc[protein_database["identity"] == "m"]
     thermo_seq_db = protein_database.loc[protein_database["identity"] == "t"]
+
+    ### sample
+    # meso_seq_db2 = df_sample[["meso_index", "m_protein_seq"]]
+    # thermo_seq_db2 = df_sample[["thermo_index", "t_protein_seq"]]
     logger.info('Data seperated into t and m')
 
     ## processing meso to be suitable for HMMER
@@ -193,11 +200,19 @@ if __name__ == '__main__':
     meso_seq_list = meso_seq_pre.set_index("protein_int_index").iloc[:15]
     meso_seq_list.index.name = None
 
+    ### sample
+    # meso_seq_list2 = meso_seq_db2.set_index("meso_index")
+    # meso_seq_list2.index.name = None
+
 
     ## processing meso to be suitable for HMMER
     thermo_seq_pre = thermo_seq_db[["protein_seq", "protein_int_index"]]
     thermo_seq_list = thermo_seq_pre.set_index("protein_int_index").iloc[:15]
     thermo_seq_list.index.name = None
+
+    ### sample
+    # thermo_seq_list2 = thermo_seq_db2.set_index("thermo_index")
+    # thermo_seq_list2.index.name = None
 
     logger.info('Sampled t and m data')
 
@@ -211,7 +226,7 @@ if __name__ == '__main__':
                       pfam_path=PFAM_PATH, 
                       cpu=1)
 
-    # chunking the data to 100 sequence bits
+    # chunking the data to 100 sequence bits (change if sample or all proteins)
     meso_chunks = [meso_seq_list[i:i+100] for i in range(0,len(meso_seq_list),100)]
     thermo_chunks = [thermo_seq_list[i:i+100] for i in range(0,len(thermo_seq_list),100)]
 
