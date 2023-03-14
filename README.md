@@ -23,7 +23,7 @@ Protein pair validation is time consuming and resource intensive, given that pro
 # Requirments
 
 This package requires a conda environment with external dependencies of biopython and hmmer.
-For a more detailed exposition on the modular/importable code, please see ValidProt/environment.yml.
+For a more detailed exposition on the modular/importable code, please see [packages](./docs/package_components.md).
 
 # Workflow
 
