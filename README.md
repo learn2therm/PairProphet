@@ -22,19 +22,31 @@ Protein pair validation is time consuming and resource intensive, given that pro
 
 # Requirments
 
+ValidProt is dependent on Python 3.9.
 This package requires a conda environment with external dependencies of biopython and hmmer.
 For a more detailed exposition on the modular/importable code, please see [packages](./docs/package_components.md).
+
+# Installation
+The package ValidProt can be installed using the following command:
+conda install validprot
 
 # Workflow
 
 1) Retrieve data from Learn2Therm DB
 2) Sample from large DB, feature selection, data formatting
+    a) sampling notebook found in [notebooks](./notebooks/c0-c2_exploration_plotting_sampling/)
 3) Family identification with Pfam
+    a) examples of Pfam parsing in [notebooks](./notebooks/dev-HA_Exploring_HMMER.ipynb)
 4) Family identification with PDB + other softwares
 5) Develop model to predict protein pair functionality
+    a) examples of model development in [notebooks](./notebooks/train_val_classification_randomforest.ipynb)
 6) Optimize scoring methods to improve quality of analysis
 
 # Outputs
 
 Boolean prediction of whether protein pair is functional.
 Functionality analysis (ongoing work).
+
+# Community Guidelines
+
+Our software is open-source. We recommend submission of feature requests and report bugs.
