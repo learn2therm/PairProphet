@@ -28,7 +28,21 @@ This document offers a comprehensive exposition of all the components as well as
     component 2. Additionally, users have the option to export intermediate metadata on the flow of information between learn2therm
     and ValidProt as Sankey plots.
 
-    **Packages:** os, sys, time, pandas, numpy, duckdb, plotly, kaleidoscope
+    **Packages:** os, time, pandas, numpy, duckdb, plotly, kaleido
+
+### **Subcomponent 1**: 
+
+**Use case**: User has copy of learn2therm database file and generates data for ValidProt. 
+
+**Test**: Test that connection and queries to new ValidProt database are correct. Test connection to old tables as well as new
+          within connection object.
+
+### **Subcomponent 2**: 
+
+**Use case**: Produces basic analysis of database transformation via Sankey plots.
+
+**Test**: Test that plot files are created and not empty.
+
 
 # Component 1
 
@@ -43,12 +57,13 @@ This document offers a comprehensive exposition of all the components as well as
                         3. Most recent metrics for model training (e.g. alignment/coverage scores). Included in docs
                            and c1 docstrings.
 
-        **Outputs:** Pandas dataframe(s) containing data sample of specified size.
+        **Outputs:** Pandas dataframe(s) containing data sample of specified size. We hope to include analytics as a
+        separate output in the future to inform user decisions about sampling.
 
-    Component 1 formats data for the ValidProt model. The resulting dataframe is pruned to contain only feature and 
+    Component 1 formats data for the ValidProt model. The resulting dataframe is pruned to contain only features and 
     target data.
 
-    **Packages:** os, sys, pandas, numpy, duckdb
+    **Packages:** os, sys, pandas
     
 ### **Subcomponent 1**: 
 
@@ -56,48 +71,31 @@ This document offers a comprehensive exposition of all the components as well as
               methods. 
 
 **Test**: Test assert that DataFrame was generated, compare shape with desired result. Check for obvious errors such as inconsistent data type within columns. Make sure all sampling configurations function as expected.
-
-### **Subcomponent 2**: 
-
-**Use case**: User has not supplied E-values for protein pairs, computes on-the-fly for Component 2 processing.
-
-    Subcomponent 2 is under development and will not be release with the initial version of ValidProt. Users will
-    need to format and clean their own data.
           
 
 # Component 2
 
     **Params:** 
 
-        **Inputs:** Protein pair database file or pandas dataframe formatted according to instructions in README. Sampling 
+        **Inputs:** Protein pair database file or pandas dataframe formatted for ValidProt. Sampling 
                     parameters for training set.
 
-        **Outputs:** DataFrame containing training data. Exported analytics and plots for user reference (optional).
-                     parameters.
+        **Outputs:** DataFrame containing training data. Exported analytics and plots for user reference (optional, not implemented 
+                     Winter 2023).
 
     Component 2 is a sampler for training the learn2therm database. Users can select the desired sampling method, and the function
-    can seek data subsets satisfying those parameters. For example, rare features can be oversampled or common ones undersampled 
-    to give the model broader applicability across protein pairs.
+    can seek data subsets satisfying those parameters. For example, data can be represented with higher information density 
+    (fringe data is favored) using the Frank-Wolfe algorithm.
 
-    **Packages:** pandas, numpy, scipy.stats, matplotlib.pyplot, seaborn, math
+    **Packages:** pandas, numpy
     
 ### **Subcomponent 1**: 
 
-**Use case**: Basic statistics and plots associated with Data funneled from Component 1 are exported for user. Includes PDF and other relevant distributions.
+**Use case**: User supplies large dataset. Returns sampled dataset according to input parameters. Currently supports random sampling
+or Frank-Wolfe D-optimal sampling.
 
-**Test**: (If relevant) Test that plots were generated and statistical variables exist.
+**Test**: Test that sample distributions are significantly different than random. Test that convergence conditions are met and that output dataframe is the correct size.
 
-### **Subcomponent 2**: 
-
-**Use case**: Decides if sample size is sufficient for downstream processing. Re-samples without replacement if needed. Return to Component 1.1
-
-**Test**: (If relevant) Test that sample is representative of mean or matches parameters supplied by user (e.g. specific E-values, etc.)
-
-### **Subcomponent 3**: 
-
-**Use case**: Compiled sample set is sufficient for downstream processing. Collect sequences into DataFrame for pfam analysis. Other information stored in another indexed DataFrame.
-
-**Test**: DataFrame shape matches expected value. Software acknowledges optional parameters from original data input.
 
 # Component 3
 ## Software Component Three: c3.0_pfam.py

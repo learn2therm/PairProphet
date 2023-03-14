@@ -7,10 +7,7 @@ Functions:
     g_prime_i: Calculates g_prime vaues used in validprot_sample
 '''
 
-from typing import List
 import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
 import pandas as pd
 
 def validprot_sample(df, size, stat_samp = 'random', exclude = None, tol = 1e-04, density = 0.01):
