@@ -167,8 +167,8 @@ def check_result(dataframe):
 3. for the second approach, synergize HMMER and pfam locally
 4. parse, filter, and compute metrics of interest for a large dataset
 
-# Component 4
-## Software Component Four: c3.0_PDB_RCSB.py
+# Component 4 - Acquire structural information
+## Software Component Four: find_structures.py
 
     **Params:**
 
