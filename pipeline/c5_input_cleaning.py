@@ -4,13 +4,12 @@ and cleans it so that it can be passed through a machine
 learning algorithm.
 """
 
-import pandas as pd
+# import pandas as pd
 
-# load dataframe
-df = pd.read_csv('learn2therm_sample_50k.csv')
+# sample dataframe can be passed into wrapper. Commented out for now
+# df = pd.read_csv('learn2therm_sample_50k.csv')
 
-# create new Boolean column for protein functionality match
-df['protein_match'] = df['t_protein_desc'].eq(df['m_protein_desc'])
+# df['protein_match'] = df['t_protein_desc'] == df['m_protein_desc']
 
 # keep columns we are interested in
 columns_to_keep = [
