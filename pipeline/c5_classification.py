@@ -58,14 +58,14 @@ def train_model(dataframe, columns=[], target=[]):
     train_X = scaler.fit_transform(train_X)
     val_X = scaler.fit_transform(val_X)
 
-    # train model
+    # train model with hyperparams optimized
     model = sklearn.ensemble.RandomForestClassifier(
-        n_estimators=150,
+        n_estimators=200,
         max_depth=None,
-        max_samples=0.5,
+        max_samples=0.3,
         max_features=0.5,
-        min_weight_fraction_leaf=0.000215,
-        min_samples_split=10)
+        min_weight_fraction_leaf=0,
+        min_samples_split=17)
 
     model = model.fit(train_X, train_y.ravel())
 
@@ -170,3 +170,5 @@ def rf_wrapper(dataframe):
     score = plot_model(model, val_X, val_y)
 
     return preds, score
+
+print(rf_wrapper(df))

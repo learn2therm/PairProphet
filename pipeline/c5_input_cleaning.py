@@ -2,6 +2,9 @@
 This module takes a dataframe from the data scraping component
 and cleans it so that it can be passed through a machine
 learning algorithm.
+In this training/validation stage of the project, we will
+load a sample CSV (n=50,000) with protein pairs from our large
+database to demonstrate functionality.
 """
 
 import pandas as pd
@@ -9,9 +12,10 @@ import pandas as pd
 # sample dataframe can be passed into wrapper for training
 df = pd.read_csv('learn2therm_sample_50k.csv')
 
+# create target that describes whether protein pair is functional
 df['protein_match'] = df['t_protein_desc'] == df['m_protein_desc']
 
-# keep columns we are interested in
+# keep columns that can be used as features
 columns_to_keep = [
     'bit_score',
     'local_gap_compressed_percent_id',
@@ -135,3 +139,6 @@ def input_cleaning_wrapper(dataframe):
     print('The new shape of the dataframe is:{}'.format(verify_pairs.shape))
 
     return verify_pairs
+
+
+df = input_cleaning_wrapper(df)

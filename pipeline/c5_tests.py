@@ -22,7 +22,6 @@ df['protein_match'] = df['t_protein_desc'] == df['m_protein_desc']
 
 # unit tests for input cleaning
 
-
 class TestInputType(unittest.TestCase):
     """
     Tests that input data is a pandas dataframe
@@ -98,7 +97,6 @@ input_features = [
     't_protein_len']
 
 target = 'protein_match'
-
 
 class TestModelTraining(unittest.TestCase):
     """
