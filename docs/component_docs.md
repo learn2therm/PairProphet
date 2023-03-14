@@ -28,6 +28,7 @@ This document offers a comprehensive exposition of all the components as well as
     component 2. Additionally, users have the option to export intermediate metadata on the flow of information between learn2therm
     and ValidProt as Sankey plots.
 
+<<<<<<< HEAD
     **Packages:** os, time, pandas, numpy, duckdb, plotly, kaleido
 
 ### **Subcomponent 1**: 
@@ -43,6 +44,9 @@ This document offers a comprehensive exposition of all the components as well as
 
 **Test**: Test that plot files are created and not empty.
 
+=======
+    **Packages:** os, sys, time, pandas, numpy, duckdb, plotly, kaleidoscope
+>>>>>>> logan
 
 # Component 1
 
@@ -57,6 +61,7 @@ This document offers a comprehensive exposition of all the components as well as
                         3. Most recent metrics for model training (e.g. alignment/coverage scores). Included in docs
                            and c1 docstrings.
 
+<<<<<<< HEAD
         **Outputs:** Pandas dataframe(s) containing data sample of specified size. We hope to include analytics as a
         separate output in the future to inform user decisions about sampling.
 
@@ -64,6 +69,14 @@ This document offers a comprehensive exposition of all the components as well as
     target data.
 
     **Packages:** os, sys, pandas
+=======
+        **Outputs:** Pandas dataframe(s) containing data sample of specified size.
+
+    Component 1 formats data for the ValidProt model. The resulting dataframe is pruned to contain only feature and 
+    target data.
+
+    **Packages:** os, sys, pandas, numpy, duckdb
+>>>>>>> logan
     
 ### **Subcomponent 1**: 
 
@@ -71,12 +84,23 @@ This document offers a comprehensive exposition of all the components as well as
               methods. 
 
 **Test**: Test assert that DataFrame was generated, compare shape with desired result. Check for obvious errors such as inconsistent data type within columns. Make sure all sampling configurations function as expected.
+<<<<<<< HEAD
+=======
+
+### **Subcomponent 2**: 
+
+**Use case**: User has not supplied E-values for protein pairs, computes on-the-fly for Component 2 processing.
+
+    Subcomponent 2 is under development and will not be release with the initial version of ValidProt. Users will
+    need to format and clean their own data.
+>>>>>>> logan
           
 
 # Component 2
 
     **Params:** 
 
+<<<<<<< HEAD
         **Inputs:** Protein pair database file or pandas dataframe formatted for ValidProt. Sampling 
                     parameters for training set.
 
@@ -86,6 +110,17 @@ This document offers a comprehensive exposition of all the components as well as
     Component 2 is a sampler for training the learn2therm database. Users can select the desired sampling method, and the function
     can seek data subsets satisfying those parameters. For example, data can be represented with higher information density 
     (fringe data is favored) using the Frank-Wolfe algorithm.
+=======
+        **Inputs:** Protein pair database file or pandas dataframe formatted according to instructions in README. Sampling 
+                    parameters for training set.
+
+        **Outputs:** DataFrame containing training data. Exported analytics and plots for user reference (optional).
+                     parameters.
+
+    Component 2 is a sampler for training the learn2therm database. Users can select the desired sampling method, and the function
+    can seek data subsets satisfying those parameters. For example, rare features can be oversampled or common ones undersampled 
+    to give the model broader applicability across protein pairs.
+>>>>>>> logan
 
     **Packages:** pandas, numpy
     
@@ -167,8 +202,13 @@ def check_result(dataframe):
 3. for the second approach, synergize HMMER and pfam locally
 4. parse, filter, and compute metrics of interest for a large dataset
 
+<<<<<<< HEAD
 # Component 4 - Acquire structural information
 ## Software Component Four: find_structures.py
+=======
+# Component 4
+## Software Component Four: c3.0_PDB_RCSB.py
+>>>>>>> logan
 
     **Params:**
 
@@ -207,10 +247,17 @@ We're currently use PyPDB for this.
 # Component 5 - Training and Validation
 ## Software Component Five: train_val_script.py
 
+<<<<<<< HEAD
     **Params:** Pandas dataframe containing sampled data from our protein database from Components 0-2 + metric of interest from                   Component 3.
 
     **Inputs:** Training: Pandas Dataframe containing known protein pairs with Boolean metric of interest.
                 Testing: Pair of amino acid sequences from Component 3.
+=======
+    **Params:** Pandas dataframe containing sampled data from our protein database from data retrieval component + metric of                       interest from Pfam parsing component.
+
+    **Inputs:** Training/Validation: Pandas Dataframe containing known protein pairs with Boolean metric of interest.
+                Testing: Pair of amino acid sequences from Pfam parsing component (future work).
+>>>>>>> logan
 
     **Outputs:**  Boolean Prediction (Functional pair: True or Functional pair: False)
                   Confidence score on prediction.
@@ -223,14 +270,22 @@ The purpose of this component is to train a machine learning classifier model on
 
 For training, the model will take in a pandas dataframe containing protein pairs as examples. The database will be cleaned until 10 quantitative features remain, including alignment metrics, optimal growth temperature, bit scores, sequence length, and alignment coverage. The cleaned dataframe will also include a Boolean target, classifying the protein as either a functional pair or not a functional pair. The model will be trained and tested based on this data.
 
+<<<<<<< HEAD
 Once trained, this component will take in a pair of amino acid sequences along with the same features collected in Component 3, and will return a Boolean valuen signifying if the proteins are indeed a functional pair, along with a confidence score determined during testing.
+=======
+Once trained, this component will take in a pair of amino acid sequences along with the same features collected in Pfam parsing component, and will return a Boolean valuen signifying if the proteins are indeed a functional pair, along with a confidence score determined during testing. This component relies on the full functionality of the Pfam component, which is still in progress.
+>>>>>>> logan
 
 This component will undergo significant further development during the spring. We plan to add functionality such that it can use data scraped from other protein databases than Pfam as features, including tertiary and quarternary structural data. Furthermore, we plan to improve our confidence in predicition and eventually develop a quantitative functionality prediction.
 
 
 ### **Subcomponent 1**: Test for pandas dataframe input
 
+<<<<<<< HEAD
 **Use case**: User takes data from component 3 (where data is processed into pandas dataframe) and wants to pass it into relationship component.
+=======
+**Use case**: User takes data from upstream (where data is processed into pandas dataframe) and wants to pass it into training/validation/testing component.
+>>>>>>> logan
 
 
 **Test**: Test asserts that data structure received is a pandas dataframe.
@@ -295,7 +350,11 @@ Our goal is to develop some functionality score between a pair of proteins that 
 **Test**: work-in-progress
 
 #### Plan Outline
+<<<<<<< HEAD
 1. Get data from component 3. This should already be in a pandas dataframe (data prep is included in C3).
+=======
+1. Get data from data retrieval component for training and validation, and from Pfam parsing component for testing. This should already be in a pandas dataframe (data prep is included in upstream).
+>>>>>>> logan
 2. Clean the data to prepare it for model training and testing.
 3. Train and test the model, return scores, plot, and any other necessary indicator of model performance.
 4. Input new user data and return a functionality score for the input protein pair.
