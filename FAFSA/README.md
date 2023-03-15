@@ -15,7 +15,12 @@ In this directory, you will find the different sub-modules of FAFSA package:
 
     - `compute_pair_function.py` this script is still in active development, but in the future, it should be able to parse the HMMER outputs, filter them and generate a dataframe if a protein pair are functional or not
 
-- Component 4 is intended to return proteins that have structural similarity to the input by searching the Protein Data Bank (PDB). The current code can search from PDB to return proteins that share sequence homology. This will be leveraged for analyzing structural similarity.
+- Component 4 is intended to return proteins that have structural similarity to the input by searching the Protein Data Bank (PDB).
+
+    Includes:
+
+    - `find_structures.py`, which scrapes from PDB to return proteins that share sequence homology. This will be leveraged for analyzing structural similarity.
+
 
 - Component 5 contains:
 
