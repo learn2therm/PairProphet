@@ -34,11 +34,14 @@ conda install validprot
 
 1) Retrieve data from Learn2Therm DB
 2) Sample from large DB, feature selection, data formatting
+
     a) sampling notebook found in [notebooks](./notebooks/c0-c2_exploration_plotting_sampling/)
 3) Family identification with Pfam
+
     a) examples of Pfam parsing in [notebooks](./notebooks/dev-HA_Exploring_HMMER.ipynb)
 4) Family identification with PDB + other softwares
 5) Develop model to predict protein pair functionality
+
     a) examples of model development in [notebooks](./notebooks/train_val_classification_randomforest.ipynb)
 6) Optimize scoring methods to improve quality of analysis
 
