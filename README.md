@@ -46,7 +46,7 @@ For a more detailed exposition on the modular/importable code, please see [packa
 4) Family identification with PDB + other softwares
 5) Develop model to predict protein pair functionality
 
-    a) examples of model development in [notebooks](./notebooks/train_val_classification_randomforest.ipynb)
+    a) examples of model development in [notebooks](./notebooks/)
 6) Optimize scoring methods to improve quality of analysis
 
 # Outputs
