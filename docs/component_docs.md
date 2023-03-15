@@ -118,15 +118,18 @@ This document offers a comprehensive exposition of all the components as well as
 # Component 3
 ## Software Component Three: c3.0_pfam.py
     
-    **Params:** sequence data from component 1 and 2
+    **Params:** sampled sequence data from component 2
 
     **Inputs:** protein pair amino acid sequences
 
-    **Outputs:** family identification, pfam E value, and identity scores
+    **Outputs:** for the two proteins in a pair, you've a target family based on hmmer metrics and a boolean to check if a pair are functional or not according to pfam parsing
 
     **Metrics:**
 
-    **Packages:** pandas, unittest, biopython, HMMER, pfam database (database, optional)
+    **Packages:** pandas, biopython, HMMER, pfam database (database, optional), unittest
+
+Component 3 aims to use the HMMER algrothim running against the pfam database on all protein pairs specified by the user. In this case, we are using the Learn2thermDB protein pairs.
+This component has two options to be ran locally or using the online HMMER server API. The two options have different subcomponents, use-cases and tests. However, for the purposes of this documentation, we will assume that the two options are the same, which is a reasonable assumption to make in this case. This component takes in the sampling data from the upstream component 2. From there, the component starts ensuring that the amino acid sequences supplied by the user are read and written in the appropriate .fasta file type for HMMER to take in. Then, it runs HMMER search against the Pfam database using the hmmscan command. Here, we aim to embarrassingly parallelize to beat the I/O disk-reading of the HMMER algrothim, and make sure that it can take as much sequences as possible. Unfortuntely, this is subject of ongoing work and has not been implemented properly yet. This component will undergo significant further development during the spring. We plan to run HMMER on the newest data sample and we will work on a function that parses the HMMER output, filters, and determines if a pair are functional or not, which will be the input for component 5.
 
 ### **Subcomponent 1**: Send sequence and get result
 
@@ -150,6 +153,9 @@ Currently, we are doing two approaches for this:
 assert pfam_in == [], "empty output"
 ```
 
+**Code**:
+        {placeholder}
+
 ### **Subcomponent 2**: parse and filter results
 
 **Use case**: 
@@ -158,48 +164,14 @@ assert pfam_in == [], "empty output"
 
 **Test**: 
 
-        work-in-progress
+        {placeholder}
 
-```py
-# pseudo-code
-def check_result(dataframe):
-    
-      if no family info in dataframe[]:
-          raise Exception "The pair do not have a family or they do not have the same family"
-      else:
-          pass
-          
-      if no E value in dataframe[]:
-          raise ValueError
-      else:
-          pass
-```
-
-### **Subcompoent 3**: apply pfam to all pairs
-
-**Use case**: 
-
-        User applies pfam to all their desired pair data
-
-**Test**: 
-
-        work-in-progress
-
-### **Subcomponent 4**: compute metric of interst of all pairs
-
-**Use case**: 
-
-        User obtain all relevant metrics of interst for all pairs
-
-**Test**: 
-
-        context-dependent + work-in-progress
+**Code**:
+        {placeholder}
 
 #### Plan Outline
-1. Have the two approaches for the user to query pfam in Python script code
-2. for the first approach, figure out how to do efficent HTTPs requests and get the correct information
-3. for the second approach, synergize HMMER and pfam locally
-4. parse, filter, and compute metrics of interest for a large dataset
+1. for the first option, explicitly integrate with the upstream and downstream component especially when we have a small dataset
+2. for the second approach, parse, filter, and compute metrics of interest for a large dataset
 
 # Component 4 - Acquire structural information
 ## Software Component Four: find_structures.py
