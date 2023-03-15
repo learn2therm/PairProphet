@@ -116,7 +116,7 @@ This document offers a comprehensive exposition of all the components as well as
 
 
 # Component 3
-## Software Component Three: c3.0_pfam.py
+## Software Component Three: compute_local_hmmer.py or HMMER_API.py
     
     **Params:** sampled sequence data from component 2
 
@@ -131,46 +131,57 @@ This document offers a comprehensive exposition of all the components as well as
 Component 3 aims to use the HMMER algrothim running against the pfam database on all protein pairs specified by the user. In this case, we are using the Learn2thermDB protein pairs.
 This component has two options to be ran locally or using the online HMMER server API. The two options have different subcomponents, use-cases and tests. However, for the purposes of this documentation, we will assume that the two options are the same, which is a reasonable assumption to make in this case. This component takes in the sampling data from the upstream component 2. From there, the component starts ensuring that the amino acid sequences supplied by the user are read and written in the appropriate .fasta file type for HMMER to take in. Then, it runs HMMER search against the Pfam database using the hmmscan command. Here, we aim to embarrassingly parallelize to beat the I/O disk-reading of the HMMER algrothim, and make sure that it can take as much sequences as possible. Unfortuntely, this is subject of ongoing work and has not been implemented properly yet. This component will undergo significant further development during the spring. We plan to run HMMER on the newest data sample and we will work on a function that parses the HMMER output, filters, and determines if a pair are functional or not, which will be the input for component 5.
 
-### **Subcomponent 1**: Send sequence and get result
+### **Subcomponent 1**: Read sequence
 
 **Use case**: 
         
-        User sends their AA sequence of interest and gets a basic pfam result
+        User sends their AA sequences of interest. Transform inputs into appropriate fasta seqeunces, and write them as an input file.
 
-Currently, we are doing two approaches for this:
-1. Using interpro's API, and sending HTTPs request, we query pfam
-    - pro: minimal amount of packages needed
-    - issue: depedent on an online server and potentially slow
-2. Downloading HMMER and pfam and running things locally
-    - pro: quick
-    - issue: requires more packages from users (hence we are thinking of making this optional)
+**Code**:
+
+        Reads the pair AA sequence returns a list of biopython SeqRecord objects and creates a corresponding input Fasta of them
 
 **Test**: 
 
-        check if you get an empty result/call, catch as an exception
+        1) Tests if the provided AA sequence is valid (canonical AAs only)
+        2) Tests if the input file is created
+        3) Tests if the given input from file to original sequence dataframe are empty, invalid, improper type, etc.
 
-```py
-assert pfam_in == [], "empty output"
-```
-
-**Code**:
-        {placeholder}
-
-### **Subcomponent 2**: parse and filter results
+### **Subcomponent 2**: Run HMMER against pfam database
 
 **Use case**: 
 
-        User obtains relevant outputs from pfam
+        Users' input files are provided to HMMER using the hmmscan command to run against the pfam database. Depending on the numbers of the pairs, parallelization will be included here. 
+
+**Code**:
+
+        1) Creates a corresponding HMMER output file from the hmmscan subprocess for the inputs of the user
+        --optional (in-development)--
+        2) Chunks a large list of sequences based on the class of two pairs
+        3) run hmmscan on each chunk using embarrassingly parallel python techinque  
 
 **Test**: 
 
-        {placeholder}
+        Given that we are not using our algrothim here, we are mainly testing if an output file is created
+
+
+### **Subcomponent 3**: parse and compute functional pair from HMMER outputs (in-development)
+
+**Use case**: 
+
+        parses and filters the various hmmer outputs for the pairs and decides using various methods if the two pairs are functional or not 
 
 **Code**:
-        {placeholder}
+
+        This is still in active-development 
+
+**Test**: 
+
+        Work-in-progress
+
 
 #### Plan Outline
-1. for the first option, explicitly integrate with the upstream and downstream component especially when we have a small dataset
+1. for the first option, explicitly integrate with the upstream and downstream components especially when we have a small dataset
 2. for the second approach, parse, filter, and compute metrics of interest for a large dataset
 
 # Component 4 - Acquire structural information
