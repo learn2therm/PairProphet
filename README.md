@@ -1,10 +1,10 @@
-# ValidProt
+# FAFSA (Function annotated from sequence alignment)
 
 # Background
 
 The following repository is for the project code associated with the two courses: Data Science Methods for Clean Energy Research (ChemE 545) and Software Engineering for Molecular Data Scientists (ChemE 546) at UW.
 
-ValidProt is a project developed by Humood Alanzi, Ryan Francis, Amin Mosallenejad, Logan Roberts, and Chau Vuong.
+FAFSA is a project developed by Humood Alanzi, Ryan Francis, Amin Mosallenejad, Logan Roberts, and Chau Vuong.
 
 Purpose: This package is developed to validate functionality between a pair of protein sequences.
 
@@ -22,13 +22,15 @@ Protein pair validation is time consuming and resource intensive, given that pro
 
 # Requirments
 
-ValidProt is dependent on Python 3.9.
+FAFSA is dependent on Python 3.9.
 This package requires a conda environment with external dependencies of biopython and hmmer.
 For a more detailed exposition on the modular/importable code, please see [packages](./docs/package_components.md).
 
 # Installation
-The package ValidProt can be installed using the following command:
-conda install validprot
+The package FAFSA can be installed using the following command:
+conda env create --file environment.yml
+conda activate ValidProt
+pip install .
 
 # Workflow
 
@@ -38,7 +40,7 @@ conda install validprot
     a) sampling notebook found in [notebooks](./notebooks/c0-c2_exploration_plotting_sampling/)
 3) Family identification with Pfam
 
-    a) examples of Pfam parsing in [notebooks](./notebooks/dev-HA_Exploring_HMMER.ipynb)
+    a) examples of generating outputs from Pfam in [notebooks](./notebooks/dev-HA_Exploring_HMMER.ipynb)
 4) Family identification with PDB + other softwares
 5) Develop model to predict protein pair functionality
 
