@@ -17,5 +17,5 @@ This directory includes notebooks used for development of our software.
 
 -PDB scraping (pypdb)
 
-Notebooks were developed into functional .py scripts, found [here](../FAFSA/)
+Notebooks were developed into functional .py scripts, found [here](../FAFSA/).
 
