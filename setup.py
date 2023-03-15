@@ -1,5 +1,5 @@
-# need to make more robust in the future. Don't use for now though.
-from setuptools import setup, find_packages, find_namespace_packages
+# need to make more robust in the future
+from setuptools import setup, find_packages
 import pathlib
 
 here = pathlib.Path(__file__).parent.resolve()

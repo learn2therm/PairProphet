@@ -39,10 +39,10 @@ For a more detailed exposition on the modular/importable code, please see [packa
 1) Retrieve data from Learn2Therm DB
 2) Sample from large DB, feature selection, data formatting
 
-    a) sampling notebook found in [notebooks](./notebooks/c0-c2_exploration_plotting_sampling/)
+    a) sampling notebook found in [notebooks](./notebooks/)
 3) Family identification with Pfam
 
-    a) examples of generating outputs from Pfam in [notebooks](./examples/local_hmmer_example.ipynb)
+    a) examples of generating outputs from Pfam in [examples](./examples/local_hmmer_example.ipynb)
 4) Family identification with PDB + other softwares
 5) Develop model to predict protein pair functionality
 
