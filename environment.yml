@@ -151,4 +151,5 @@ dependencies:
   - zlib=1.2.13
   - pip:
       - duckdb==0.6.1
-prefix: /Users/loganroberts/opt/anaconda3/envs/validprot
+      - pypdb==2.2
+prefix: /opt/anaconda3/envs/validprot
