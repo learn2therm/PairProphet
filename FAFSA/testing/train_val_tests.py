@@ -5,23 +5,23 @@ import unittest
 import pandas as pd
 import numpy as np
 
-from train_val_classification import train_model
-from train_val_classification import evaluate_model
-from train_val_classification import rf_wrapper
+from FAFSA.train_val_classification import train_model
+from FAFSA.train_val_classification import evaluate_model
+from FAFSA.train_val_classification import rf_wrapper
 
-from train_val_input_cleaning import check_input_type
-from train_val_input_cleaning import clean_input_columns
-from train_val_input_cleaning import verify_input_columns
-from train_val_input_cleaning import check_input_nans
-from train_val_input_cleaning import verify_protein_pairs
+from FAFSA.train_val_input_cleaning import check_input_type
+from FAFSA.train_val_input_cleaning import clean_input_columns
+from FAFSA.train_val_input_cleaning import verify_input_columns
+from FAFSA.train_val_input_cleaning import check_input_nans
+from FAFSA.train_val_input_cleaning import verify_protein_pairs
 
 df = pd.read_csv('learn2therm_sample_50k.csv')
 
 # create new Boolean column for protein functionality match
 df['protein_match'] = df['t_protein_desc'] == df['m_protein_desc']
 
-# unit tests for input cleaning
 
+# unit tests for input cleaning
 
 class TestInputType(unittest.TestCase):
     """
