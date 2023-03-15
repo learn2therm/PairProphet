@@ -12,7 +12,7 @@ This directory includes notebooks used for development of our software.
 
 -Pfam/HMMER output generation
     
-    -Locally: (dev_HA_Exploring_HMMR)
+    -Locally: (dev-HA_Exploring_HMMER)
     -Through server: (Interpro API Explore)
 
 -PDB scraping (pypdb)
