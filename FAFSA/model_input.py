@@ -17,7 +17,7 @@ module_path = os.path.abspath(os.path.join('..'))
 if module_path not in sys.path:
     sys.path.append(module_path)
     
-from c0_preprocessing import connect_db
+from FAFSA.preprocessing import connect_db
 
 def fetch_data(path, form = 'duckdb', size: int = 1000, method = 'random', idx_range: list = [0,0],
                chunksize: int = 10 ** 5):

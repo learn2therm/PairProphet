@@ -6,7 +6,7 @@ import unittest
 
 import os
 
-from preprocessing import *
+from FAFSA.preprocessing import *
 
 def get_db_path(filename = 'fafsa_testing'):
     '''

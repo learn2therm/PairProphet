@@ -5,7 +5,7 @@ Unit testing script for FAFSA c1.
 import unittest
 import os
 
-import c1_model_input as c1
+from FAFSA.model_input import *
 
 def get_db_path(filename = 'fafsa_testing'):
     '''

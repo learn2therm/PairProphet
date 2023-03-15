@@ -7,7 +7,7 @@ import os
 import pandas as pd
 import numpy as np
 
-import c2_sample_for_train as c2
+from FAFSA.sample_for_train import *
 
 def get_clean_df(filename):
     
