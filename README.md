@@ -12,7 +12,7 @@ Purpose: This package is developed to validate functionality between a pair of p
 
 - [Background](#background)
 - [Overview](#overview)
-- [Requirments](#requirments)
+- [Requirments](#requirments--installation)
 - [Workflow](#workflow)
 - [Outputs](#outputs)
 
@@ -20,17 +20,19 @@ Purpose: This package is developed to validate functionality between a pair of p
 
 Protein pair validation is time consuming and resource intensive, given that proteins can be related through many unique functions, both direct and inferred. Many unique softwares specialize in characterizing protein based on a few of these functions. Our pipeline aims to combine different softwares, spanning sequence alignment, structure and folding prediction, and residue conservation into a single pipeline to improve prediction quality and streamline the characterization process.
 
-# Requirments
+# Requirments & Installation
+To create and activate the environment specified in `environment.yml`
+and install the FAFSA package, do the following commands:
+```
+conda env create --file environment.yml
+conda activate ValidProt
+pip install .
+```
 
 FAFSA is dependent on Python 3.9.
 This package requires a conda environment with external dependencies of biopython and hmmer.
 For a more detailed exposition on the modular/importable code, please see [packages](./docs/package_components.md).
 
-# Installation
-The package FAFSA can be installed using the following command:
-conda env create --file environment.yml
-conda activate ValidProt
-pip install .
 
 # Workflow
 

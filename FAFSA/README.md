@@ -7,7 +7,7 @@ In this directory, you will find the different sub-modules of FAFSA package:
 
 - Component 2 is a sampler for training the Learn2Therm database. Users can seek data subsets that fulfill their parameters and characterization goals.
 
-- Component 3 has two options:
+- Component 3 includes:
 
     - `HMMER_API.py` which queries a few amino acid sequeces from a user's database against PFAM and return an interpretable table
 
@@ -17,10 +17,16 @@ In this directory, you will find the different sub-modules of FAFSA package:
 
 - Component 4 is intended to return proteins that have structural similarity to the input by searching the Protein Data Bank (PDB). The current code can search from PDB to return proteins that share sequence homology. This will be leveraged for analyzing structural similarity.
 
-- Component 5 contains a pipeline that cleans the input dataframe, isolates features, and defines target for machine learning. Data is then passed through RandomForestClassifier from scikit-learn.
+- Component 5 contains:
+
+    - `train_val_input_cleaning.py`, which cleans input dataframe, isolates features, and defines target for machine learning
+
+    - `train_val_classification.py`, which runs cleaned dataframe through RandomForestClassifier from scikit-learn
+
+    - `train_val_wrapper.py`, which is  wrapping function for these two modules
+    
 
 - Component 6 is a proposed Spring quarter milestone that will include more analysis of functionality between protein pairs.
-
 
 ## Note
 Currently these sub-modules/components aren't fully integrated into each other due to temporary technical hurdles. The next version of this software will include integration.
