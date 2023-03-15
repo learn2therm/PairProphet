@@ -42,7 +42,7 @@ For a more detailed exposition on the modular/importable code, please see [packa
     a) sampling notebook found in [notebooks](./notebooks/c0-c2_exploration_plotting_sampling/)
 3) Family identification with Pfam
 
-    a) examples of generating outputs from Pfam in [notebooks](./notebooks/dev-HA_Exploring_HMMER.ipynb)
+    a) examples of generating outputs from Pfam in [notebooks](./examples/local_hmmer_example.ipynb)
 4) Family identification with PDB + other softwares
 5) Develop model to predict protein pair functionality
 

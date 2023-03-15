@@ -14,7 +14,7 @@ setup(
     long_description_content_type="text/markdown", 
     url="https://github.com/learn2therm/ValidProt",
     author="Humood Alanzi, Logan Roberts, Ryan Francis, Amin Mosallanejad, Chau Vuong ", 
-    author_email="halanzi@uw.com",
+    author_email="halanzi@uw.edu",
     classifiers=[
         "Development Status :: 1 - Planning",
         "License :: OSI Approved :: MIT License",

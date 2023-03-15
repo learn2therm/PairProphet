@@ -9,6 +9,10 @@ The packages you need to run this script are the following:
 You also need to have:
 - pfam db locally
 - protein db
+
+Note
+-----
+Initially, this script was designed to run HMMER on all our proteins in pairs, thus the mass commenting at the end
 '''
 
 # system dependecies
@@ -31,13 +35,13 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 
-# Paths
+# Paths (used to need as I was planning to use this script for hyak)
 
 #### important note re: PFAM_PATH -> the user should have a locally
 # hmmerpressed copy of pfam-A.hmm ####
 PFAM_PATH = Path("/Users/humoodalanzi/pfam/Pfam-A.hmm")  # ./Pfam-A.hmm
 # ./learn2therm_sample_50k.csv
-SAMPLE_DB_PATH = Path("learn2therm_sample_50k_exploration.csv")
+SAMPLE_DB_PATH = Path("../notebooks/learn2therm_sample_50k_exploration.csv")
 
 # For hyak implementation
 # ID_DB_PATH = Path("/Users/humoodalanzi/pfam/proteins_id.zip") #
@@ -52,7 +56,7 @@ def hmmer_wrapper(
         output_filename_with_ext: str,
         cpu: int = 4):
     """
-    Executes HMMER against pfam and parses the results
+    Executes HMMER against pfam
 
     Parameters:
     ------------
@@ -76,11 +80,6 @@ def hmmer_wrapper(
         the input fasta file created from the list of SeqRecord objects
     file : TextIOWrapper (Output domtblout file)
         an output domtblout file of the HMMER/pfam results
-
-    Raises
-    -------
-    AttributeError :
-        in development
     """
     # wrapper execution
     # User should define an amino acid sequence as Pandas series
@@ -229,6 +228,7 @@ def run_hmmer(
 #     # sample
 #     meso_seq_list2 = meso_seq_db2.set_index("meso_index").iloc[:500]
 #     meso_seq_list2.index.name = None
+#     meso_seq_list2.rename({'m_protein_seq': 'protein_seq'}, axis="columns", inplace=True)
 
 #     # processing meso to be suitable for HMMER
 #     # thermo_seq_pre = thermo_seq_db[["protein_seq", "protein_int_index"]]
@@ -238,6 +238,7 @@ def run_hmmer(
 #     # sample
 #     thermo_seq_list2 = thermo_seq_db2.set_index("thermo_index").iloc[:500]
 #     thermo_seq_list2.index.name = None
+#     thermo_seq_list2.rename({'t_protein_seq': 'protein_seq'}, axis="columns", inplace=True)
 
 #     logger.info('Sampled t and m data')
 
