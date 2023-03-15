@@ -4,7 +4,7 @@
 
 This directory includes notebooks used for development of our software.
 
-.ipynb notebooks included in this directory cover:
+# .ipynb notebooks included in this directory cover:
 
 -Machine Learning architecture development (train_val)
 
