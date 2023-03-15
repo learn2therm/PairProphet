@@ -1,4 +1,10 @@
-""" tests for component three"""
+""" 
+tests for component three.
+
+Note: the second tests that are commented out work, 
+but because the nature of compute_local_hmmer.py changed, 
+there are no outputs to check for
+"""
 # system dependecies
 import glob
 import os
@@ -12,7 +18,7 @@ from Bio import SeqIO
 
 
 # local dependencies/utils
-from compute_local_hmmer import read_seq
+from FAFSA.compute_local_hmmer import read_seq
 
 
 
@@ -84,27 +90,27 @@ class TestReadSeq(unittest.TestCase):
             pass
 
 
-class TestRunHmmer(unittest.TestCase):
-    """Tests for run_hmmer function"""
-    # set up
+# class TestRunHmmer(unittest.TestCase):
+#     """Tests for run_hmmer function"""
+#     # set up
 
-    def setUp(self):
-        file_list = glob.glob("meso_output*.domtblout")
-        if len(file_list) > 0:
-            self.outputname = file_list[0][:-10]
-        else:
-            file_list = glob.glob("thermo_output*.domtblout")
-            if len(file_list) > 0:
-                self.outputname = file_list[0][:-10]
-            else:
-                self.outputname = None
-    # check if file is created. I don't need more tests because HMMER isn't my
-    # function
+#     def setUp(self):
+#         file_list = glob.glob("meso_output*.domtblout")
+#         if len(file_list) > 0:
+#             self.outputname = file_list[0][:-10]
+#         else:
+#             file_list = glob.glob("thermo_output*.domtblout")
+#             if len(file_list) > 0:
+#                 self.outputname = file_list[0][:-10]
+#             else:
+#                 self.outputname = None
+#     # check if file is created. I don't need more tests because HMMER isn't my
+#     # function
 
-    def test_file_created(self):
-        """Tests if the file output is created"""
-        if self.outputname:
-            self.assertTrue(os.path.isfile(f"{self.outputname}.domtblout"))
-        else:
-            self.fail(
-                "No file matching meso_output*.domtblout or thermo_output*.domtblout was found")
+#     def test_file_created(self):
+#         """Tests if the file output is created"""
+#         if self.outputname:
+#             self.assertTrue(os.path.isfile(f"{self.outputname}.domtblout"))
+#         else:
+#             self.fail(
+#                 "No file matching meso_output*.domtblout or thermo_output*.domtblout was found")
