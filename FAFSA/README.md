@@ -1,4 +1,4 @@
-# Executiables
+# Executables
 In this directory, you will find the different sub-modules of FAFSA package:
 
 - Component 0 retrieves data from Learn2Therm database and produces basic data analyses of database transformation via Sankey plots.
