@@ -25,7 +25,7 @@ To create and activate the environment specified in `environment.yml`
 and install the FAFSA package, do the following commands:
 ```
 conda env create --file environment.yml
-conda activate ValidProt
+conda activate validprot
 pip install .
 ```
 
