@@ -11,6 +11,7 @@ There's an enviroment.yml, which you can download to run the different modules i
 - scikitlearn
 - kaleido
 - plotly 
+- pypdb
 - os
 - sys
 - time
