@@ -1,11 +1,11 @@
 '''
-Unit testing script for FAFSA c1.
+Unit testing script for FAFSA model_input.
 '''
 
 import unittest
 import os
 
-from FAFSA.model_input import *
+from FAFSA.model_input import fetch_data
 
 def get_db_path(filename = 'fafsa_testing'):
     '''
@@ -25,7 +25,7 @@ def get_db_path(filename = 'fafsa_testing'):
     '''
 
     # Get path for test dataset import
-    db_path = os.path.abspath(os.path.join('..', 'data', filename))
+    db_path = os.path.abspath(os.path.join('..', '..', 'data', filename))
 
     if os.path.exists(db_path) is False:
         raise ValueError(f'Could not find {filename} in current directory')
@@ -43,23 +43,23 @@ class TestFetch(unittest.TestCase):
         Smoke test to ensure function runs in both csv and duckdb modes without error.
         '''
         db_path = get_db_path()
-        c1.fetch_data(db_path, form = 'duckdb')
+        fetch_data(db_path, form = 'duckdb')
         df_path = get_db_path('learn2therm_sample_50k.zip')
-        c1.fetch_data(df_path, form = 'csv', size = 100)
+        fetch_data(df_path, form = 'csv', size = 100)
 
     def test_oneshot_random(self):
         '''
         Oneshot test for random sampling.
         '''
         df_path = get_db_path('learn2therm_sample_50k.zip')
-        assert c1.fetch_data(df_path, form = 'csv', size = 100, method = 'random').shape[0] == 100
+        assert fetch_data(df_path, form = 'csv', size = 100, method = 'random').shape[0] == 100
 
     def test_oneshot_chunk(self):
         '''
         Oneshot test for chunked sampling.
         '''
         df_path = get_db_path('learn2therm_sample_50k.zip')
-        assert c1.fetch_data(df_path, form = 'csv', size = 100, method = 'chunk',
+        assert fetch_data(df_path, form = 'csv', size = 100, method = 'chunk',
                       chunksize = 9).shape[0] == 100
 
     def test_oneshot_num(self):
@@ -67,7 +67,7 @@ class TestFetch(unittest.TestCase):
         Oneshot test for numeric sampling. Test that size argument is superceded by idx_range.
         '''
         df_path = get_db_path('learn2therm_sample_50k.zip')
-        assert c1.fetch_data(df_path, form = 'csv', size = 1, method = 'numeric',
+        assert fetch_data(df_path, form = 'csv', size = 1, method = 'numeric',
                       idx_range = [100, 200]).shape[0] == 100
 
     def test_wrong_type(self):
@@ -77,7 +77,7 @@ class TestFetch(unittest.TestCase):
         db_path = get_db_path()
 
         with self.assertRaises(ValueError):
-            c1.fetch_data(db_path, form = 'wrong')
+            fetch_data(db_path, form = 'wrong')
 
     def test_wrong_method(self):
         '''
@@ -86,7 +86,7 @@ class TestFetch(unittest.TestCase):
         db_path = get_db_path()
 
         with self.assertRaises(ValueError):
-            c1.fetch_data(db_path, method = 'wrong')
+            fetch_data(db_path, method = 'wrong')
 
     def test_idx_out_of_range(self):
         '''
@@ -95,4 +95,4 @@ class TestFetch(unittest.TestCase):
         db_path = get_db_path()
 
         with self.assertRaises(ValueError):
-            c1.fetch_data(db_path, method = 'sequential', idx_range = [0,10000])
+            fetch_data(db_path, method = 'sequential', idx_range = [0,10000])

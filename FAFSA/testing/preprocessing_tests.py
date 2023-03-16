@@ -6,7 +6,9 @@ import unittest
 
 import os
 
-from FAFSA.preprocessing import *
+from FAFSA.preprocessing import connect_db
+from FAFSA.preprocessing import build_fafsa
+from FAFSA.preprocessing import sankey_plots
 
 def get_db_path(filename = 'fafsa_testing'):
     '''
@@ -26,7 +28,7 @@ def get_db_path(filename = 'fafsa_testing'):
     '''
 
     # Get path for test dataset import
-    db_path = os.path.abspath(os.path.join('..', 'data', filename))
+    db_path = os.path.abspath(os.path.join('..', '..', 'data', filename))
 
     if os.path.exists(db_path) is False:
         raise ValueError(f'Could not find {filename} in current directory')
@@ -62,7 +64,7 @@ class TestConnection(unittest.TestCase):
 
 class TestBuildFafsa(unittest.TestCase):
     '''
-    Tests for the fafsa_build function.
+    Tests for the build_fafsa function.
     '''
 
     def test_smoke(self):
@@ -83,7 +85,7 @@ class TestBuildFafsa(unittest.TestCase):
         db_path = get_db_path()
         con = connect_db(db_path)
 
-        c0.build_fafsa(con)
+        build_fafsa(con)
         con = connect_db(db_path)
 
         correct = ['proteins', 'protein_pairs', 'taxa', 'taxa_pairs', 'vp_final',

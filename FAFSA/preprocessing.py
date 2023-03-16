@@ -272,7 +272,7 @@ def sankey_plots(con, min_ogt_diff):
 
     # Checks if plots directory exists and makes one if it does not.
     newdir = 'plots'
-    exist = os.path.exists(os.path.join('.', newdir))
+    exist = os.path.exists(os.path.join('..', '..', 'data', newdir))
 
     if not exist:
         os.makedirs(newdir)
@@ -326,7 +326,7 @@ def sankey_plots(con, min_ogt_diff):
       ))])
 
     fig1.update_layout(title_text='Taxa Pairs', font_family = 'Arial', font_size=16)
-    fig1.write_image(os.path.join('../data', newdir, 'taxa_pair_sankey.png'), engine = 'kaleido',
+    fig1.write_image(os.path.join('..', '..', 'data', newdir, 'taxa_pair_sankey.png'), engine = 'kaleido',
                      scale = 6, width = 1280, height = 640)
 
     # Parameters for taxa Sankey
@@ -405,7 +405,7 @@ def sankey_plots(con, min_ogt_diff):
 
     fig2.update_layout(title_text="Taxa Representation", font_size=16, font_family = 'Arial',
                        font_color = 'black')
-    fig2.write_image(os.path.join('../data', newdir, 'taxa_sankey.png'), engine = 'kaleido',
+    fig2.write_image(os.path.join('..', '..', 'data', newdir, 'taxa_sankey.png'), engine = 'kaleido',
                      scale = 6, width = 1280, height = 640)
 
     # Parameters for protein pair Sankey
@@ -439,7 +439,7 @@ def sankey_plots(con, min_ogt_diff):
       ))])
 
     fig3.update_layout(title_text='Protein Pairs', font_family = 'Arial', font_size=16)
-    fig3.write_image(os.path.join('../data', newdir, 'protein_pair_sankey.png'),
+    fig3.write_image(os.path.join('..', '..', 'data', newdir, 'protein_pair_sankey.png'),
                      engine = 'kaleido', scale = 6, width = 1280, height = 640)
 
     # Parameters for protein Sankey
@@ -522,5 +522,5 @@ def sankey_plots(con, min_ogt_diff):
       ))])
 
     fig4.update_layout(title_text="Protein Representation", font_family = 'Arial', font_size=16)
-    fig4.write_image(os.path.join('../data', newdir, 'protein_sankey.png'), engine = 'kaleido',
+    fig4.write_image(os.path.join('..', '..', 'data', newdir, 'protein_sankey.png'), engine = 'kaleido',
                      scale = 6, width = 1280, height = 640)

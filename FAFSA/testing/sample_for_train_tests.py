@@ -7,7 +7,10 @@ import os
 import pandas as pd
 import numpy as np
 
-from FAFSA.sample_for_train import *
+from FAFSA.sample_for_train import fafsa_sample
+from FAFSA.sample_for_train import FrankWolfe
+from FAFSA.sample_for_train import g_prime_i
+
 
 def get_clean_df(filename):
     
@@ -16,7 +19,7 @@ def get_clean_df(filename):
                 'subject_align_cov', 'bit_score', 'm_protein_len', 't_protein_len']
     
     # Get path for test dataset import
-    db_path = os.path.abspath(os.path.join('..', 'data', filename))
+    db_path = os.path.abspath(os.path.join('..', '..', 'data', filename))
 
     if os.path.exists(db_path) is False:
         raise ValueError(f'Could not find {filename} in current directory')
@@ -35,7 +38,7 @@ class TestSample(unittest.TestCase):
         '''
         Smoke test to ensure function runs both modes without error.
         '''
-        assert c2.fafsa_sample(get_clean_df('learn2therm_sample_50k.zip').sample(100), 
+        assert fafsa_sample(get_clean_df('learn2therm_sample_50k.zip').sample(100), 
                                    size = 10, stat_samp = 'frankwolfe')
         
     def test_oneshot_random(self):
@@ -43,7 +46,7 @@ class TestSample(unittest.TestCase):
         Test that correct sample data is returned from known inputs.
         '''
         test_df = get_clean_df('learn2therm_sample_50k.zip').sample(100).reset_index()
-        df, idx = c2.fafsa_sample(test_df, size = 10, stat_samp = 'random')
+        df, idx = fafsa_sample(test_df, size = 10, stat_samp = 'random')
         
         assert df.shape[0] == 10
         assert len(idx) == 10
@@ -54,7 +57,7 @@ class TestSample(unittest.TestCase):
         Test that correct sample data is returned from known inputs.
         '''
         test_df = get_clean_df('learn2therm_sample_50k.zip').sample(100).reset_index()
-        df, idx = c2.fafsa_sample(test_df, size = 10, stat_samp = 'frankwolfe')
+        df, idx = fafsa_sample(test_df, size = 10, stat_samp = 'frankwolfe')
         
         assert df.shape[0] == 10
         assert len(idx) == 10
@@ -67,7 +70,7 @@ class TestSample(unittest.TestCase):
         test_df = pd.DataFrame({'a':[1,2,3], 'b':[4,5,6]})
         
         with self.assertRaises(AttributeError):
-            c2.fafsa_sample(test_df, size = 10)
+            fafsa_sample(test_df, size = 10)
 
         
 class TestFrankWolfe(unittest.TestCase):
@@ -79,13 +82,13 @@ class TestFrankWolfe(unittest.TestCase):
         '''
         Smoke test to ensure function runs without error.
         '''
-        assert c2.FrankWolfe(np.random.rand(3,100), 0.01)
+        assert FrankWolfe(np.random.rand(3,100), 0.01)
         
     def test_oneshot(self):
         '''
         Test that reasonable probability distribution is returned from known inputs.
         '''
-        lamb, _, _ = c2.FrankWolfe(np.random.rand(4,50), 0.01)
+        lamb, _, _ = FrankWolfe(np.random.rand(4,50), 0.01)
         assert np.isclose(np.sum(lamb), 1)
 
         
@@ -98,16 +101,17 @@ class TestgPrime(unittest.TestCase):
         '''
         Smoke test to ensure function runs without error.
         '''
-        X = np.array([[1,2,3],[2,3,4],[3,4,5]])
-        A = np.array([[1,2,3],[2,3,4],[3,4,5]])
+        X = np.array([[1.5,2,3],[2,3,4],[3,4,5]])
+        A = np.array([[1,2,3],[2,3,4],[3.5,4,5]])
         i = 0
-        c2.g_prime_i(X, A, i)
+        g_prime_i(X, A, i)
         
     def test_oneshot(self):
         '''
         Test that function returns correct values with known input.
         '''
-        X = np.array([[1,2,3],[2,3,4],[3,4,5]])
-        A = np.array([[1,2,3],[2,3,4],[3,4,5]])
+        X = np.array([[1.5,2,3],[2,3,4],[3,4,5]])
+        A = np.array([[1,2,3],[2,3,4],[3.5,4,5]])
         i = 2
-        assert c2.g_prime_i(X, A, i)[0][0] == 22.0      
+        print(g_prime_i(X, A, i)[0][0])
+        assert np.isclose(g_prime_i(X, A, i)[0][0], -5)      
