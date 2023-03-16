@@ -131,41 +131,34 @@ This document offers a comprehensive exposition of all the components as well as
 Component 3 aims to use the HMMER algrothim running against the pfam database on all protein pairs specified by the user. In this case, we are using the Learn2thermDB protein pairs.
 This component has two options to be ran locally or using the online HMMER server API. The two options have different subcomponents, use-cases and tests. However, for the purposes of this documentation, we will assume that the two options are the same, which is a reasonable assumption to make in this case. This component takes in the sampling data from the upstream component 2. From there, the component starts ensuring that the amino acid sequences supplied by the user are read and written in the appropriate .fasta file type for HMMER to take in. Then, it runs HMMER search against the Pfam database using the hmmscan command. Here, we aim to embarrassingly parallelize to beat the I/O disk-reading of the HMMER algrothim, and make sure that it can take as much sequences as possible. Unfortuntely, this is subject of ongoing work and has not been implemented properly yet. This component will undergo significant further development during the spring. We plan to run HMMER on the newest data sample and we will work on a function that parses the HMMER output, filters, and determines if a pair are functional or not, which will be the input for component 5.
 
-### **Subcomponent 1**: Read sequence
+### **Subcomponent 1**: Read sequence & Run HMMER against pfam database
 
 **Use case**: 
         
-        User sends their AA sequences of interest. Transform inputs into appropriate fasta seqeunces, and write them as an input file.
+        1) User sends their AA sequences of interest. Transform inputs into appropriate fasta seqeunces, and write them as an input file.
+        2) Users' input files are provided to HMMER using the hmmscan command to run against the pfam database. Depending on the numbers of the pairs, parallelization will be included here. 
 
 **Code**:
 
-        Reads the pair AA sequence returns a list of biopython SeqRecord objects and creates a corresponding input Fasta of them
+        *Read sequence*
+                - Reads the pair AA sequence returns a list of biopython SeqRecord objects and creates a corresponding input Fasta of them
+        *HMMER running*
+                1) Creates a corresponding HMMER output file from the hmmscan subprocess for the inputs of the user
+                --optional (in-development)--
+                2) Chunks a large list of sequences based on the class of two pairs
+                3) run hmmscan on each chunk using embarrassingly parallel python techinque  
 
 **Test**: 
 
-        1) Tests if the provided AA sequence is valid (canonical AAs only)
-        2) Tests if the input file is created
-        3) Tests if the given input from file to original sequence dataframe are empty, invalid, improper type, etc.
-
-### **Subcomponent 2**: Run HMMER against pfam database
-
-**Use case**: 
-
-        Users' input files are provided to HMMER using the hmmscan command to run against the pfam database. Depending on the numbers of the pairs, parallelization will be included here. 
-
-**Code**:
-
-        1) Creates a corresponding HMMER output file from the hmmscan subprocess for the inputs of the user
-        --optional (in-development)--
-        2) Chunks a large list of sequences based on the class of two pairs
-        3) run hmmscan on each chunk using embarrassingly parallel python techinque  
-
-**Test**: 
-
-        Given that we are not using our algrothim here, we are mainly testing if an output file is created
+        *Read seqeunce*
+                1) Tests if the provided AA sequence is valid (canonical AAs only)
+                2) Tests if the input file is created
+                3) Tests if the given input from file to original sequence dataframe are empty, invalid, improper type, etc.
+        *HMMER running*
+                - Given that we are not using our algrothim here, we are mainly testing if an output file is created
 
 
-### **Subcomponent 3**: parse and compute functional pair from HMMER outputs (in-development)
+### **Subcomponent 2**: parse and compute functional pair from HMMER outputs (in-development)
 
 **Use case**: 
 
