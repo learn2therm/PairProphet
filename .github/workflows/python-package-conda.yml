@@ -15,7 +15,8 @@ env:
   CACHE_NUMBER: 0  # increase to reset cache manually
 
 jobs:
-  create-env:
+  build:
+  
     name: ${{ matrix.os }} 
     runs-on: ${{ matrix.os }}
     defaults:
