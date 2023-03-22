@@ -44,9 +44,10 @@ jobs:
       run: echo "DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
     - uses: actions/cache@v2
       with:
-        path: ${{ matrix.prefix }}
-        key: ${{ matrix.label }}-conda-${{ hashFiles('environment.yml') }}-${{ env.DATE }}-${{ env.CACHE_NUMBER }}
-      id: cache
+        key: ${{ matrix.os }}-conda-${{ hashFiles('environment.yml') }}-${{ env.DATE }}-${{ env.CACHE_NUMBER }}
+        restore-keys: |
+          ${{ matrix.os }}-conda-${{ hashFiles('environment.yml') }}-${{ env.DATE }}-
+          ${{ matrix.os }}-conda-${{ hashFiles('environment.yml') }}-
     
     - name: Update environment
       run: mamba env update -n my-env -f environment.yml
