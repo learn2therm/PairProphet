@@ -28,6 +28,7 @@ jobs:
     - name: Lint with flake8
       run: |
         # activate venv
+        source ~/anaconda3/bin/activate
         conda activate base
         # insall flake8
         conda install flake8
