@@ -25,9 +25,11 @@ jobs:
       run: |
         conda env update --file environment.yml --name base
         conda init bash
-        conda activate base
     - name: Lint with flake8
       run: |
+        # activate venv
+        conda activate base
+        # insall flake8
         conda install flake8
         # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
