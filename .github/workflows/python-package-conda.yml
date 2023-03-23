@@ -46,7 +46,7 @@ jobs:
     - name: Checkout Repo
       uses: actions/checkout@v2
       with:
-        fetch-depth: 3
+        fetch-depth: 0
     
     - name: Setup Conda venv with Mambaforge
       uses: conda-incubator/setup-miniconda@v2
@@ -80,9 +80,9 @@ jobs:
         # install FAFSA
         python setup.py install
         # activate venev
-        conda activate validprot
+        mamba activate validprot
         # insall flake8
-        conda install flake8
+        mamba install flake8
         # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
@@ -93,9 +93,9 @@ jobs:
         # install FAFSA
         python setup.py install
         # activate venev
-        conda activate validprot
+        mamba activate validprot
         # install pytest coverage coveralls
-        conda install pytest
+        mamba install pytest coverage coveralls
         # running the tests
         pytest
         # coverage
