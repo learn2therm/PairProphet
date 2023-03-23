@@ -64,6 +64,7 @@ jobs:
       
     - uses: actions/cache@v2
       with:
+        path: ${{ matrix.os }}
         key: ${{ matrix.os }}-conda-${{ hashFiles('environment.yml') }}-${{ env.DATE }}-${{ env.CACHE_NUMBER }}
         restore-keys: |
           ${{ matrix.os }}-conda-${{ hashFiles('environment.yml') }}-${{ env.DATE }}-
