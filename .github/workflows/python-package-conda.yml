@@ -82,6 +82,8 @@ jobs:
     
     - name: Lint with flake8
       run: |
+        # activate venev
+        conda activate validprot
         # insall flake8
         conda install flake8
         # stop the build if there are Python syntax errors or undefined names
@@ -91,5 +93,9 @@ jobs:
     
     - name: Run tests
       run: |
+        # activate venev
+        conda activate validprot
+        # install pytest
         conda install pytest
-        pytest ./FAFSA/testing
+        # running the tests
+        pytest
