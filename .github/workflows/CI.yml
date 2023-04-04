@@ -30,6 +30,7 @@ jobs:
       if: matrix.os == 'macos-latest'
     - name: Setup conda environment with conda dependencies
       run: |
+        conda update -n base -c defaults conda
         conda install python=${{ matrix.python-version }}
         conda env update --file environment.yml --name base --prune
     - name: Install package and testing dependencies
