@@ -8,6 +8,7 @@ dependencies:
   - numpy
   - pandas
   - python
+  - pip
   - scikit-learn
   - python-kaleido
   - joblib
