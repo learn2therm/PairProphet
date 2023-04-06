@@ -278,7 +278,7 @@ if __name__ == '__main__':
     def run_hmmer_parallel(chunk_index, seq, which):
         """Executes run_hmmer in parrallel"""
         run_hmmer(
-            seq=seq,
+            seqs=seq,
             input_file=f"{which}_input_{chunk_index}",
             hmm=PFAM_PATH,
             output_file=f"{which}_output_{chunk_index}.domtblout",
@@ -294,7 +294,7 @@ if __name__ == '__main__':
                      for i in range(0, len(thermo_seq_list), 100)]
 
     # parallel computing on how many CPUs (n_jobs=)
-    Parallel(n_jobs=2)(delayed(run_hmmer_parallel)(i, chunk, "meso")
+    Parallel(n_jobs=1)(delayed(run_hmmer_parallel)(i, chunk, "meso")
                        for i, chunk in enumerate(meso_chunks))
-    Parallel(n_jobs=2)(delayed(run_hmmer_parallel)(i, chunk, "thermo")
+    Parallel(n_jobs=1)(delayed(run_hmmer_parallel)(i, chunk, "thermo")
                        for i, chunk in enumerate(thermo_chunks))
