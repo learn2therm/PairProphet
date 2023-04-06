@@ -1,8 +1,8 @@
 name: validprot
 channels:
-  - plotly
-  - conda-forge
   - defaults
+  - conda-forge
+  - plotly
 dependencies:
   - biopython
   - numpy
