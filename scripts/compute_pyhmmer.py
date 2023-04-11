@@ -225,7 +225,7 @@ def run_pyhmmer(
     # HMMscan execution with or without save_out
     with pyhmmer.easel.SequenceFile(input_file, digital=True) as seqs:
         if save_out:
-            with open(output_file, "wb", encoding="utf-8") as dst:
+            with open(output_file, "wb") as dst:
                 for i, hits in enumerate(
                     pyhmmer.hmmer.hmmscan(
                         seqs, targets, cpus=cpu, E=eval_con)):
