@@ -231,7 +231,7 @@ def run_pyhmmer(
                         seqs, targets, cpus=cpu, E=eval_con)):
                     hits.write(dst, format="domains", header=i == 0)
         else:
-            all_hits = pyhmmer.hmmscan(seqs, targets, cpus=cpu, E=eval_con)
+            all_hits = pyhmmer.hmmer.hmmscan(seqs, targets, cpus=cpu, E=eval_con)
 
     return all_hits if not save_out else None
 
@@ -287,18 +287,25 @@ if __name__ == '__main__':
             save_out=True
         )
 
+    # Set up parallel processing
+    njobs = 1  # Number of parallel processes to use
+    batch_size = 100  # Number of sequences to process in each batch
+
+    logger.info('Parallel processing parameters obtained')
+
     # chunking the data to 100 sequence bits (change if sample or all proteins)
-    meso_chunks = [meso_seq_list[i:i + 100]
-                   for i in range(0, len(meso_seq_list), 100)]
-    thermo_chunks = [thermo_seq_list[i:i + 100]
-                     for i in range(0, len(thermo_seq_list), 100)]
+    meso_chunks = [meso_seq_list[i:i + batch_size]
+                   for i in range(0, len(meso_seq_list), batch_size)]
+    thermo_chunks = [thermo_seq_list[i:i + batch_size]
+                     for i in range(0, len(thermo_seq_list), batch_size)]
 
     logger.info('Chunking done')
 
     # parallel computing on how many CPUs (n_jobs=)
-    Parallel(n_jobs=1)(delayed(run_hmmer_parallel)(i, chunk, "meso")
+    logger.info('Split sequences into batches in parallel')
+    Parallel(n_jobs=njobs)(delayed(run_hmmer_parallel)(i, chunk, "meso")
                        for i, chunk in enumerate(meso_chunks))
-    Parallel(n_jobs=1)(delayed(run_hmmer_parallel)(i, chunk, "thermo")
+    Parallel(n_jobs=njobs)(delayed(run_hmmer_parallel)(i, chunk, "thermo")
                        for i, chunk in enumerate(thermo_chunks))
 
     logger.info('Parallelization complete')
