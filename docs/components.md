@@ -6,127 +6,69 @@ Currently, this document will be rather sparse until we have a functional pipeli
 
 For more detailed information, click [here](./component_docs.md)
 
-0. `c0.0_db_formatter.py`
+0-2. `preprocessing.py`
 
-*reformats learn2therm database for use in ValidProt pipeline*
+*reformats learn2therm database for use in FAFSA pipeline & statistically samples formatted data for model training*
     
-    Params: something
+    Params: N/A
 
-    Inputs: something
+    Inputs: Learn2ThermDB
 
-    Outputs: something
+    Outputs: - Augmented database file containing relevant proteins and pairs for FAFSA. Keeps original tables intact.
+             nb. It is recommended to have a backup copy of the original database as well as 100 GB of free storage and at least 30 GB of available memory. 
+             - snakey plots for analysis
 
-    Metrics: something
-
-1. `c1.0_test_input.py`
-
-*Input pipeline for test datasets*
-    
-    Params: something
-
-    Inputs: something
-
-    Outputs: something
-
-    Metrics: something
-
-2. `c2.0_sampling.py`
-
-*statistically samples formatted data for model training*
-        - Compute PDF's of population
-        - Determine new sampling ratios
-        - Figure out how to cover the entire space of feature (make good training material)
-    Params: something
-
-    Inputs: something
-
-    Outputs: something
-
-    Metrics: something
-
-3.`c3.0_pfam_input.py`
-
-*give AA sequence to pfam, get basic results*
-
-    Params: something
-
-    Inputs: something
-
-    Outputs: something
-
-    Metrics: something
-
-4. `c3.1_pfam_parse.py`
-
-*parse and filter the results from pfam*
-
-    Params: something
-
-    Inputs: something
-
-    Outputs: something
-
-    Metrics: something
-
-5.`c3.2_pfam_apply.py`
-
-*apply results to pair data*
-    
-    Params: something
-
-    Inputs: something
-
-    Outputs: something
-
-    Metrics: something
-
-6.`c3.3_pfam_compute.py`
-
-*compute metric of interest*
-
-    Params: something
-
-    Inputs: something
-
-    Outputs: something
-
-    Metrics: something
-
-<nb. we can have even more steps here re: 3D structure prediction>
-
-7. `c4.0_data_collection.py`
-
-*collect data from various softwares*
-
-    Params: something
-
-    Inputs: something
-
-    Outputs: something
-
-    Metrics: something
-
-8. `c5.0_relation.py`
-
-*create experimental dataset from outputs of collect (pfam, 3D, etc.) that can be used to formulate ML model*
+    Metrics: N/A
 
 
-    Params: something
+3.`compute_local_hmmer.py` or `HMMER_API.py`
 
-    Inputs: something
+*runs the HMMER algrothim against the pfam database on all protein pairs specified by the user.*
 
-    Outputs: something
+    Params: sampled sequence from the previous component
 
-    Metrics: something
+    Inputs: protein pair amino acid sequences
 
-9. `c6.0_filter.py`
+    Outputs: HMMER domtblout output files for sequences
 
-*filter the learn2therm dataset based on this analytical tool*
+    Metrics: N/A
 
-    Params: something
+4. `compute_pair_function.py` (**ongoing development**)
 
-    Inputs: something
+*parses and filter the results from pfam*
 
-    Outputs: something
+    Params: component 3 outputs
 
-    Metrics: something
+    Inputs: N/A
+
+    Outputs: functional boolean of pair
+
+    Metrics: N/A
+
+
+5. `find_structures.py`
+
+*acquires structural information*
+
+    Params: component 3 outputs
+
+    Inputs: N/A
+
+    Outputs: functional boolean of pair
+
+    Metrics: N/A
+
+
+6. `train_val_script*.py`
+
+*trains a machine learning classifier model to predict functional pairs*
+
+    Params: Pandas dataframe containing sampled data from our protein database from Components 0-2 + metric of interest from Component 3.
+
+    Inputs: - Training: Pandas Dataframe containing known protein pairs with Boolean metric of interest.
+            - Testing: Pair of amino acid sequences from Component 3.
+
+    Outputs: - Boolean Prediction (Functional pair: True or Functional pair: False)
+             - Confidence score on prediction.
+
+    Metrics: N/A
