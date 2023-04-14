@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FAFSA package &mdash; FAFSA 1.0.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            FAFSA
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">FAFSA package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-FAFSA.HMMER_API">FAFSA.hmmer_api module</a></li>
+<li><a class="reference internal" href="#module-FAFSA.compute_local_hmmer">FAFSA.compute_local_hmmer module</a></li>
+<li><a class="reference internal" href="#module-FAFSA.compute_pair_function">FAFSA.compute_pair_function module</a></li>
+<li><a class="reference internal" href="#module-FAFSA.find_structures">FAFSA.find_structures module</a></li>
+<li><a class="reference internal" href="#module-FAFSA.model_input">FAFSA.model_input module</a></li>
+<li><a class="reference internal" href="#module-FAFSA.preprocessing">FAFSA.preprocessing module</a></li>
+<li><a class="reference internal" href="#module-FAFSA.sample_for_train">FAFSA.sample_for_train module</a></li>
+<li><a class="reference internal" href="#module-FAFSA.train_val_classification">FAFSA.train_val_classification module</a></li>
+<li><a class="reference internal" href="#module-FAFSA.train_val_classification_newtarget">FAFSA.train_val_classification_newtarget module</a></li>
+<li><a class="reference internal" href="#fafsa-train-val-input-cleaning-module">FAFSA.train_val_input_cleaning module</a></li>
+<li><a class="reference internal" href="#fafsa-train-val-wrapper-module">FAFSA.train_val_wrapper module</a></li>
+<li><a class="reference internal" href="#module-FAFSA">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FAFSA</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">FAFSA package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/FAFSA.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="fafsa-package">
+<h1>FAFSA package<a class="headerlink" href="#fafsa-package" title="Permalink to this heading"></a></h1>
+<p>FAFSA is a package developed to validate functionality between a pair of protein sequences.</p>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</section>
+<section id="module-FAFSA.HMMER_API">
+<span id="fafsa-hmmer-api-module"></span><h2>FAFSA.hmmer_api module<a class="headerlink" href="#module-FAFSA.HMMER_API" title="Permalink to this heading"></a></h2>
+<p>This script takes a user defined dataframe and an integer k, which send HTTPs requests to the HMMER API
+the packages you need to run this script are:
+- pandas
+- requests
+- urllib.parse
+- time</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="FAFSA.HMMER_API.hmmerscanner">
+<span class="sig-prename descclassname"><span class="pre">FAFSA.HMMER_API.</span></span><span class="sig-name descname"><span class="pre">hmmerscanner</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FAFSA/HMMER_API.html#hmmerscanner"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FAFSA.HMMER_API.hmmerscanner" title="Permalink to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>df: pandas.core.DataFrame</dt><dd><p>A DataFrame that has string amino acid sequences. This function has been used Meso s
+equence, we can change that to Thermo sequence according to our needed.</p>
+</dd>
+<dt>k: int</dt><dd><p>The number of sequences to scan.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Exception:</dt><dd><p>Raises an exception if the status is pending for too long, if the internet isn’t working,
+or if the URL system doesn’t wholly answer.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>results_df: pandas.core.DataFrame</dt><dd><p>All the families are in the rows, and we have many columns that show the information that
+we need in the future. We can drop some columns and keep the needed information.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-FAFSA.compute_local_hmmer">
+<span id="fafsa-compute-local-hmmer-module"></span><h2>FAFSA.compute_local_hmmer module<a class="headerlink" href="#module-FAFSA.compute_local_hmmer" title="Permalink to this heading"></a></h2>
+<p>The script executes HMMER against pfam and generate output files</p>
+<p>The packages you need to run this script are the following:
+- biopython
+- HMMER (<a class="reference external" href="http://hmmer.org/documentation.html">http://hmmer.org/documentation.html</a>)
+- pandas</p>
+<p>You also need to have:
+- pfam db locally
+- protein db</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Initially, this script was designed to run HMMER on all our proteins in pairs, thus the mass commenting at the end</p>
+</div>
+<dl class="py function">
+<dt class="sig sig-object py" id="FAFSA.compute_local_hmmer.hmmer_wrapper">
+<span class="sig-prename descclassname"><span class="pre">FAFSA.compute_local_hmmer.</span></span><span class="sig-name descname"><span class="pre">hmmer_wrapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pfam_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_filename_with_ext</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_filename_with_ext</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cpu</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FAFSA/compute_local_hmmer.html#hmmer_wrapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FAFSA.compute_local_hmmer.hmmer_wrapper" title="Permalink to this definition"></a></dt>
+<dd><p>Executes HMMER against pfam</p>
+<dl class="simple">
+<dt>seq<span class="classifier">pandas.core.frame.DataFrame</span></dt><dd><p>a dataframe with string amino acid sequences in a ‘protein_seq’ column
+(has to be processed in a certain way)</p>
+</dd>
+<dt>input_filename<span class="classifier">str</span></dt><dd><p>A file name for the input of the transformed seq to FASTA</p>
+</dd>
+<dt>pfam_path<span class="classifier">str</span></dt><dd><p>path of the HMMER/pfam db</p>
+</dd>
+<dt>input_filename_with_ext<span class="classifier">str</span></dt><dd><p>A file name for the input FASTA has to include the ext. FASTA</p>
+</dd>
+<dt>output_filename_with_ext<span class="classifier">str</span></dt><dd><p>output file name perferred extension is domtblout</p>
+</dd>
+<dt>cpu<span class="classifier">4</span></dt><dd><p>number of cpus for i/o</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>file<span class="classifier">TextIOWrapper (Input fasta file)</span></dt><dd><p>the input fasta file created from the list of SeqRecord objects</p>
+</dd>
+<dt>file<span class="classifier">TextIOWrapper (Output domtblout file)</span></dt><dd><p>an output domtblout file of the HMMER/pfam results</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="FAFSA.compute_local_hmmer.read_seq">
+<span class="sig-prename descclassname"><span class="pre">FAFSA.compute_local_hmmer.</span></span><span class="sig-name descname"><span class="pre">read_seq</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lists</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'input'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FAFSA/compute_local_hmmer.html#read_seq"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FAFSA.compute_local_hmmer.read_seq" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a list of SeqRecord objects and creates a corresponding input Fasta of them</p>
+<dl class="simple">
+<dt>list<span class="classifier">pandas.core.frame.DataFrame</span></dt><dd><p>a dataframe with string amino acid sequences in a ‘protein_seq’ column</p>
+</dd>
+<dt>input name<span class="classifier">str, default = ‘input’</span></dt><dd><p>a name for the input fasta file</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>file<span class="classifier">TextIOWrapper</span></dt><dd><p>the input fasta file created from the list of SeqRecord objects</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ValueError :</strong> – if the input dataframe is empty</p></li>
+<li><p><strong>AttributeError :</strong> – if any of the sequences are invalid</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="FAFSA.compute_local_hmmer.run_hmmer">
+<span class="sig-prename descclassname"><span class="pre">FAFSA.compute_local_hmmer.</span></span><span class="sig-name descname"><span class="pre">run_hmmer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">DB_PATH</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_cpu</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/FAFSA/compute_local_hmmer.html#run_hmmer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FAFSA.compute_local_hmmer.run_hmmer" title="Permalink to this definition"></a></dt>
+<dd><p>Runs HMMER search against the Pfam database using the hmmscan command</p>
+<dl class="simple">
+<dt>DB_PATH<span class="classifier">str</span></dt><dd><p>the path of the HMMER/pfam database</p>
+</dd>
+<dt>input_filename<span class="classifier">str</span></dt><dd><p>a name for the input fasta file (don’t forget extension!)</p>
+</dd>
+<dt>output_filename<span class="classifier">str</span></dt><dd><p>a name for the domtblout output file (don’t forget extension!)</p>
+</dd>
+</dl>
+<p>num_cpu : int</p>
+<dl class="simple">
+<dt>file<span class="classifier">TextIOWrapper (Output domtblout file)</span></dt><dd><p>an output domtblout file of the HMMER/pfam results</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>AttributeError :</strong> – in development</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-FAFSA.compute_pair_function">
+<span id="fafsa-compute-pair-function-module"></span><h2>FAFSA.compute_pair_function module<a class="headerlink" href="#module-FAFSA.compute_pair_function" title="Permalink to this heading"></a></h2>
+<p>{In active development}</p>
+<p>This script parses hmmer output and tests if the paired protein are from a similar family</p>
+<p>The packages you need to run this script are the following:
+- biopython
+- HMMER (<a class="reference external" href="http://hmmer.org/documentation.html">http://hmmer.org/documentation.html</a>)
+- pandas</p>
+<p>You also need to have:
+- pfam db locally
+- protein db</p>
+</section>
+<section id="module-FAFSA.find_structures">
+<span id="fafsa-find-structures-module"></span><h2>FAFSA.find_structures module<a class="headerlink" href="#module-FAFSA.find_structures" title="Permalink to this heading"></a></h2>
+<p>The script performs search on Protein Data Bank (PDB) and return output.
+The goal is to return proteins with structural similarity to query.
+Current code allows users to access PDB, but only returns proteins with sequence homology and not structural similarity.
+We plan to improve this in Spring 2023.</p>
+<p>The packages you need to run this script are the following:
+- pyPDB
+- pandas</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="FAFSA.find_structures.scrapepdb">
+<span class="sig-prename descclassname"><span class="pre">FAFSA.find_structures.</span></span><span class="sig-name descname"><span class="pre">scrapepdb</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FAFSA/find_structures.html#scrapepdb"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FAFSA.find_structures.scrapepdb" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>seq</strong> (<em>str</em>) – a str that represents the amino acid sequence.</p></li>
+<li><p><strong>Returns</strong> – </p></li>
+<li><p><strong>------------</strong> – </p></li>
+<li><p><strong>df_result_reind</strong> (<em>pandas.core.frame.DataFrame</em>) – a dataframe containing identified proteins with sequence similarity to query. Percent identity, bitscore and e-value are included for evaluation.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-FAFSA.model_input">
+<span id="fafsa-model-input-module"></span><h2>FAFSA.model_input module<a class="headerlink" href="#module-FAFSA.model_input" title="Permalink to this heading"></a></h2>
+<p>This package imports data to be used in the FAFSA model. Current support for DuckDB objects
+generated from upstream component and for user-generated DataFrames with correct structure.
+Future updates will add option to calculate alignment features during dataset assembly, but
+current version requires user to supply them.</p>
+<dl class="simple">
+<dt>Functions:</dt><dd><p>fetch_data: Generates input data for the FAFSA model in the form of a DataFrame with
+alignment features as columns. User can control size of sample and sampling method.</p>
+</dd>
+</dl>
+<dl class="py function">
+<dt class="sig sig-object py" id="FAFSA.model_input.fetch_data">
+<span class="sig-prename descclassname"><span class="pre">FAFSA.model_input.</span></span><span class="sig-name descname"><span class="pre">fetch_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">form</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'duckdb'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'random'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idx_range</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[0,</span> <span class="pre">0]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunksize</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FAFSA/model_input.html#fetch_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FAFSA.model_input.fetch_data" title="Permalink to this definition"></a></dt>
+<dd><p>Pulls data from DuckDB database or pandas DataFrame for input to FAFSA model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<em>str</em>) – Path to database or DataFrame input.</p></li>
+<li><p><strong>form</strong> (<em>str</em>) – Identifies import method for either DuckDB database or DataFrame.</p></li>
+<li><p><strong>size</strong> (<em>int</em>) – Sample size to be passed to FAFSA model. Superceded by idx_range when using sequential sampling.</p></li>
+<li><p><strong>method</strong> (<em>str</em>) – Specifies random, chunked, or numeric sampling.</p></li>
+<li><p><strong>idx_range</strong> (<em>list</em>) – Only applies to numeric sampling. Min and max index range for numeric
+sampling.</p></li>
+<li><p><strong>chunksize</strong> (<em>int</em>) – Only applies to chunk sampling for large datasets. Sets size of each chunk.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>DataFrame formatted for FAFSA model.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>fafsa_df (pandas.DataFrame)</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ValueError</strong> – form must be one of [‘csv’, ‘duckdb’]. Other data types not yet supported.</p></li>
+<li><p><strong>ValueError</strong> – method must be one of [‘random’, ‘numeric’, ‘chunk’]</p></li>
+<li><p><strong>ValueError</strong> – Index range must be positive.</p></li>
+<li><p><strong>ValueError</strong> – Index range must be contained in input data.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-FAFSA.preprocessing">
+<span id="fafsa-preprocessing-module"></span><h2>FAFSA.preprocessing module<a class="headerlink" href="#module-FAFSA.preprocessing" title="Permalink to this heading"></a></h2>
+<p>This package builds the FAFSA database from learn2therm.</p>
+<dl>
+<dt>Functions:</dt><dd><dl class="simple">
+<dt>connect_df: Establishes connection to DuckDB database using local or</dt><dd><p>remote input path. Reports time to connection.</p>
+</dd>
+</dl>
+<p>build_fafsa: Constructs fafsa database from learn2therm database.</p>
+<dl class="simple">
+<dt>sankey_plots: Optional function run by calling build_fafsa with plots = True.</dt><dd><p>Generates Sankey plots showing the fate of samples as they pass from
+learn2therm tables to FAFSA tables.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py function">
+<dt class="sig sig-object py" id="FAFSA.preprocessing.build_fafsa">
+<span class="sig-prename descclassname"><span class="pre">FAFSA.preprocessing.</span></span><span class="sig-name descname"><span class="pre">build_fafsa</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">con</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_ogt_diff</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_16s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1300</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plots</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FAFSA/preprocessing.html#build_fafsa"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FAFSA.preprocessing.build_fafsa" title="Permalink to this definition"></a></dt>
+<dd><p>Converts learn2therm DuckDB database into a DuckDB database for FAFSA by adding filtered and
+constructed tables. Ensure at lease 100 GB of free disk space and 30 GB of system memory are
+available before running on the full database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>con</strong> (<em>duckdb.DuckDBPyConnection</em>) – DuckDB connection object. Links script to DuckDB SQL</p></li>
+<li><p><strong>database.</strong> – </p></li>
+<li><p><strong>min_ogt_diff</strong> (<em>int</em>) – Cutoff for minimum difference in optimal growth temperature between</p></li>
+<li><p><strong>C.</strong> (<em>thermophile and mesophile pairs. Default 20 deg</em>) – </p></li>
+<li><p><strong>min_16s</strong> (<em>int</em>) – Cutoff for minimum 16S read length for taxa. Default 1300 bp. Filters out</p></li>
+<li><p><strong>sequencing.</strong> (<em>organisms with poor</em><em> or </em><em>incomplete 16S</em>) – </p></li>
+<li><p><strong>plots</strong> (<em>bool</em>) – Boolean to determine whether the user wants Sankey plots diagramming the fate</p></li>
+<li><p><strong>./plots.</strong> (<em>of learn2therm samples during FAFSA construction to be saved in</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None. Database object is modified in place.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ValueError</strong> – Optimal growth temperature difference must be positive.</p></li>
+<li><p><strong>ValueError</strong> – Minimum 16S sequence read is 1 bp.</p></li>
+<li><p><strong>AttributeError</strong> – Database must be in the learn2therm format.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="FAFSA.preprocessing.connect_db">
+<span class="sig-prename descclassname"><span class="pre">FAFSA.preprocessing.</span></span><span class="sig-name descname"><span class="pre">connect_db</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FAFSA/preprocessing.html#connect_db"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FAFSA.preprocessing.connect_db" title="Permalink to this definition"></a></dt>
+<dd><p>Runs duckdb.connect() function on database path. Returns a
+duckdb.DuckDBPyConnection object and prints execution time.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> (<em>str</em>) – Path to DuckDB database file containing learn2therm.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A DuckDB connection object linking script to
+learn2therm database.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>con (duckdb.DuckDBPyConnection)</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>VersionError</strong> – DuckDB installation is not one of 0.6.0 or 0.6.1.</p></li>
+<li><p><strong>AttributeError</strong> – Input database contains no tables.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="FAFSA.preprocessing.sankey_plots">
+<span class="sig-prename descclassname"><span class="pre">FAFSA.preprocessing.</span></span><span class="sig-name descname"><span class="pre">sankey_plots</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">con</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_ogt_diff</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FAFSA/preprocessing.html#sankey_plots"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FAFSA.preprocessing.sankey_plots" title="Permalink to this definition"></a></dt>
+<dd><p>Constructs Sankey plots for learn2therm to FAFSA data flow. Saves plots to new or existing
+./plots folder. Does not show 16S filtering yet. As long as 16S cutoff is default 1300 bp, this
+will not affect the accuracy of Sankey plots since the original learn2therm database was
+filtered on this value during construction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>con</strong> (<em>duckdb.DuckDBPyConnection</em>) – DuckDB connection object. Links script to DuckDB SQL
+database.</p></li>
+<li><p><strong>min_ogt_diff</strong> (<em>int</em>) – Cutoff for minimum difference in optimal growth temperature between
+thermophile and mesophile pairs. Default 20 deg C.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None. Plots are automatically saved as png in ./plots</p>
+</dd>
+</dl>
+<p>Raises:</p>
+</dd></dl>
+
+</section>
+<section id="module-FAFSA.sample_for_train">
+<span id="fafsa-sample-for-train-module"></span><h2>FAFSA.sample_for_train module<a class="headerlink" href="#module-FAFSA.sample_for_train" title="Permalink to this heading"></a></h2>
+<p>This package samples FAFSA training data to represent taxa and protein pairs across the whole distribution of the FAFSA database.</p>
+<dl class="simple">
+<dt>Functions:</dt><dd><p>fafsa_sample: Generates a DataFrame containing a random or over/undersampled set from the FAFSA database.
+fafsa_describe: Not supported in initial release. Provides analytics on FAFSA dataset to inform sampling parameters.
+g_prime_i: Calculates g_prime vaues used in fafsa_sample</p>
+</dd>
+</dl>
+<dl class="py function">
+<dt class="sig sig-object py" id="FAFSA.sample_for_train.FrankWolfe">
+<span class="sig-prename descclassname"><span class="pre">FAFSA.sample_for_train.</span></span><span class="sig-name descname"><span class="pre">FrankWolfe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FAFSA/sample_for_train.html#FrankWolfe"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FAFSA.sample_for_train.FrankWolfe" title="Permalink to this definition"></a></dt>
+<dd><p>Calculates probability distribution uing Frank Wolfe method to achieve D-optimal sampling of dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> (<em>np.array</em>) – Feature array. Must be numeric.</p></li>
+<li><p><strong>tol</strong> (<em>float</em>) – Convergence condition for D_lamb step. Saved as dd_lamb.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Probability distribution solved by convergence of Frank-Wolfe calculation.
+D_lamb_list (list): List of D_lamb calculated at each iteration.
+dd_lamb (list): List of absolute delta D_lamb between each step. Final value should be below tol.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>lamb (np.array)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="FAFSA.sample_for_train.fafsa_sample">
+<span class="sig-prename descclassname"><span class="pre">FAFSA.sample_for_train.</span></span><span class="sig-name descname"><span class="pre">fafsa_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stat_samp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'random'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FAFSA/sample_for_train.html#fafsa_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FAFSA.sample_for_train.fafsa_sample" title="Permalink to this definition"></a></dt>
+<dd><p>Generates sample DataFrame for downstream processing toward FAFSA training. Option to save analytics showing both sample
+and population distribution for each feature. When selecting ‘random’ sampling, the function simply passes df untouched,
+assuming size has not changed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>pandas.DataFrame</em>) – DataFrame formatted from component 1.</p></li>
+<li><p><strong>size</strong> (<em>int</em>) – Size of output sample. Recommend &lt;&lt; df for Frank Wolfe sampling.</p></li>
+<li><p><strong>stat_samp</strong> (<em>str</em>) – One of [‘random’, ‘boost_tails’].</p></li>
+<li><p><strong>exclude</strong> (<em>list</em>) – List of non-numeric or unnecessary columns to be excluded for Frank Wolfe sampling. Leave as None for random.</p></li>
+<li><p><strong>tol</strong> (<em>float</em>) – D_lamb convergence condition for Frank Wolfe.</p></li>
+<li><p><strong>density</strong> (<em>float</em>) – Sampling density for Frank Wolfe.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Sample of df generated using sampling function.
+fw_idx (list): Row indices selected by sampling function. Useful if df is derived from a DataFrame with identical rows and
+more columns.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>sample_df (pd.DataFrame)</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>AttributeError</strong> – Necessary features for FAFSA training must exist in input DataFrame.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="FAFSA.sample_for_train.g_prime_i">
+<span class="sig-prename descclassname"><span class="pre">FAFSA.sample_for_train.</span></span><span class="sig-name descname"><span class="pre">g_prime_i</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FAFSA/sample_for_train.html#g_prime_i"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FAFSA.sample_for_train.g_prime_i" title="Permalink to this definition"></a></dt>
+<dd><p>Calculates g_prime for FrankWolfe function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> (<em>np.array</em>) – </p></li>
+<li><p><strong>A</strong> (<em>float</em>) – </p></li>
+<li><p><strong>i</strong> (<em>int</em>) – Index value of X</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Calculated g_prime value for give i.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>g_prime (np.array)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-FAFSA.train_val_classification">
+<span id="fafsa-train-val-classification-module"></span><h2>FAFSA.train_val_classification module<a class="headerlink" href="#module-FAFSA.train_val_classification" title="Permalink to this heading"></a></h2>
+<p>This module takes in a pandas dataframe from
+c5_input_cleaning and runs it through a
+RandomForestClassifier model from scitkit learn.
+Returns a Boolean prediction for protein pair
+functionality.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="FAFSA.train_val_classification.evaluate_model">
+<span class="sig-prename descclassname"><span class="pre">FAFSA.train_val_classification.</span></span><span class="sig-name descname"><span class="pre">evaluate_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_y</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FAFSA/train_val_classification.html#evaluate_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FAFSA.train_val_classification.evaluate_model" title="Permalink to this definition"></a></dt>
+<dd><p>Takes a trained model and test data and tests the model.</p>
+<p>model: sklearn.neighbors.KNeighborsClassifier
+test_X: numpy array
+test_y: numpy array</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Vector of predictions based on the model (numpy array)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="FAFSA.train_val_classification.plot_model">
+<span class="sig-prename descclassname"><span class="pre">FAFSA.train_val_classification.</span></span><span class="sig-name descname"><span class="pre">plot_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_y</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FAFSA/train_val_classification.html#plot_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FAFSA.train_val_classification.plot_model" title="Permalink to this definition"></a></dt>
+<dd><p>Takes a test classifier model and plots the confusion matrix.</p>
+<p>model: sklearn.neighbors.KNeighborsClassifier
+test_X: numpy array
+test_y: numpy array</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><em>-Confusion predictions vs. observations</em></p></li>
+<li><p><em>-Model score</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="FAFSA.train_val_classification.rf_wrapper">
+<span class="sig-prename descclassname"><span class="pre">FAFSA.train_val_classification.</span></span><span class="sig-name descname"><span class="pre">rf_wrapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataframe</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FAFSA/train_val_classification.html#rf_wrapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FAFSA.train_val_classification.rf_wrapper" title="Permalink to this definition"></a></dt>
+<dd><p>Takes dataframe and runs it through kNN model.</p>
+<p>dataframe: Pandas dataframe</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><em>-Target feature predictions</em></p></li>
+<li><p><em>-Parity plot</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="FAFSA.train_val_classification.train_model">
+<span class="sig-prename descclassname"><span class="pre">FAFSA.train_val_classification.</span></span><span class="sig-name descname"><span class="pre">train_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataframe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FAFSA/train_val_classification.html#train_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FAFSA.train_val_classification.train_model" title="Permalink to this definition"></a></dt>
+<dd><p>Takes dataframe and splits it into a training and testing set.
+Note: Data is called train and test, but this test set is currently
+closer to a validation set. Keeping nomenclature to keep model robust.
+Trains a KNN classifier model with selected data.</p>
+<p>dataframe: Pandas dataframe
+columns: list of strings, representing input features
+target: list of strings, representing target feature(s)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><em>-Sk-learn model object</em></p></li>
+<li><p><em>-train data (features)</em></p></li>
+<li><p><em>-train data (target)</em></p></li>
+<li><p><em>-validation data (features)</em></p></li>
+<li><p><em>-validation data (target)</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-FAFSA.train_val_classification_newtarget">
+<span id="fafsa-train-val-classification-newtarget-module"></span><h2>FAFSA.train_val_classification_newtarget module<a class="headerlink" href="#module-FAFSA.train_val_classification_newtarget" title="Permalink to this heading"></a></h2>
+<p>This module takes in a pandas dataframe from
+c5_input_cleaning and runs it through a
+RandomForestClassifier model from scitkit learn.
+Returns a Boolean prediction for protein pair
+functionality.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="FAFSA.train_val_classification_newtarget.evaluate_model">
+<span class="sig-prename descclassname"><span class="pre">FAFSA.train_val_classification_newtarget.</span></span><span class="sig-name descname"><span class="pre">evaluate_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_y</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FAFSA/train_val_classification_newtarget.html#evaluate_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FAFSA.train_val_classification_newtarget.evaluate_model" title="Permalink to this definition"></a></dt>
+<dd><p>Takes a trained model and test data and tests the model.</p>
+<p>model: sklearn.neighbors.KNeighborsClassifier
+test_X: numpy array
+test_y: numpy array</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Vector of predictions based on the model (numpy array)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="FAFSA.train_val_classification_newtarget.plot_model">
+<span class="sig-prename descclassname"><span class="pre">FAFSA.train_val_classification_newtarget.</span></span><span class="sig-name descname"><span class="pre">plot_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_y</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FAFSA/train_val_classification_newtarget.html#plot_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FAFSA.train_val_classification_newtarget.plot_model" title="Permalink to this definition"></a></dt>
+<dd><p>Takes a test classifier model and plots the confusion matrix.</p>
+<p>model: sklearn.neighbors.KNeighborsClassifier
+test_X: numpy array
+test_y: numpy array</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><em>-Confusion predictions vs. observations</em></p></li>
+<li><p><em>-Model score</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="FAFSA.train_val_classification_newtarget.rf_wrapper">
+<span class="sig-prename descclassname"><span class="pre">FAFSA.train_val_classification_newtarget.</span></span><span class="sig-name descname"><span class="pre">rf_wrapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataframe</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FAFSA/train_val_classification_newtarget.html#rf_wrapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FAFSA.train_val_classification_newtarget.rf_wrapper" title="Permalink to this definition"></a></dt>
+<dd><p>Takes dataframe and runs it through kNN model.</p>
+<p>dataframe: Pandas dataframe</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><em>-Target feature predictions</em></p></li>
+<li><p><em>-Parity plot</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="FAFSA.train_val_classification_newtarget.train_model">
+<span class="sig-prename descclassname"><span class="pre">FAFSA.train_val_classification_newtarget.</span></span><span class="sig-name descname"><span class="pre">train_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataframe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FAFSA/train_val_classification_newtarget.html#train_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FAFSA.train_val_classification_newtarget.train_model" title="Permalink to this definition"></a></dt>
+<dd><p>Takes dataframe and splits it into a training and testing set.
+Note: Data is called train and test, but this test set is currently
+closer to a validation set. Keeping nomenclature to keep model robust.
+Trains a KNN classifier model with selected data.</p>
+<p>dataframe: Pandas dataframe
+columns: list of strings, representing input features
+target: list of strings, representing target feature(s)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><em>-Sk-learn model object</em></p></li>
+<li><p><em>-train data (features)</em></p></li>
+<li><p><em>-train data (target)</em></p></li>
+<li><p><em>-validation data (features)</em></p></li>
+<li><p><em>-validation data (target)</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="fafsa-train-val-input-cleaning-module">
+<h2>FAFSA.train_val_input_cleaning module<a class="headerlink" href="#fafsa-train-val-input-cleaning-module" title="Permalink to this heading"></a></h2>
+</section>
+<section id="fafsa-train-val-wrapper-module">
+<h2>FAFSA.train_val_wrapper module<a class="headerlink" href="#fafsa-train-val-wrapper-module" title="Permalink to this heading"></a></h2>
+</section>
+<section id="module-FAFSA">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-FAFSA" title="Permalink to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Logan Roberts, Humood Alanzi, Chau Vuong, Amin Mosallenejad, Ryan Francis.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
