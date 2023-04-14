@@ -12,6 +12,7 @@ You also need to have:
 - protein db
 '''
 # system dependecies
+import sys
 import os
 from pathlib import Path
 
@@ -23,6 +24,7 @@ from joblib import delayed, Parallel
 
 # library dependencies
 import pandas as pd
+from tqdm import tqdm
 
 
 # biopython
@@ -158,6 +160,36 @@ def read_seq(lists: pd.core.frame.DataFrame, inputname: str = "input"):
     return file
 
 
+def hmmpress_hmms(hmms_path, pfam_data_folder):
+    """
+    Presses the HMMs in the given HMM database and stores the resulting files in a specified directory.
+
+    Parameters
+    ----------
+    hmmdb_path : str
+        Path to the HMM database.
+    pfam_data_folder : str, optional
+        Path to the directory where the HMMs should be stored.
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    This function uses HMMER's hmmpress program to compress the HMMs in the given HMM database and
+    stores the resulting files in the specified directory for faster access during future HMMER runs.
+    If the specified directory does not exist, it will be created.
+    """
+    if not os.path.exists(
+        os.path.join(
+            pfam_data_folder,
+            os.path.basename(hmms_path) +
+            ".h3m")):
+        hmms = pyhmmer.plan7.HMMFile(hmms_path)
+        pyhmmer.hmmer.hmmpress(hmms, pfam_data_folder)
+
+
 def run_pyhmmer(
         hmmdb: str,
         input_file: str,
@@ -199,15 +231,8 @@ def run_pyhmmer(
     In normal mode, the HMMs are pressed and stored in a directory before execution.
     In prefetching mode, the HMMs are kept in memory for faster search.
     """
-    # Create hmms
-    hmms = pyhmmer.plan7.HMMFile(hmmdb)
-    # press hmms and store them in the pfam data folder or w/e destination
-    if not os.path.exists(
-        os.path.join(
-            "../data/pfam/",
-            os.path.basename(hmmdb) +
-            ".h3m")):
-        pyhmmer.hmmer.hmmpress(hmms, "../data/pfam/")
+    # Press hmms and store them in the pfam data folder
+    hmmpress_hmms(hmmdb, "../data/pfam/")
 
     # Ensure input_file has .fasta extension
     if not input_file.endswith('.fasta'):
@@ -231,7 +256,8 @@ def run_pyhmmer(
                         seqs, targets, cpus=cpu, E=eval_con)):
                     hits.write(dst, format="domains", header=i == 0)
         else:
-            all_hits = pyhmmer.hmmer.hmmscan(seqs, targets, cpus=cpu, E=eval_con)
+            all_hits = pyhmmer.hmmer.hmmscan(
+                seqs, targets, cpus=cpu, E=eval_con)
 
     return all_hits if not save_out else None
 
@@ -248,6 +274,14 @@ if __name__ == '__main__':
 
     logger.info("TEST LOG")
 
+    # Set up parallel processing and parsing
+    total_size = int(sys.argv[1])  # Number of total sequences read
+    # Number of sequences to process in each chunk
+    chunk_size = int(sys.argv[2])
+    njobs = int(sys.argv[3])  # Number of parallel processes to use
+
+    logger.info('Parallel processing parameters obtained')
+
     # Data prep and processing
 
     # reading the data
@@ -261,13 +295,13 @@ if __name__ == '__main__':
     logger.info('Data seperated into t and m')
 
     # processing meso to be suitable for HMMER
-    meso_seq_list = meso_seq_db.set_index("meso_index").iloc[:500]
+    meso_seq_list = meso_seq_db.set_index("meso_index").iloc[:total_size]
     meso_seq_list.index.name = None
     meso_seq_list.rename({'m_protein_seq': 'protein_seq'},
                          axis="columns", inplace=True)
 
     # processing thermo to be suitable for HMMER
-    thermo_seq_list = thermo_seq_db.set_index("thermo_index").iloc[:500]
+    thermo_seq_list = thermo_seq_db.set_index("thermo_index").iloc[:total_size]
     thermo_seq_list.index.name = None
     thermo_seq_list.rename(
         {'t_protein_seq': 'protein_seq'}, axis="columns", inplace=True)
@@ -287,25 +321,24 @@ if __name__ == '__main__':
             save_out=True
         )
 
-    # Set up parallel processing
-    njobs = 1  # Number of parallel processes to use
-    batch_size = 100  # Number of sequences to process in each batch
-
-    logger.info('Parallel processing parameters obtained')
-
-    # chunking the data to 100 sequence bits (change if sample or all proteins)
-    meso_chunks = [meso_seq_list[i:i + batch_size]
-                   for i in range(0, len(meso_seq_list), batch_size)]
-    thermo_chunks = [thermo_seq_list[i:i + batch_size]
-                     for i in range(0, len(thermo_seq_list), batch_size)]
+    # chunking the data to chunk_size sequence bits (change if sample or all
+    # proteins)
+    meso_chunks = [meso_seq_list[i:i + chunk_size]
+                   for i in range(0, len(meso_seq_list), chunk_size)]
+    thermo_chunks = [thermo_seq_list[i:i + chunk_size]
+                     for i in range(0, len(thermo_seq_list), chunk_size)]
 
     logger.info('Chunking done')
 
     # parallel computing on how many CPUs (n_jobs=)
-    logger.info('Split sequences into batches in parallel')
-    Parallel(n_jobs=njobs)(delayed(run_hmmer_parallel)(i, chunk, "meso")
-                       for i, chunk in enumerate(meso_chunks))
-    Parallel(n_jobs=njobs)(delayed(run_hmmer_parallel)(i, chunk, "thermo")
-                       for i, chunk in enumerate(thermo_chunks))
+    logger.info('Running pyhmmer in parallel on all chunks')
+
+    with tqdm(total=len(meso_chunks) + len(thermo_chunks)) as pbar:
+        Parallel(n_jobs=njobs)(delayed(run_hmmer_parallel)(i, chunk, "meso")
+                               for i, chunk in enumerate(meso_chunks))
+        pbar.update(len(meso_chunks))
+        Parallel(n_jobs=njobs)(delayed(run_hmmer_parallel)(i, chunk, "thermo")
+                               for i, chunk in enumerate(thermo_chunks))
+        pbar.update(len(thermo_chunks))
 
     logger.info('Parallelization complete')
