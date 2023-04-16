@@ -13,7 +13,7 @@ import pandas as pd
 df = pd.read_csv('learn2therm_sample_50k.csv')
 
 # create target that describes whether protein pair is functional
-df['protein_match'] = df['t_protein_desc'] == df['m_protein_desc']
+df['protein_match'] = ((df['bit_score'] > 50 ) & (df['query_align_cov'] > 0.8))
 
 # keep columns that can be used as features
 columns_to_keep = [

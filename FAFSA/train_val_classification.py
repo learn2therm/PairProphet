@@ -17,9 +17,7 @@ import sklearn.metrics
 
 def train_model(dataframe, columns=[], target=[]):
     """
-    Takes dataframe and splits it into a training and testing set.
-    Note: Data is called train and test, but this test set is currently
-    closer to a validation set. Keeping nomenclature to keep model robust.
+    Takes dataframe and splits it into a training and testing set. 
     Trains a KNN classifier model with selected data.
 
     Params
