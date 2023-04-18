@@ -97,7 +97,7 @@ def run_hmmer(
     read_seq(seqs, input_file)
 
     # place files into HMMER/pfam
-    run_pyhmmer(
+    hitlist = run_pyhmmer(
         hmm,
         input_file,
         output_file,
@@ -105,6 +105,9 @@ def run_hmmer(
         prefetching,
         save_out,
         eval_con)
+    
+    # parse pyhmmer results
+    parse_pyhmmer(hitlist)
 
 
 def read_seq(lists: pd.core.frame.DataFrame, inputname: str = "input"):
@@ -189,6 +192,35 @@ def hmmpress_hmms(hmms_path, pfam_data_folder):
         hmms = pyhmmer.plan7.HMMFile(hmms_path)
         pyhmmer.hmmer.hmmpress(hmms, pfam_data_folder)
 
+def fetch_targets(hmmdb: str, prefetching: bool):
+    """
+    Load HMM profiles from a given HMM database.
+
+    Parameters
+    ----------
+    hmmdb : str
+        Path to the HMM database.
+    prefetching : bool
+        Whether to use prefetching for faster search.
+
+    Returns
+    -------
+    targets : pyhmmer.plan7.OptimizedProfileBlock
+        The HMM profiles loaded from the database.
+
+    Notes
+    -----
+    This function loads the HMM profiles from a given HMM database using the
+    PyHMMER package. It supports two modes: normal mode and prefetching mode.
+    In normal mode, the HMMs are loaded from the disk on each use.
+    In prefetching mode, the HMMs are kept in memory for faster search.
+    """
+    # amino acid alphabet and prefetched inputs
+    aa = pyhmmer.easel.Alphabet.amino()
+    optimized_profiles = list(pyhmmer.plan7.HMMPressedFile(hmmdb))
+    targets = pyhmmer.plan7.OptimizedProfileBlock(
+        aa, optimized_profiles) if prefetching else pyhmmer.plan7.HMMFile("../data/pfam/.h3m")
+    return targets
 
 def run_pyhmmer(
         hmmdb: str,
@@ -241,12 +273,9 @@ def run_pyhmmer(
     if not output_file.endswith('.domtblout'):
         output_file = f"{os.path.splitext(output_file)[0]}.domtblout"
 
-    # amino acid alphabet and prefetched inputs
-    aa = pyhmmer.easel.Alphabet.amino()
-    optimized_profiles = list(pyhmmer.plan7.HMMPressedFile(hmmdb))
-    targets = pyhmmer.plan7.OptimizedProfileBlock(
-        aa, optimized_profiles) if prefetching else pyhmmer.plan7.HMMFile("../data/pfam/.h3m")
-
+    # amino acid alphabet and prefetched inputs to obtain profile targets
+    targets = fetch_targets(hmmdb, prefetching)
+    
     # HMMscan execution with or without save_out
     with pyhmmer.easel.SequenceFile(input_file, digital=True) as seqs:
         if save_out:
@@ -256,10 +285,44 @@ def run_pyhmmer(
                         seqs, targets, cpus=cpu, E=eval_con)):
                     hits.write(dst, format="domains", header=i == 0)
         else:
-            all_hits = pyhmmer.hmmer.hmmscan(
-                seqs, targets, cpus=cpu, E=eval_con)
+            all_hits = list(pyhmmer.hmmer.hmmscan(seqs, targets, cpus=cpu, E=eval_con))
 
     return all_hits if not save_out else None
+
+def parse_pyhmmer(all_hits):
+    """
+    Parses the TopHit pyhmmer object getting the query and accession IDs and saves to a DataFrame
+
+    Parameters
+    ----------
+    all_hits : list
+        A list of TopHit objects from pyhmmer.
+
+    Returns
+    -------
+    pandas.DataFrame
+        A dataframe containing the query and accession IDs.
+    """
+    # initialize an empty list to store the data
+    data = []
+    
+    # iterate over each protein hit
+    for top_hits in all_hits:
+        for hit in top_hits:
+            # extract the query and accession IDs and decode the query ID
+            query_id = hit.hits.query_name.decode('utf-8')
+            accession_id = hit.accession.decode('utf-8')
+            
+            # append the data to the list
+            data.append([query_id, accession_id])
+    
+    # create the DataFrame from the list
+    df = pd.DataFrame(data, columns=["query_id", "accession_id"])
+    
+    # group the accession IDs by query ID and join them into a single string separated by ";"
+    df = df.groupby("query_id")["accession_id"].apply(lambda x: ";".join(x)).reset_index()
+    
+    return df
 
 
 if __name__ == '__main__':
