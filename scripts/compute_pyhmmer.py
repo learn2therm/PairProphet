@@ -12,9 +12,11 @@ You also need to have:
 - protein db
 '''
 # system dependecies
-import sys
 import os
 from pathlib import Path
+import sys
+from typing import Union
+
 
 
 # job stuff
@@ -96,13 +98,16 @@ def run_hmmer(
     # generate meso and thermo files
     read_seq(seqs, input_file)
 
+    # amino acid alphabet and prefetched inputs to obtain profile targets
+    targets = fetch_targets(hmm, prefetching)
+
     # place files into HMMER/pfam
     hitlist = run_pyhmmer(
         hmm,
+        targets,
         input_file,
         output_file,
         cpu,
-        prefetching,
         save_out,
         eval_con)
     
@@ -224,10 +229,10 @@ def fetch_targets(hmmdb: str, prefetching: bool):
 
 def run_pyhmmer(
         hmmdb: str,
+        targetdb: Union[pyhmmer.plan7.OptimizedProfileBlock, pyhmmer.plan7.HMMFile],
         input_file: str,
         output_file: str,
         cpu: int = 4,
-        prefetching=False,
         save_out=False,
         eval_con: float = 1e-10):
     """
@@ -237,14 +242,14 @@ def run_pyhmmer(
     ----------
     hmmdb : str
         Path to the HMM database.
+    targetdb : if prefetching: pyhmmer.plan7.OptimizedProfileBlock else: pyhmmer.plan7.HMMFile
+        HMM profile targets for hmmscan
     input_file : str
         Path to the input sequence file.
     output_file : str
         Path to the output file.
     cpu : int, optional
         The number of CPUs to use. Default is 4.
-    prefetching : bool, optional
-        Whether to use prefetching for faster search. Default is False.
     save_out : bool, optional
         Whether to save the output to file. Default is False.
     eval_con : float, optional
@@ -272,9 +277,6 @@ def run_pyhmmer(
     # Ensure output_file has .domtblout extension
     if not output_file.endswith('.domtblout'):
         output_file = f"{os.path.splitext(output_file)[0]}.domtblout"
-
-    # amino acid alphabet and prefetched inputs to obtain profile targets
-    targets = fetch_targets(hmmdb, prefetching)
     
     # HMMscan execution with or without save_out
     with pyhmmer.easel.SequenceFile(input_file, digital=True) as seqs:
@@ -282,10 +284,10 @@ def run_pyhmmer(
             with open(output_file, "wb") as dst:
                 for i, hits in enumerate(
                     pyhmmer.hmmer.hmmscan(
-                        seqs, targets, cpus=cpu, E=eval_con)):
+                        seqs, targetdb, cpus=cpu, E=eval_con)):
                     hits.write(dst, format="domains", header=i == 0)
         else:
-            all_hits = list(pyhmmer.hmmer.hmmscan(seqs, targets, cpus=cpu, E=eval_con))
+            all_hits = list(pyhmmer.hmmer.hmmscan(seqs, targetdb, cpus=cpu, E=eval_con))
 
     return all_hits if not save_out else None
 
