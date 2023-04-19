@@ -17,8 +17,6 @@ from pathlib import Path
 import sys
 from typing import Union
 
-
-
 # job stuff
 import logging
 from joblib import delayed, Parallel
@@ -27,7 +25,6 @@ from joblib import delayed, Parallel
 # library dependencies
 import pandas as pd
 from tqdm import tqdm
-
 
 # biopython
 from Bio import SeqIO
@@ -48,9 +45,9 @@ def run_hmmer(
         seqs: pd.core.frame.DataFrame,
         input_file: str,
         hmm: str,
+        targets,
         output_file: str,
         cpu: int = 4,
-        prefetching=False,
         save_out=False,
         eval_con: float = 1e-10):
     """
@@ -64,12 +61,12 @@ def run_hmmer(
         Path to the input sequence file.
     hmm : str
         Path to the HMM database.
+    targets : if prefetching: pyhmmer.plan7.OptimizedProfileBlock else: pyhmmer.plan7.HMMFile
+        The HMM profiles to search against.
     output_file : str
         Path to the output file.
     cpu : int, optional
         The number of CPUs to use. Default is 4.
-    prefetching : bool, optional
-        Whether to use prefetching for faster search. Default is False.
     save_out : bool, optional
         Whether to save the output to file. Default is False.
     eval_con : float, optional
@@ -98,11 +95,8 @@ def run_hmmer(
     # generate meso and thermo files
     read_seq(seqs, input_file)
 
-    # amino acid alphabet and prefetched inputs to obtain profile targets
-    targets = fetch_targets(hmm, prefetching)
-
     # place files into HMMER/pfam
-    hitlist = run_pyhmmer(
+    run_pyhmmer(
         hmm,
         targets,
         input_file,
@@ -111,8 +105,7 @@ def run_hmmer(
         save_out,
         eval_con)
     
-    # parse pyhmmer results
-    parse_pyhmmer(hitlist)
+    
 
 
 def read_seq(lists: pd.core.frame.DataFrame, inputname: str = "input"):
@@ -243,7 +236,7 @@ def run_pyhmmer(
     hmmdb : str
         Path to the HMM database.
     targetdb : if prefetching: pyhmmer.plan7.OptimizedProfileBlock else: pyhmmer.plan7.HMMFile
-        HMM profile targets for hmmscan
+         The HMM profiles to search against.
     input_file : str
         Path to the input sequence file.
     output_file : str
@@ -341,8 +334,7 @@ if __name__ == '__main__':
 
     # Set up parallel processing and parsing
     total_size = int(sys.argv[1])  # Number of total sequences read
-    # Number of sequences to process in each chunk
-    chunk_size = int(sys.argv[2])
+    chunk_size = int(sys.argv[2])  # Number of sequences to process in each chunk
     njobs = int(sys.argv[3])  # Number of parallel processes to use
 
     logger.info('Parallel processing parameters obtained')
@@ -373,18 +365,31 @@ if __name__ == '__main__':
 
     logger.info('Sampled t and m data')
 
+    # reading the targets
+    targets = fetch_targets(PFAM_PATH, prefetching=True)
+
+    logger.info('Loaded HMM targets')
+
     # Execution
     def run_hmmer_parallel(chunk_index, seq, which):
         """Executes run_hmmer in parrallel"""
-        run_hmmer(
+        # Define paths for input and output files
+        input_file_path = f"./results/{which}_input_{chunk_index}"
+        output_file_path = f"./results/{which}_output_{chunk_index}.domtblout"
+        
+        hitlist = run_hmmer(
             seqs=seq,
-            input_file=f"./results/{which}_input_{chunk_index}",
+            input_file=input_file_path,
             hmm=PFAM_PATH,
-            output_file=f"./results/{which}_output_{chunk_index}.domtblout",
+            targets=targets,
+            output_file=output_file_path,
             cpu=1,
-            prefetching=True,
-            save_out=True
+            save_out=False,
         )
+
+        # Parse pyhmmer output and save to CSV file
+        result_df = parse_pyhmmer(all_hits=hitlist)
+        result_df.to_csv(f"./results/{which}_result.csv", index=False)
 
     # chunking the data to chunk_size sequence bits (change if sample or all
     # proteins)
@@ -393,7 +398,7 @@ if __name__ == '__main__':
     thermo_chunks = [thermo_seq_list[i:i + chunk_size]
                      for i in range(0, len(thermo_seq_list), chunk_size)]
 
-    logger.info('Chunking done')
+    logger.info('Sequence chunking done')
 
     # parallel computing on how many CPUs (n_jobs=)
     logger.info('Running pyhmmer in parallel on all chunks')
