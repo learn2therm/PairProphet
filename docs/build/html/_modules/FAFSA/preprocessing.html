@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FAFSA.preprocessing &mdash; FAFSA 1.0.1 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            FAFSA
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">FAFSA</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">FAFSA.preprocessing</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for FAFSA.preprocessing</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">This package builds the FAFSA database from learn2therm.</span>
+
+<span class="sd">Functions:</span>
+<span class="sd">    connect_df: Establishes connection to DuckDB database using local or</span>
+<span class="sd">                remote input path. Reports time to connection.</span>
+
+<span class="sd">    build_fafsa: Constructs fafsa database from learn2therm database.</span>
+
+<span class="sd">    sankey_plots: Optional function run by calling build_fafsa with plots = True.</span>
+<span class="sd">                  Generates Sankey plots showing the fate of samples as they pass from</span>
+<span class="sd">                  learn2therm tables to FAFSA tables.</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">import</span> <span class="nn">duckdb</span>
+
+<span class="c1"># Dependencies for Sankey plots.</span>
+<span class="kn">import</span> <span class="nn">plotly.graph_objects</span> <span class="k">as</span> <span class="nn">go</span>
+<span class="kn">import</span> <span class="nn">plotly.io</span> <span class="k">as</span> <span class="nn">pio</span>
+<span class="n">pio</span><span class="o">.</span><span class="n">kaleido</span><span class="o">.</span><span class="n">scope</span><span class="o">.</span><span class="n">default_format</span> <span class="o">=</span> <span class="s2">&quot;png&quot;</span>
+
+
+<div class="viewcode-block" id="connect_db"><a class="viewcode-back" href="../../FAFSA.html#FAFSA.preprocessing.connect_db">[docs]</a><span class="k">def</span> <span class="nf">connect_db</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Runs duckdb.connect() function on database path. Returns a</span>
+<span class="sd">    duckdb.DuckDBPyConnection object and prints execution time.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        path (str): Path to DuckDB database file containing learn2therm.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        con (duckdb.DuckDBPyConnection): A DuckDB connection object linking script to</span>
+<span class="sd">        learn2therm database.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        VersionError: DuckDB installation is not one of 0.6.0 or 0.6.1.</span>
+<span class="sd">        AttributeError: Input database contains no tables.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">s_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+    <span class="n">version</span> <span class="o">=</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">__version__</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Version </span><span class="si">{</span><span class="n">version</span><span class="si">}</span><span class="s1"> detected.&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Checks for compatible installation of duckdb.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">version</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;0.6.0&#39;</span><span class="p">,</span> <span class="s1">&#39;0.6.1&#39;</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="n">VersionError</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;learn2therm was generated using DuckDB storage version 39. It is only</span>
+<span class="s2">                           compatible with duckdb versions 0.6.0 and 0.6.1. Please check your</span>
+<span class="s2">                           installation. Refer to https://duckdb.org/internals/storage.html for more</span>
+<span class="s2">                           details.&quot;&quot;&quot;</span><span class="p">)</span>
+
+        <span class="n">e_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">elapsed_time</span> <span class="o">=</span> <span class="n">e_time</span> <span class="o">-</span> <span class="n">s_time</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Finished with VersionError. Execution time: </span><span class="si">{</span><span class="n">elapsed_time</span><span class="si">}</span><span class="s1"> seconds&#39;</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Connecting to database...&#39;</span><span class="p">)</span>
+    <span class="n">con</span> <span class="o">=</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="n">tables</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT TABLE_NAME</span>
+<span class="s2">                            FROM INFORMATION_SCHEMA.TABLES</span>
+<span class="s2">                            WHERE TABLE_TYPE=&#39;BASE TABLE&#39;&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">tables</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s1">&#39;Input database is empty.&#39;</span><span class="p">)</span>
+
+    <span class="n">e_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">elapsed_time</span> <span class="o">=</span> <span class="n">e_time</span> <span class="o">-</span> <span class="n">s_time</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Connection established! Execution time: </span><span class="si">{</span><span class="n">elapsed_time</span><span class="si">}</span><span class="s1"> seconds&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">con</span></div>
+
+
+<div class="viewcode-block" id="build_fafsa"><a class="viewcode-back" href="../../FAFSA.html#FAFSA.preprocessing.build_fafsa">[docs]</a><span class="k">def</span> <span class="nf">build_fafsa</span><span class="p">(</span><span class="n">con</span><span class="p">,</span> <span class="n">min_ogt_diff</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span> <span class="n">min_16s</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1300</span><span class="p">,</span>
+                    <span class="n">plots</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Converts learn2therm DuckDB database into a DuckDB database for FAFSA by adding filtered and</span>
+<span class="sd">    constructed tables. Ensure at lease 100 GB of free disk space and 30 GB of system memory are </span>
+<span class="sd">    available before running on the full database.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        con (duckdb.DuckDBPyConnection): DuckDB connection object. Links script to DuckDB SQL </span>
+<span class="sd">        database.</span>
+<span class="sd">        min_ogt_diff (int): Cutoff for minimum difference in optimal growth temperature between </span>
+<span class="sd">        thermophile and mesophile pairs. Default 20 deg C.</span>
+<span class="sd">        min_16s (int): Cutoff for minimum 16S read length for taxa. Default 1300 bp. Filters out </span>
+<span class="sd">        organisms with poor or incomplete 16S sequencing.</span>
+<span class="sd">        plots (bool): Boolean to determine whether the user wants Sankey plots diagramming the fate</span>
+<span class="sd">        of learn2therm samples during FAFSA construction to be saved in ./plots.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        None. Database object is modified in place.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: Optimal growth temperature difference must be positive.</span>
+<span class="sd">        ValueError: Minimum 16S sequence read is 1 bp.</span>
+<span class="sd">        AttributeError: Database must be in the learn2therm format.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">if</span> <span class="n">min_ogt_diff</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Optimal growth temperature difference must be positive.&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">min_16s</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;16S must have at least 1 bp read.&#39;</span><span class="p">)</span>
+
+    <span class="n">tables</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT TABLE_NAME</span>
+<span class="s2">                            FROM INFORMATION_SCHEMA.TABLES</span>
+<span class="s2">                            WHERE TABLE_TYPE=&#39;BASE TABLE&#39;&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+
+    <span class="c1"># Check if proper tables exist in database. If they do not, raise an error.</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">item</span> <span class="ow">in</span> <span class="n">tables</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;proteins&#39;</span><span class="p">,</span> <span class="s1">&#39;protein_pairs&#39;</span><span class="p">,</span> <span class="s1">&#39;taxa&#39;</span><span class="p">,</span> <span class="s1">&#39;taxa_pairs&#39;</span><span class="p">]):</span>
+        <span class="k">pass</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s1">&#39;Database is not formatted for learn2therm.&#39;</span><span class="p">)</span>
+
+    <span class="n">s_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Constructing fafsa_taxa_pairs...&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Builds FAFSA taxa pair table using only paired taxa from learn2therm</span>
+    <span class="n">taxa_pairs_cmd</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;CREATE OR REPLACE TABLE fafsa_taxa_pairs AS</span>
+<span class="s2">                        SELECT *</span>
+<span class="s2">                        FROM taxa_pairs</span>
+<span class="s2">                        WHERE is_pair = True&quot;&quot;&quot;</span>
+    <span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">taxa_pairs_cmd</span><span class="p">)</span>
+
+    <span class="n">e_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">elapsed_time</span> <span class="o">=</span> <span class="n">e_time</span> <span class="o">-</span> <span class="n">s_time</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Finished constructing fafsa_taxa_pairs. Execution time: </span><span class="si">{</span><span class="n">elapsed_time</span><span class="si">}</span><span class="s1"> seconds&#39;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Constructing fafsa_taxa...&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Commands to identify all taxa that are implicated in learn2therm pairs.</span>
+    <span class="n">meso_cmd</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;SELECT DISTINCT meso_index</span>
+<span class="s2">                  FROM taxa_pairs</span>
+<span class="s2">                  WHERE is_pair = True&quot;&quot;&quot;</span>
+    <span class="n">thermo_cmd</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;SELECT DISTINCT thermo_index</span>
+<span class="s2">                    FROM taxa_pairs</span>
+<span class="s2">                    WHERE is_pair = True&quot;&quot;&quot;</span>
+
+    <span class="n">useful_thermo</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">thermo_cmd</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+    <span class="n">useful_meso</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">meso_cmd</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+
+    <span class="c1"># Generates tuple object containing all relevant taxa</span>
+    <span class="n">useful_taxa</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">useful_meso</span><span class="p">[</span><span class="s1">&#39;meso_index&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">useful_thermo</span><span class="p">[</span><span class="s1">&#39;thermo_index&#39;</span><span class="p">]))</span>
+
+    <span class="c1"># Builds FAFSA taxa table using only paired taxa from learn2therm.</span>
+    <span class="n">taxa_cmd</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;CREATE OR REPLACE TABLE fafsa_taxa AS</span>
+<span class="s2">                   SELECT *</span>
+<span class="s2">                   FROM taxa</span>
+<span class="s2">                   WHERE taxa_index IN </span><span class="si">{</span><span class="n">useful_taxa</span><span class="si">}</span><span class="s2">&quot;&quot;&quot;</span>
+    <span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">taxa_cmd</span><span class="p">)</span>
+
+    <span class="n">e_time2</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">elapsed_time</span> <span class="o">=</span> <span class="n">e_time2</span> <span class="o">-</span> <span class="n">e_time</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Finished constructing fafsa_taxa. Execution time: </span><span class="si">{</span><span class="n">elapsed_time</span><span class="si">}</span><span class="s1"> seconds&#39;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Filtering on ogt and 16S sequence parameters...&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Builds FAFSA table containing taxa pairs and their associated optimal growth temperatures</span>
+    <span class="c1"># (ogt). Excludes 16S sequences and ogt difference below cutoff values from function input.</span>
+    <span class="n">ogt_pairs_cmd</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;CREATE OR REPLACE TABLE fafsa_ogt_taxa_pairs AS SELECT fafsa_taxa_pairs.*,</span>
+<span class="s2">                        taxa_m.ogt AS meso_ogt,</span>
+<span class="s2">                        taxa_t.ogt AS thermo_ogt,</span>
+<span class="s2">                        taxa_t.ogt - taxa_m.ogt AS ogt_diff,</span>
+<span class="s2">                        taxa_m.len_16s AS meso_16s_len,</span>
+<span class="s2">                        taxa_t.len_16s AS thermo_16s_len</span>
+<span class="s2">                        FROM fafsa_taxa_pairs</span>
+<span class="s2">                        JOIN fafsa_taxa AS taxa_m ON (fafsa_taxa_pairs.meso_index = taxa_m.taxa_index)</span>
+<span class="s2">                        JOIN fafsa_taxa AS taxa_t ON (fafsa_taxa_pairs.thermo_index = taxa_t.taxa_index)</span>
+<span class="s2">                        WHERE ogt_diff &gt;= </span><span class="si">{</span><span class="n">min_ogt_diff</span><span class="si">}</span>
+<span class="s2">                        AND meso_16s_len &gt;= </span><span class="si">{</span><span class="n">min_16s</span><span class="si">}</span>
+<span class="s2">                        AND thermo_16s_len &gt;= </span><span class="si">{</span><span class="n">min_16s</span><span class="si">}</span><span class="s2">&quot;&quot;&quot;</span>
+    <span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">ogt_pairs_cmd</span><span class="p">)</span>
+
+    <span class="n">e_time3</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">elapsed_time</span> <span class="o">=</span> <span class="n">e_time3</span> <span class="o">-</span> <span class="n">e_time2</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Finished filtering. Execution time: </span><span class="si">{</span><span class="n">elapsed_time</span><span class="si">}</span><span class="s1"> seconds&#39;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Constructing fafsa_protein_pairs...&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Builds FAFSA table containing protein pairs</span>
+    <span class="n">protein_pair_cmd</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;CREATE OR REPLACE TABLE fafsa_protein_pairs AS</span>
+<span class="s2">                          SELECT protein_pairs.*,</span>
+<span class="s2">                          otp.local_gap_compressed_percent_id AS local_gap_compressed_percent_id_16s,</span>
+<span class="s2">                          otp.scaled_local_query_percent_id AS scaled_local_query_percent_id_16s,</span>
+<span class="s2">                          otp.scaled_local_symmetric_percent_id AS scaled_local_symmetric_percent_id_16s,</span>
+<span class="s2">                          otp.query_align_cov AS query_align_cov_16s,</span>
+<span class="s2">                          otp.subject_align_cov AS subject_align_cov_16s,</span>
+<span class="s2">                          otp.bit_score AS bit_score_16s,</span>
+<span class="s2">                          otp.meso_ogt AS m_ogt,</span>
+<span class="s2">                          otp.thermo_ogt AS t_ogt,</span>
+<span class="s2">                          otp.ogt_diff AS ogt_difference</span>
+<span class="s2">                          FROM protein_pairs</span>
+<span class="s2">                          INNER JOIN fafsa_ogt_taxa_pairs AS otp</span>
+<span class="s2">                          ON (protein_pairs.taxa_pair_index = otp.taxa_pair_index)&quot;&quot;&quot;</span>
+    <span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">protein_pair_cmd</span><span class="p">)</span>
+
+    <span class="n">e_time4</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">elapsed_time</span> <span class="o">=</span> <span class="n">e_time4</span> <span class="o">-</span> <span class="n">e_time3</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Finished constructing fafsa_protein_pairs. Execution time: </span><span class="si">{</span><span class="n">elapsed_time</span><span class="si">}</span><span class="s1"> seconds&#39;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Constructing fafsa_proteins...&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Builds FAFSA table containing proteins that belong to taxa from fafsa_taxa_pairs.</span>
+    <span class="n">prot_filt_cmd</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;CREATE OR REPLACE TABLE fafsa_proteins AS SELECT *</span>
+<span class="s2">                       FROM proteins</span>
+<span class="s2">                       WHERE protein_int_index IN (SELECT DISTINCT meso_protein_int_index FROM protein_pairs) OR</span>
+<span class="s2">                       protein_int_index IN (SELECT DISTINCT thermo_protein_int_index FROM protein_pairs)</span>
+<span class="s2">                    &quot;&quot;&quot;</span>
+    <span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">prot_filt_cmd</span><span class="p">)</span>
+
+    <span class="n">e_time5</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">elapsed_time</span> <span class="o">=</span> <span class="n">e_time5</span> <span class="o">-</span> <span class="n">e_time4</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Finished constructing fafsa_proteins. Execution time: </span><span class="si">{</span><span class="n">elapsed_time</span><span class="si">}</span><span class="s1"> seconds&#39;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Constructing final dataset...&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Builds final FAFSA data table for downstream sampling.</span>
+    <span class="n">big_table_cmd</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;CREATE OR REPLACE TABLE fafsa_final AS</span>
+<span class="s2">                       SELECT fafsa_protein_pairs.*,</span>
+<span class="s2">                       proteins_m.protein_seq AS m_protein_seq,</span>
+<span class="s2">                       proteins_t.protein_seq AS t_protein_seq,</span>
+<span class="s2">                       proteins_m.protein_desc AS m_protein_desc,</span>
+<span class="s2">                       proteins_t.protein_desc AS t_protein_desc,</span>
+<span class="s2">                       proteins_m.protein_len AS m_protein_len,</span>
+<span class="s2">                       proteins_t.protein_len AS t_protein_len</span>
+<span class="s2">                       FROM fafsa_protein_pairs</span>
+<span class="s2">                       JOIN fafsa_proteins AS proteins_m</span>
+<span class="s2">                       ON (fafsa_protein_pairs.meso_protein_int_index = proteins_m.protein_int_index)</span>
+<span class="s2">                       JOIN fafsa_proteins AS proteins_t</span>
+<span class="s2">                       ON (fafsa_protein_pairs.thermo_protein_int_index =</span>
+<span class="s2">                           proteins_t.protein_int_index)&quot;&quot;&quot;</span>
+    <span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">big_table_cmd</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">plots</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+
+        <span class="n">sankey_plots</span><span class="p">(</span><span class="n">con</span><span class="p">,</span> <span class="n">min_ogt_diff</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">pass</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Finishing up...&#39;</span><span class="p">)</span>
+    <span class="n">con</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">con</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="n">et_final</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">elapsed_time</span> <span class="o">=</span> <span class="n">et_final</span> <span class="o">-</span> <span class="n">e_time5</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Finished. Total execution time: </span><span class="si">{</span><span class="n">elapsed_time</span><span class="si">}</span><span class="s1"> seconds&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="sankey_plots"><a class="viewcode-back" href="../../FAFSA.html#FAFSA.preprocessing.sankey_plots">[docs]</a><span class="k">def</span> <span class="nf">sankey_plots</span><span class="p">(</span><span class="n">con</span><span class="p">,</span> <span class="n">min_ogt_diff</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Constructs Sankey plots for learn2therm to FAFSA data flow. Saves plots to new or existing</span>
+<span class="sd">    ./plots folder. Does not show 16S filtering yet. As long as 16S cutoff is default 1300 bp, this</span>
+<span class="sd">    will not affect the accuracy of Sankey plots since the original learn2therm database was</span>
+<span class="sd">    filtered on this value during construction.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        con (duckdb.DuckDBPyConnection): DuckDB connection object. Links script to DuckDB SQL</span>
+<span class="sd">                                         database.</span>
+<span class="sd">        min_ogt_diff (int): Cutoff for minimum difference in optimal growth temperature between</span>
+<span class="sd">                            thermophile and mesophile pairs. Default 20 deg C.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        None. Plots are automatically saved as png in ./plots</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">if</span> <span class="n">min_ogt_diff</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Optimal growth temperature difference must be positive.&#39;</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Constructing plots.&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Checks if plots directory exists and makes one if it does not.</span>
+    <span class="n">newdir</span> <span class="o">=</span> <span class="s1">&#39;plots&#39;</span>
+    <span class="n">exist</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;..&#39;</span><span class="p">,</span> <span class="s1">&#39;..&#39;</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">newdir</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">exist</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">newdir</span><span class="p">)</span>
+
+    <span class="c1"># Color palette for Sankey plots.</span>
+    <span class="n">sank_blue</span> <span class="o">=</span> <span class="s1">&#39;rgb(32, 159, 223)&#39;</span>
+    <span class="n">sank_red</span> <span class="o">=</span> <span class="s1">&#39;rgb(204, 102, 119)&#39;</span>
+    <span class="n">sank_grey</span> <span class="o">=</span> <span class="s1">&#39;rgb(221, 221, 221)&#39;</span>
+    <span class="n">sank_purple</span> <span class="o">=</span> <span class="s1">&#39;rgb(118, 111, 159)&#39;</span>
+    <span class="n">sank_blue_t</span> <span class="o">=</span> <span class="s1">&#39;rgba(32, 159, 223, 0.5)&#39;</span>
+    <span class="n">sank_red_t</span> <span class="o">=</span> <span class="s1">&#39;rgba(204, 102, 119, 0.5)&#39;</span>
+    <span class="n">sank_grey_t</span> <span class="o">=</span> <span class="s1">&#39;rgba(221, 221, 221, 0.5)&#39;</span>
+    <span class="n">sank_purple_t</span> <span class="o">=</span> <span class="s1">&#39;rgba(118, 111, 159, 0.5)&#39;</span>
+
+    <span class="c1"># Parameters for taxa pair Sankey</span>
+    <span class="n">size_tp_l2t</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT COUNT(taxa_pair_index)</span>
+<span class="s2">                                     FROM taxa_pairs&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">size_tp_no_pair</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT COUNT(taxa_pair_index)</span>
+<span class="s2">                                         FROM taxa_pairs</span>
+<span class="s2">                                         WHERE is_pair = False&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">size_tp_16s_pair</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT COUNT(taxa_pair_index)</span>
+<span class="s2">                                          FROM taxa_pairs</span>
+<span class="s2">                                          WHERE is_pair = True&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">size_tp_fafsa</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT COUNT(taxa_pair_index)</span>
+<span class="s2">                                           FROM fafsa_taxa_pairs&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">size_tp_small_diff</span> <span class="o">=</span> <span class="n">size_tp_16s_pair</span> <span class="o">-</span> <span class="n">size_tp_fafsa</span>
+
+    <span class="n">perc_tp_no_pair</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">100</span><span class="o">*</span><span class="n">size_tp_no_pair</span><span class="o">/</span><span class="n">size_tp_l2t</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">perc_tp_fafsa</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">100</span><span class="o">*</span><span class="n">size_tp_fafsa</span><span class="o">/</span><span class="n">size_tp_l2t</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">perc_tp_small_diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">100</span><span class="o">*</span><span class="n">size_tp_small_diff</span><span class="o">/</span><span class="n">size_tp_l2t</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Builds and saves taxa pair Sankey in data folder</span>
+    <span class="n">fig1</span> <span class="o">=</span> <span class="n">go</span><span class="o">.</span><span class="n">Figure</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="p">[</span><span class="n">go</span><span class="o">.</span><span class="n">Sankey</span><span class="p">(</span>
+    <span class="n">arrangement</span> <span class="o">=</span> <span class="s1">&#39;snap&#39;</span><span class="p">,</span>
+    <span class="n">node</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+      <span class="n">pad</span> <span class="o">=</span> <span class="mi">25</span><span class="p">,</span>
+      <span class="n">thickness</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span>
+      <span class="n">line</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">color</span> <span class="o">=</span> <span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">),</span>
+      <span class="n">label</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;learn2therm </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">size_tp_l2t</span><span class="o">/</span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">))</span><span class="o">+</span><span class="s2">&quot;k&quot;</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;16S pair&#39;</span><span class="p">,</span>
+               <span class="sa">f</span><span class="s1">&#39;No pair (</span><span class="si">{</span><span class="n">perc_tp_no_pair</span><span class="si">}</span><span class="s1">%)&#39;</span><span class="p">,</span>
+               <span class="sa">f</span><span class="s2">&quot;&quot;&quot;FAFSA (</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">size_tp_fafsa</span><span class="o">/</span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">))</span><span class="o">+</span><span class="s2">&quot;k&quot;</span><span class="si">}</span><span class="s2">,</span>
+<span class="s2">               </span><span class="si">{</span><span class="n">perc_tp_fafsa</span><span class="si">}</span><span class="s2">%)&quot;&quot;&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;&lt; </span><span class="si">{</span><span class="n">min_ogt_diff</span><span class="si">}</span><span class="s2"> </span><span class="se">\N{DEGREE SIGN}</span><span class="s2">C</span>
+<span class="s2">               diff (</span><span class="si">{</span><span class="n">perc_tp_small_diff</span><span class="si">}</span><span class="s2">%)&quot;&quot;&quot;</span><span class="p">],</span>
+      <span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="n">sank_purple</span><span class="p">,</span> <span class="n">sank_purple</span><span class="p">,</span> <span class="n">sank_grey</span><span class="p">,</span> <span class="n">sank_purple</span><span class="p">,</span> <span class="n">sank_grey</span><span class="p">]</span>
+    <span class="p">),</span>
+    <span class="n">link</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+      <span class="n">source</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+      <span class="n">target</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+      <span class="n">value</span> <span class="o">=</span> <span class="p">[</span><span class="n">size_tp_small_diff</span><span class="p">,</span> <span class="n">size_tp_16s_pair</span><span class="p">,</span> <span class="n">size_tp_no_pair</span><span class="p">,</span> <span class="n">size_tp_fafsa</span><span class="p">],</span>
+      <span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="n">sank_grey_t</span><span class="p">,</span> <span class="n">sank_purple_t</span><span class="p">,</span> <span class="n">sank_grey_t</span><span class="p">,</span> <span class="n">sank_purple_t</span><span class="p">]</span>
+      <span class="p">))])</span>
+
+    <span class="n">fig1</span><span class="o">.</span><span class="n">update_layout</span><span class="p">(</span><span class="n">title_text</span><span class="o">=</span><span class="s1">&#39;Taxa Pairs&#39;</span><span class="p">,</span> <span class="n">font_family</span> <span class="o">=</span> <span class="s1">&#39;Arial&#39;</span><span class="p">,</span> <span class="n">font_size</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+    <span class="n">fig1</span><span class="o">.</span><span class="n">write_image</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;..&#39;</span><span class="p">,</span> <span class="s1">&#39;..&#39;</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">newdir</span><span class="p">,</span> <span class="s1">&#39;taxa_pair_sankey.png&#39;</span><span class="p">),</span> <span class="n">engine</span> <span class="o">=</span> <span class="s1">&#39;kaleido&#39;</span><span class="p">,</span>
+                     <span class="n">scale</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="mi">1280</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="mi">640</span><span class="p">)</span>
+
+    <span class="c1"># Parameters for taxa Sankey</span>
+    <span class="n">size_t_l2t</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT COUNT(DISTINCT taxa_index)</span>
+<span class="s2">                                    FROM taxa&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">size_t_meso</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT COUNT(DISTINCT meso_index)</span>
+<span class="s2">                                     FROM taxa_pairs&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">size_t_thermo</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT COUNT(DISTINCT thermo_index)</span>
+<span class="s2">                                       FROM taxa_pairs&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">size_tm_no_pair</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT COUNT(taxa_index)</span>
+<span class="s2">                                         FROM taxa</span>
+<span class="s2">                                         WHERE taxa_index IN</span>
+<span class="s2">                                         (SELECT meso_index</span>
+<span class="s2">                                         FROM taxa_pairs</span>
+<span class="s2">                                         WHERE is_pair = False)&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">size_tt_no_pair</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT COUNT(taxa_index)</span>
+<span class="s2">                                         FROM taxa</span>
+<span class="s2">                                         WHERE taxa_index IN</span>
+<span class="s2">                                         (SELECT thermo_index</span>
+<span class="s2">                                         FROM taxa_pairs</span>
+<span class="s2">                                         WHERE is_pair = False)&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">size_tm_16s_pair</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT COUNT(taxa_index)</span>
+<span class="s2">                                          FROM taxa</span>
+<span class="s2">                                          WHERE taxa_index IN</span>
+<span class="s2">                                          (SELECT meso_index</span>
+<span class="s2">                                          FROM taxa_pairs</span>
+<span class="s2">                                          WHERE is_pair = True)&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">size_tt_16s_pair</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT COUNT(taxa_index)</span>
+<span class="s2">                                          FROM taxa</span>
+<span class="s2">                                          WHERE taxa_index IN</span>
+<span class="s2">                                          (SELECT thermo_index</span>
+<span class="s2">                                          FROM taxa_pairs</span>
+<span class="s2">                                          WHERE is_pair = True)&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">size_tm_fafsa</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT COUNT(DISTINCT taxa_index)</span>
+<span class="s2">                                           FROM fafsa_taxa</span>
+<span class="s2">                                           WHERE taxa_index IN</span>
+<span class="s2">                                           (SELECT DISTINCT meso_index</span>
+<span class="s2">                                           FROM taxa_pairs)&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">size_tt_fafsa</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT COUNT(DISTINCT taxa_index)</span>
+<span class="s2">                                           FROM fafsa_taxa</span>
+<span class="s2">                                           WHERE taxa_index IN</span>
+<span class="s2">                                           (SELECT DISTINCT thermo_index</span>
+<span class="s2">                                           FROM taxa_pairs)&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">size_tm_small_diff</span> <span class="o">=</span> <span class="n">size_tm_16s_pair</span> <span class="o">-</span> <span class="n">size_tm_fafsa</span>
+    <span class="n">size_tt_small_diff</span> <span class="o">=</span> <span class="n">size_tt_16s_pair</span> <span class="o">-</span> <span class="n">size_tt_fafsa</span>
+
+    <span class="n">size_t_fafsa</span> <span class="o">=</span> <span class="n">size_tm_fafsa</span><span class="o">+</span><span class="n">size_tt_fafsa</span>
+    <span class="n">perc_t_no_pair</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">100</span><span class="o">*</span><span class="p">(</span><span class="n">size_tt_no_pair</span><span class="o">+</span><span class="n">size_tm_no_pair</span><span class="p">)</span><span class="o">/</span><span class="n">size_t_l2t</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">perc_t_fafsa</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">100</span><span class="o">*</span><span class="n">size_t_fafsa</span><span class="o">/</span><span class="n">size_t_l2t</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">perc_t_small_diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">100</span><span class="o">*</span><span class="p">(</span><span class="n">size_tt_small_diff</span><span class="o">+</span><span class="n">size_tm_small_diff</span><span class="p">)</span><span class="o">/</span><span class="n">size_tp_l2t</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Builds and saves taxa Sankey in data folder</span>
+    <span class="n">fig2</span> <span class="o">=</span> <span class="n">go</span><span class="o">.</span><span class="n">Figure</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="p">[</span><span class="n">go</span><span class="o">.</span><span class="n">Sankey</span><span class="p">(</span>
+    <span class="n">arrangement</span> <span class="o">=</span> <span class="s1">&#39;snap&#39;</span><span class="p">,</span>
+    <span class="n">node</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+      <span class="n">pad</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span>
+      <span class="n">thickness</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span>
+      <span class="n">line</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">color</span> <span class="o">=</span> <span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">),</span>
+      <span class="n">label</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;learn2therm </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">size_t_l2t</span><span class="o">/</span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">))</span><span class="o">+</span><span class="s2">&quot;k&quot;</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;Thermophile&#39;</span><span class="p">,</span> <span class="s1">&#39;Mesophile&#39;</span><span class="p">,</span>
+               <span class="s1">&#39;16S pair&#39;</span><span class="p">,</span> <span class="s1">&#39;16S pair&#39;</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;No pairs (</span><span class="si">{</span><span class="n">perc_t_no_pair</span><span class="si">}</span><span class="s1">%)&#39;</span><span class="p">,</span>
+               <span class="sa">f</span><span class="s1">&#39;&lt; </span><span class="si">{</span><span class="n">min_ogt_diff</span><span class="si">}</span><span class="s1"> </span><span class="se">\N{DEGREE SIGN}</span><span class="s1">C diff (</span><span class="si">{</span><span class="n">perc_t_small_diff</span><span class="si">}</span><span class="s1">%)&#39;</span><span class="p">,</span>
+               <span class="sa">f</span><span class="s2">&quot;&quot;&quot;FAFSA (</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">size_t_fafsa</span><span class="o">/</span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">))</span><span class="o">+</span><span class="s2">&quot;k&quot;</span><span class="si">}</span><span class="s2">,</span>
+<span class="s2">               </span><span class="si">{</span><span class="n">perc_t_fafsa</span><span class="si">}</span><span class="s2">%)&quot;&quot;&quot;</span><span class="p">],</span>
+      <span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="n">sank_purple</span><span class="p">,</span> <span class="n">sank_red</span><span class="p">,</span> <span class="n">sank_blue</span><span class="p">,</span> <span class="n">sank_red</span><span class="p">,</span> <span class="n">sank_blue</span><span class="p">,</span> <span class="n">sank_grey</span><span class="p">,</span> <span class="n">sank_grey</span><span class="p">,</span>
+               <span class="n">sank_purple</span><span class="p">]</span>
+    <span class="p">),</span>
+    <span class="n">link</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+      <span class="n">source</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span>
+      <span class="n">target</span> <span class="o">=</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">7</span><span class="p">],</span>
+      <span class="n">value</span> <span class="o">=</span> <span class="p">[</span><span class="n">size_tm_16s_pair</span><span class="p">,</span> <span class="n">size_tm_small_diff</span><span class="p">,</span> <span class="n">size_t_thermo</span><span class="p">,</span> <span class="n">size_t_meso</span><span class="p">,</span>
+               <span class="n">size_tt_16s_pair</span><span class="p">,</span> <span class="n">size_tt_no_pair</span><span class="p">,</span> <span class="n">size_tm_16s_pair</span><span class="p">,</span> <span class="n">size_tt_small_diff</span><span class="p">,</span>
+               <span class="n">size_tt_fafsa</span><span class="p">,</span> <span class="n">size_tm_fafsa</span><span class="p">],</span>
+      <span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="n">sank_grey_t</span><span class="p">,</span> <span class="n">sank_grey_t</span><span class="p">,</span> <span class="n">sank_red_t</span><span class="p">,</span> <span class="n">sank_blue_t</span><span class="p">,</span> <span class="n">sank_red_t</span><span class="p">,</span> <span class="n">sank_grey_t</span><span class="p">,</span>
+               <span class="n">sank_blue_t</span><span class="p">,</span> <span class="n">sank_grey_t</span><span class="p">,</span> <span class="n">sank_red_t</span><span class="p">,</span> <span class="n">sank_blue_t</span><span class="p">]</span>
+      <span class="p">))])</span>
+
+    <span class="n">fig2</span><span class="o">.</span><span class="n">update_layout</span><span class="p">(</span><span class="n">title_text</span><span class="o">=</span><span class="s2">&quot;Taxa Representation&quot;</span><span class="p">,</span> <span class="n">font_size</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">font_family</span> <span class="o">=</span> <span class="s1">&#39;Arial&#39;</span><span class="p">,</span>
+                       <span class="n">font_color</span> <span class="o">=</span> <span class="s1">&#39;black&#39;</span><span class="p">)</span>
+    <span class="n">fig2</span><span class="o">.</span><span class="n">write_image</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;..&#39;</span><span class="p">,</span> <span class="s1">&#39;..&#39;</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">newdir</span><span class="p">,</span> <span class="s1">&#39;taxa_sankey.png&#39;</span><span class="p">),</span> <span class="n">engine</span> <span class="o">=</span> <span class="s1">&#39;kaleido&#39;</span><span class="p">,</span>
+                     <span class="n">scale</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="mi">1280</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="mi">640</span><span class="p">)</span>
+
+    <span class="c1"># Parameters for protein pair Sankey</span>
+    <span class="n">size_pp_l2t</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT COUNT(prot_pair_index)</span>
+<span class="s2">                                     FROM protein_pairs&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">size_pp_fafsa</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT COUNT(prot_pair_index)</span>
+<span class="s2">                                           FROM fafsa_protein_pairs&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">size_pp_small_diff</span> <span class="o">=</span> <span class="n">size_pp_l2t</span> <span class="o">-</span> <span class="n">size_pp_fafsa</span>
+
+    <span class="n">perc_pp_fafsa</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">100</span><span class="o">*</span><span class="n">size_pp_fafsa</span><span class="o">/</span><span class="n">size_pp_l2t</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">perc_pp_small_diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">100</span><span class="o">*</span><span class="n">size_pp_small_diff</span><span class="o">/</span><span class="n">size_pp_l2t</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Builds and saves protein pair Sankey in data folder</span>
+    <span class="n">fig3</span> <span class="o">=</span> <span class="n">go</span><span class="o">.</span><span class="n">Figure</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="p">[</span><span class="n">go</span><span class="o">.</span><span class="n">Sankey</span><span class="p">(</span>
+    <span class="n">arrangement</span> <span class="o">=</span> <span class="s1">&#39;snap&#39;</span><span class="p">,</span>
+    <span class="n">node</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+      <span class="n">pad</span> <span class="o">=</span> <span class="mi">25</span><span class="p">,</span>
+      <span class="n">thickness</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span>
+      <span class="n">line</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">),</span>
+      <span class="n">label</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;learn2therm (</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">size_pp_l2t</span><span class="o">/</span><span class="mi">1000000</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">))</span><span class="o">+</span><span class="s2">&quot;m&quot;</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">,</span>
+               <span class="sa">f</span><span class="s1">&#39;&lt; </span><span class="si">{</span><span class="n">min_ogt_diff</span><span class="si">}</span><span class="s1"> </span><span class="se">\N{DEGREE SIGN}</span><span class="s1">C diff (</span><span class="si">{</span><span class="n">perc_pp_small_diff</span><span class="si">}</span><span class="s1">%)&#39;</span><span class="p">,</span>
+               <span class="sa">f</span><span class="s2">&quot;&quot;&quot;FAFSA (</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">size_pp_fafsa</span><span class="o">/</span><span class="mi">1000000</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">))</span><span class="o">+</span><span class="s2">&quot;m&quot;</span><span class="si">}</span><span class="s2">,</span>
+<span class="s2">               </span><span class="si">{</span><span class="n">perc_pp_fafsa</span><span class="si">}</span><span class="s2">%)&quot;&quot;&quot;</span><span class="p">],</span>
+      <span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="n">sank_purple</span><span class="p">,</span> <span class="n">sank_grey</span><span class="p">,</span> <span class="n">sank_purple</span><span class="p">]</span>
+    <span class="p">),</span>
+    <span class="n">link</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+      <span class="n">source</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+      <span class="n">target</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+      <span class="n">value</span> <span class="o">=</span> <span class="p">[</span><span class="n">size_pp_small_diff</span><span class="p">,</span> <span class="n">size_pp_fafsa</span><span class="p">],</span>
+      <span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="n">sank_grey_t</span><span class="p">,</span> <span class="n">sank_purple_t</span><span class="p">]</span>
+      <span class="p">))])</span>
+
+    <span class="n">fig3</span><span class="o">.</span><span class="n">update_layout</span><span class="p">(</span><span class="n">title_text</span><span class="o">=</span><span class="s1">&#39;Protein Pairs&#39;</span><span class="p">,</span> <span class="n">font_family</span> <span class="o">=</span> <span class="s1">&#39;Arial&#39;</span><span class="p">,</span> <span class="n">font_size</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+    <span class="n">fig3</span><span class="o">.</span><span class="n">write_image</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;..&#39;</span><span class="p">,</span> <span class="s1">&#39;..&#39;</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">newdir</span><span class="p">,</span> <span class="s1">&#39;protein_pair_sankey.png&#39;</span><span class="p">),</span>
+                     <span class="n">engine</span> <span class="o">=</span> <span class="s1">&#39;kaleido&#39;</span><span class="p">,</span> <span class="n">scale</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="mi">1280</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="mi">640</span><span class="p">)</span>
+
+    <span class="c1"># Parameters for protein Sankey</span>
+    <span class="n">size_p_l2t</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT COUNT(protein_int_index)</span>
+<span class="s2">                                    FROM proteins&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">size_p_meso</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT COUNT(DISTINCT meso_protein_int_index)</span>
+<span class="s2">                                     FROM protein_pairs&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">size_p_thermo</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT COUNT(DISTINCT thermo_protein_int_index)</span>
+<span class="s2">                                       FROM protein_pairs&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">size_pm_no_pair</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT COUNT(protein_int_index)</span>
+<span class="s2">                                         FROM proteins</span>
+<span class="s2">                                         WHERE taxa_index IN</span>
+<span class="s2">                                         (SELECT meso_index</span>
+<span class="s2">                                         FROM taxa_pairs</span>
+<span class="s2">                                         WHERE is_pair = False)&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">size_pt_no_pair</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT COUNT(protein_int_index)</span>
+<span class="s2">                                         FROM proteins WHERE taxa_index IN</span>
+<span class="s2">                                         (SELECT thermo_index</span>
+<span class="s2">                                         FROM taxa_pairs</span>
+<span class="s2">                                         WHERE is_pair = False)&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">size_pm_16s_pair</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT COUNT(protein_int_index)</span>
+<span class="s2">                                          FROM proteins</span>
+<span class="s2">                                          WHERE taxa_index IN</span>
+<span class="s2">                                          (SELECT meso_index FROM taxa_pairs</span>
+<span class="s2">                                          WHERE is_pair = True)&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">size_pt_16s_pair</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT COUNT(protein_int_index)</span>
+<span class="s2">                                          FROM proteins</span>
+<span class="s2">                                          WHERE taxa_index IN</span>
+<span class="s2">                                          (SELECT thermo_index</span>
+<span class="s2">                                          FROM taxa_pairs</span>
+<span class="s2">                                          WHERE is_pair = True)&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">size_pm_fafsa</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT COUNT(protein_int_index)</span>
+<span class="s2">                                           FROM fafsa_proteins</span>
+<span class="s2">                                           WHERE taxa_index in</span>
+<span class="s2">                                           (SELECT DISTINCT meso_index</span>
+<span class="s2">                                           FROM taxa_pairs)&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">size_pt_fafsa</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT COUNT(protein_int_index)</span>
+<span class="s2">                                           FROM fafsa_proteins</span>
+<span class="s2">                                           WHERE taxa_index IN</span>
+<span class="s2">                                           (SELECT DISTINCT thermo_index</span>
+<span class="s2">                                           FROM taxa_pairs)&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">size_pm_small_diff</span> <span class="o">=</span> <span class="n">size_pm_16s_pair</span> <span class="o">-</span> <span class="n">size_pm_fafsa</span>
+    <span class="n">size_pt_small_diff</span> <span class="o">=</span> <span class="n">size_pt_16s_pair</span> <span class="o">-</span> <span class="n">size_pt_fafsa</span>
+    <span class="n">size_p_null</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT COUNT(protein_int_index)</span>
+<span class="s2">                                     FROM proteins</span>
+<span class="s2">                                     WHERE taxa_index IN</span>
+<span class="s2">                                     (SELECT DISTINCT taxa_index</span>
+<span class="s2">                                     FROM taxa</span>
+<span class="s2">                                     WHERE ogt IS NULL)&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">size_p_fafsa</span> <span class="o">=</span> <span class="n">size_pm_fafsa</span><span class="o">+</span><span class="n">size_pt_fafsa</span>
+
+    <span class="n">perc_p_no_pair</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">100</span><span class="o">*</span><span class="p">(</span><span class="n">size_pt_no_pair</span><span class="o">+</span><span class="n">size_pm_no_pair</span><span class="p">)</span><span class="o">/</span><span class="n">size_p_l2t</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">perc_p_fafsa</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">100</span><span class="o">*</span><span class="n">size_p_fafsa</span><span class="o">/</span><span class="n">size_p_l2t</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">perc_p_small_diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">100</span><span class="o">*</span><span class="p">(</span><span class="n">size_pt_small_diff</span><span class="o">+</span><span class="n">size_pm_small_diff</span><span class="p">)</span><span class="o">/</span><span class="n">size_pp_l2t</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">perc_p_null</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">100</span><span class="o">*</span><span class="n">size_p_null</span><span class="o">/</span><span class="n">size_p_l2t</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Builds and saves protein Sankey in data folder</span>
+    <span class="n">fig4</span> <span class="o">=</span> <span class="n">go</span><span class="o">.</span><span class="n">Figure</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="p">[</span><span class="n">go</span><span class="o">.</span><span class="n">Sankey</span><span class="p">(</span>
+    <span class="n">arrangement</span> <span class="o">=</span> <span class="s1">&#39;snap&#39;</span><span class="p">,</span>
+    <span class="n">node</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+      <span class="n">pad</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
+      <span class="n">thickness</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span>
+      <span class="n">line</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">color</span> <span class="o">=</span> <span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">),</span>
+      <span class="n">label</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;learn2therm (</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">size_p_l2t</span><span class="o">/</span><span class="mi">1000000</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">))</span><span class="o">+</span><span class="s2">&quot;m&quot;</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">,</span> <span class="s1">&#39;Thermophile&#39;</span><span class="p">,</span>
+               <span class="s1">&#39;Mesophile&#39;</span><span class="p">,</span> <span class="s1">&#39;16S pair&#39;</span><span class="p">,</span> <span class="s1">&#39;16S pair&#39;</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;No pairs (</span><span class="si">{</span><span class="n">perc_p_no_pair</span><span class="si">}</span><span class="s1">%)&#39;</span><span class="p">,</span>
+               <span class="sa">f</span><span class="s1">&#39;&lt; </span><span class="si">{</span><span class="n">min_ogt_diff</span><span class="si">}</span><span class="s1"> </span><span class="se">\N{DEGREE SIGN}</span><span class="s1">C diff (</span><span class="si">{</span><span class="n">perc_p_small_diff</span><span class="si">}</span><span class="s1">%)&#39;</span><span class="p">,</span>
+               <span class="sa">f</span><span class="s1">&#39;FAFSA (</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">size_p_fafsa</span><span class="o">/</span><span class="mi">1000000</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">))</span><span class="o">+</span><span class="s2">&quot;m&quot;</span><span class="si">}</span><span class="s1">, </span><span class="si">{</span><span class="n">perc_p_fafsa</span><span class="si">}</span><span class="s1">%)&#39;</span><span class="p">,</span>
+               <span class="sa">f</span><span class="s1">&#39;Null (</span><span class="si">{</span><span class="n">perc_p_null</span><span class="si">}</span><span class="s1">%)&#39;</span><span class="p">],</span>
+      <span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="n">sank_purple</span><span class="p">,</span> <span class="n">sank_red</span><span class="p">,</span> <span class="n">sank_blue</span><span class="p">,</span> <span class="n">sank_red</span><span class="p">,</span> <span class="n">sank_blue</span><span class="p">,</span> <span class="n">sank_grey</span><span class="p">,</span> <span class="n">sank_grey</span><span class="p">,</span>
+               <span class="n">sank_purple</span><span class="p">,</span> <span class="n">sank_grey</span><span class="p">]</span>
+    <span class="p">),</span>
+    <span class="n">link</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+      <span class="n">source</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+      <span class="n">target</span> <span class="o">=</span> <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span>
+      <span class="n">value</span> <span class="o">=</span> <span class="p">[</span><span class="n">size_p_null</span><span class="p">,</span> <span class="n">size_p_thermo</span><span class="p">,</span> <span class="n">size_p_meso</span><span class="p">,</span> <span class="n">size_pt_16s_pair</span><span class="p">,</span> <span class="n">size_pt_no_pair</span><span class="p">,</span>
+               <span class="n">size_pm_no_pair</span><span class="p">,</span> <span class="n">size_pm_small_diff</span><span class="p">,</span> <span class="n">size_pm_fafsa</span><span class="p">,</span> <span class="n">size_pt_small_diff</span><span class="p">,</span>
+               <span class="n">size_pt_fafsa</span><span class="p">,</span> <span class="n">size_pm_16s_pair</span><span class="p">],</span>
+      <span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="n">sank_grey_t</span><span class="p">,</span> <span class="n">sank_red_t</span><span class="p">,</span> <span class="n">sank_blue_t</span><span class="p">,</span> <span class="n">sank_red_t</span><span class="p">,</span> <span class="n">sank_grey_t</span><span class="p">,</span> <span class="n">sank_grey_t</span><span class="p">,</span>
+               <span class="n">sank_grey_t</span><span class="p">,</span> <span class="n">sank_blue_t</span><span class="p">,</span> <span class="n">sank_grey_t</span><span class="p">,</span> <span class="n">sank_red_t</span><span class="p">,</span> <span class="n">sank_blue_t</span><span class="p">]</span>
+      <span class="p">))])</span>
+
+    <span class="n">fig4</span><span class="o">.</span><span class="n">update_layout</span><span class="p">(</span><span class="n">title_text</span><span class="o">=</span><span class="s2">&quot;Protein Representation&quot;</span><span class="p">,</span> <span class="n">font_family</span> <span class="o">=</span> <span class="s1">&#39;Arial&#39;</span><span class="p">,</span> <span class="n">font_size</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+    <span class="n">fig4</span><span class="o">.</span><span class="n">write_image</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;..&#39;</span><span class="p">,</span> <span class="s1">&#39;..&#39;</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">newdir</span><span class="p">,</span> <span class="s1">&#39;protein_sankey.png&#39;</span><span class="p">),</span> <span class="n">engine</span> <span class="o">=</span> <span class="s1">&#39;kaleido&#39;</span><span class="p">,</span>
+                     <span class="n">scale</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="mi">1280</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="mi">640</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Logan Roberts, Humood Alanzi, Chau Vuong, Ryan Francis, Amin Mosallenejad.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FAFSA.model_input &mdash; FAFSA 1.0.1 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            FAFSA
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">FAFSA</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">FAFSA.model_input</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for FAFSA.model_input</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">This package imports data to be used in the FAFSA model. Current support for DuckDB objects</span>
+<span class="sd">generated from upstream component and for user-generated DataFrames with correct structure.</span>
+<span class="sd">Future updates will add option to calculate alignment features during dataset assembly, but</span>
+<span class="sd">current version requires user to supply them.</span>
+
+<span class="sd">Functions:</span>
+<span class="sd">    fetch_data: Generates input data for the FAFSA model in the form of a DataFrame with</span>
+<span class="sd">    alignment features as columns. User can control size of sample and sampling method.</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="n">module_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;..&#39;</span><span class="p">))</span>
+<span class="k">if</span> <span class="n">module_path</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="p">:</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">module_path</span><span class="p">)</span>
+    
+<span class="kn">from</span> <span class="nn">FAFSA.preprocessing</span> <span class="kn">import</span> <span class="n">connect_db</span>
+
+<div class="viewcode-block" id="fetch_data"><a class="viewcode-back" href="../../FAFSA.html#FAFSA.model_input.fetch_data">[docs]</a><span class="k">def</span> <span class="nf">fetch_data</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">form</span> <span class="o">=</span> <span class="s1">&#39;duckdb&#39;</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;random&#39;</span><span class="p">,</span> <span class="n">idx_range</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
+               <span class="n">chunksize</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="mi">5</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Pulls data from DuckDB database or pandas DataFrame for input to FAFSA model.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        path (str): Path to database or DataFrame input.</span>
+<span class="sd">        form (str): Identifies import method for either DuckDB database or DataFrame.</span>
+<span class="sd">        size (int): Sample size to be passed to FAFSA model. Superceded by idx_range when using sequential sampling.</span>
+<span class="sd">        method (str): Specifies random, chunked, or numeric sampling.</span>
+<span class="sd">        idx_range (list): Only applies to numeric sampling. Min and max index range for numeric</span>
+<span class="sd">                          sampling.</span>
+<span class="sd">        chunksize (int): Only applies to chunk sampling for large datasets. Sets size of each chunk.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        fafsa_df (pandas.DataFrame): DataFrame formatted for FAFSA model.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: form must be one of [&#39;csv&#39;, &#39;duckdb&#39;]. Other data types not yet supported.</span>
+<span class="sd">        ValueError: method must be one of [&#39;random&#39;, &#39;numeric&#39;, &#39;chunk&#39;]</span>
+<span class="sd">        ValueError: Index range must be positive.</span>
+<span class="sd">        ValueError: Index range must be contained in input data.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="n">forms</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;csv&#39;</span><span class="p">,</span> <span class="s1">&#39;duckdb&#39;</span><span class="p">]</span>
+    <span class="n">methods</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;random&#39;</span><span class="p">,</span> <span class="s1">&#39;numeric&#39;</span><span class="p">,</span> <span class="s1">&#39;chunk&#39;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">form</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">forms</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Invalid argument passed to form. Expected one of: </span><span class="si">{</span><span class="n">forms</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">methods</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Invalid argument passed to method. Expected one of: </span><span class="si">{</span><span class="n">methods</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">idx_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">idx_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Index range must be positive.&#39;</span><span class="p">)</span>
+        
+    <span class="k">if</span> <span class="n">idx_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Indices must be positive.&#39;</span><span class="p">)</span>
+        
+    <span class="k">if</span> <span class="n">form</span> <span class="o">==</span> <span class="s1">&#39;csv&#39;</span><span class="p">:</span>
+
+        <span class="c1"># Uses pandas random sampling of DataFrame.</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;random&#39;</span><span class="p">:</span>
+
+            <span class="n">fafsa_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
+
+        <span class="c1"># Uses pandas chunking of DataFrame with final concatention.</span>
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;chunk&#39;</span><span class="p">:</span>
+
+            <span class="n">dfs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">nrows</span> <span class="o">=</span> <span class="n">size</span><span class="p">,</span> <span class="n">chunksize</span><span class="o">=</span><span class="n">chunksize</span><span class="p">)</span>
+            <span class="n">fafsa_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">dfs</span><span class="p">,</span> <span class="n">ignore_index</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Selects only rows specified by user.</span>
+        <span class="k">else</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="n">idx_range</span> <span class="o">==</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="n">idx_range</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">size</span><span class="p">]</span>
+           
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">fafsa_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">skiprows</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">idx_range</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                                                                 <span class="n">idx_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;idx_range not in input data.&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">form</span> <span class="o">==</span> <span class="s1">&#39;duckdb&#39;</span><span class="p">:</span>
+
+        <span class="n">con</span> <span class="o">=</span> <span class="n">connect_db</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+        <span class="c1"># Uses duckdb random sampling via SQL.</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;random&#39;</span><span class="p">:</span>
+
+            <span class="n">sample_cmd</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;SELECT *</span>
+<span class="s2">                             FROM fafsa_final</span>
+<span class="s2">                             USING SAMPLE </span><span class="si">{</span><span class="n">size</span><span class="si">}</span><span class="s2">&quot;&quot;&quot;</span>
+            <span class="n">fafsa_df</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sample_cmd</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+
+        <span class="c1"># Performs a series of SQL queries until size is met.</span>
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;chunk&#39;</span><span class="p">:</span>
+
+            <span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">dfs</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                
+                <span class="c1"># Checks if size has been exceeded. Sets to size if it has.</span>
+                <span class="k">if</span> <span class="n">offset</span> <span class="o">+</span> <span class="n">chunksize</span> <span class="o">&gt;</span> <span class="n">size</span><span class="p">:</span>
+                    <span class="n">chunksize</span> <span class="o">=</span> <span class="n">size</span> <span class="o">-</span> <span class="n">offset</span>
+
+                <span class="n">chunk_cmd</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;SELECT *</span>
+<span class="s2">                                FROM fafsa_final</span>
+<span class="s2">                                LIMIT </span><span class="si">{</span><span class="n">chunksize</span><span class="si">}</span>
+<span class="s2">                                OFFSET </span><span class="si">{</span><span class="n">offset</span><span class="si">}</span>
+<span class="s2">                                ORDER BY prot_pair_index&quot;&quot;&quot;</span>
+                <span class="n">dfs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">chunk_cmd</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">())</span>
+                <span class="n">offset</span> <span class="o">+=</span> <span class="n">chunksize</span>
+
+                <span class="k">if</span> <span class="n">offset</span> <span class="o">&gt;</span> <span class="n">size</span><span class="p">:</span>
+                    <span class="k">break</span>
+
+                <span class="n">fafsa_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">dfs</span><span class="p">,</span> <span class="n">ignore_index</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Selects only rows specified by the user.</span>
+        <span class="k">else</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="n">idx_range</span> <span class="o">==</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="n">idx_range</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">size</span><span class="p">]</span>
+
+            <span class="n">num_cmd</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;SELECT *</span>
+<span class="s2">                         FROM fafsa_final</span>
+<span class="s2">                         LIMIT </span><span class="si">{</span><span class="n">idx_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">idx_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span>
+<span class="s2">                         OFFSET </span><span class="si">{</span><span class="n">idx_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span>
+<span class="s2">                         ORDER BY prot_pair_index&quot;&quot;&quot;</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">fafsa_df</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">num_cmd</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+                
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;idx_range not in input data.&#39;</span><span class="p">)</span>
+                
+    <span class="k">return</span> <span class="n">fafsa_df</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Logan Roberts, Humood Alanzi, Chau Vuong, Ryan Francis, Amin Mosallenejad.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
