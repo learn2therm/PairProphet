@@ -7,7 +7,7 @@ version: 1
 
 # Set the version of Python and other tools you might need
 build:
-#   os: Darwin
+  os: Darwin
   tools:
     python: "3.10.9"
 
