@@ -171,3 +171,9 @@ def rf_wrapper(dataframe):
     score = plot_model(model, val_X, val_y)
 
     return preds, score
+
+
+import platform
+
+os_name = platform.system()
+print(os_name)
