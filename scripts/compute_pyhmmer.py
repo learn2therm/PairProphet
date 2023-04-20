@@ -41,125 +41,6 @@ PFAM_PATH = Path("/Users/humoodalanzi/pfam/Pfam-A.hmm")  # ./Pfam-A.hmm
 SAMPLE_DB_PATH = Path("../notebooks/learn2therm_sample_50k_exploration.csv")
 
 
-def run_hmmer(
-        seqs: pd.core.frame.DataFrame,
-        input_file: str,
-        hmm: str,
-        targets,
-        output_file: str,
-        cpu: int = 4,
-        save_out=False,
-        eval_con: float = 1e-10):
-    """
-    Runs HMMER's hmmscan program on a set of input sequences using HMMs from a given database.
-
-    Parameters
-    ----------
-    seqs : pandas.core.frame.DataFrame
-        A dataframe with string amino acid sequences in a 'seq' column.
-    input_file : str
-        Path to the input sequence file.
-    hmm : str
-        Path to the HMM database.
-    targets : if prefetching: pyhmmer.plan7.OptimizedProfileBlock else: pyhmmer.plan7.HMMFile
-        The HMM profiles to search against.
-    output_file : str
-        Path to the output file.
-    cpu : int, optional
-        The number of CPUs to use. Default is 4.
-    save_out : bool, optional
-        Whether to save the output to file. Default is False.
-    eval_con : float, optional
-        E-value threshold for domain reporting. Default is 1e-10.
-
-    Returns
-    -------
-    pyhmmer.plan7.TopHits or None
-        The output hits if `save_out` is False, otherwise None.
-
-    Raises
-    ------
-    ValueError
-        If the input dataframe is empty.
-    AttributeError
-        If any of the sequences are invalid.
-
-    Notes
-    -----
-    This function runs HMMER's hmmscan program on a set of input sequences
-    using HMMs from a given database.
-    The function supports two modes: normal mode and prefetching mode.
-    In normal mode, the HMMs are pressed and stored in a directory before execution.
-    In prefetching mode, the HMMs are kept in memory for faster search.
-    """
-    # generate meso and thermo files
-    read_seq(seqs, input_file)
-
-    # place files into HMMER/pfam
-    run_pyhmmer(
-        hmm,
-        targets,
-        input_file,
-        output_file,
-        cpu,
-        save_out,
-        eval_con)
-    
-    
-
-
-def read_seq(lists: pd.core.frame.DataFrame, inputname: str = "input"):
-    """
-    Returns a list of SeqRecord objects and creates a corresponding input Fasta of them
-
-    Parameters:
-    ------------
-    list : pandas.core.frame.DataFrame
-        a dataframe with string amino acid sequences in a 'seq' column
-    input name : str, default = 'input'
-        a name for the input fasta file
-
-
-    Returns:
-    ------------
-    file : TextIOWrapper
-        the input fasta file created from the list of SeqRecord objects
-
-    Raises
-    -------
-    ValueError :
-        if the input dataframe is empty
-    AttributeError :
-        if any of the sequences are invalid
-    """
-    # check if input is empty
-    if lists.empty:
-        raise ValueError("Input dataframe is empty")
-
-    # check if sequences are valid
-    for seq in lists['protein_seq']:
-        try:
-            Seq(seq)
-        except BaseException as exc:
-            raise AttributeError("Invalid sequence") from exc
-
-    # function
-    records = []
-    for index, seq in lists.itertuples():
-        try:
-            record = SeqRecord(Seq(seq), id=str(index))
-            records.append(record)
-        except AttributeError as exc:
-            raise AttributeError(f"Invalid sequence: {seq}") from exc
-
-    # raise error if seq not valid
-    if not records:
-        raise AttributeError("No valid sequences found in input")
-
-    with open(f"{inputname}.fasta", "w", encoding="utf-8") as file:
-        SeqIO.write(records, file, "fasta")
-    return file
-
 
 def hmmpress_hmms(hmms_path, pfam_data_folder):
     """
@@ -182,76 +63,118 @@ def hmmpress_hmms(hmms_path, pfam_data_folder):
     stores the resulting files in the specified directory for faster access during future HMMER runs.
     If the specified directory does not exist, it will be created.
     """
-    if not os.path.exists(
-        os.path.join(
-            pfam_data_folder,
-            os.path.basename(hmms_path) +
-            ".h3m")):
-        hmms = pyhmmer.plan7.HMMFile(hmms_path)
-        pyhmmer.hmmer.hmmpress(hmms, pfam_data_folder)
+    hmms = pyhmmer.plan7.HMMFile(hmms_path)
+    pyhmmer.hmmer.hmmpress(hmms, pfam_data_folder)
 
-def fetch_targets(hmmdb: str, prefetching: bool):
+
+def prefetch_targets(hmms_path: str):
     """
-    Load HMM profiles from a given HMM database.
+    Prefetch HMM profiles from a given HMM database.
 
     Parameters
     ----------
-    hmmdb : str
+    hmms_path : str
         Path to the HMM database.
-    prefetching : bool
-        Whether to use prefetching for faster search.
 
     Returns
     -------
     targets : pyhmmer.plan7.OptimizedProfileBlock
         The HMM profiles loaded from the database.
-
-    Notes
-    -----
-    This function loads the HMM profiles from a given HMM database using the
-    PyHMMER package. It supports two modes: normal mode and prefetching mode.
-    In normal mode, the HMMs are loaded from the disk on each use.
-    In prefetching mode, the HMMs are kept in memory for faster search.
     """
     # amino acid alphabet and prefetched inputs
-    aa = pyhmmer.easel.Alphabet.amino()
-    optimized_profiles = list(pyhmmer.plan7.HMMPressedFile(hmmdb))
+    amino_acids = pyhmmer.easel.Alphabet.amino()
+    optimized_profiles = list(pyhmmer.plan7.HMMPressedFile(hmms_path))
     targets = pyhmmer.plan7.OptimizedProfileBlock(
-        aa, optimized_profiles) if prefetching else pyhmmer.plan7.HMMFile("../data/pfam/.h3m")
+        amino_acids, optimized_profiles)  
     return targets
 
+
+def save_sequences_to_fasta(sequences: pd.core.frame.DataFrame, inputname: str = "input"):
+    """
+    Returns a list of SeqRecord objects and creates a corresponding input Fasta of them
+
+    Parameters:
+    ------------
+    sequences : pandas.core.frame.DataFrame
+        a dataframe with string amino acid sequences in a 'protein_seq' column
+    input name : str, default = 'input'
+        a name for the input fasta file
+
+
+    Returns:
+    ------------
+    file : TextIOWrapper
+        the input fasta file created from the list of SeqRecord objects
+
+    Raises
+    -------
+    ValueError :
+        if the input dataframe is empty
+    AttributeError :
+        if any of the sequences are invalid
+    """
+    # ensure input file has .fasta extension
+    if not inputname.endswith('.fasta'):
+        inputname = f"{os.path.splitext(inputname)[0]}.fasta"
+
+    # check if input is empty
+    if sequences.empty:
+        raise ValueError("Input dataframe is empty")
+
+    # check if sequences are valid
+    for seq in sequences['protein_seq']:
+        try:
+            Seq(seq)
+        except BaseException as exc:
+            raise AttributeError("Invalid sequence") from exc
+
+    # function
+    records = []
+    for index, seq in sequences.itertuples():
+        try:
+            record = SeqRecord(Seq(seq), id=str(index))
+            records.append(record)
+        except AttributeError as exc:
+            raise AttributeError(f"Invalid sequence: {seq}") from exc
+
+    # raise error if seq not valid
+    if not records:
+        raise AttributeError("No valid sequences found in input")
+
+    with open(inputname, "w", encoding="utf-8") as file:
+        SeqIO.write(records, file, "fasta")
+    return file
+
 def run_pyhmmer(
-        hmmdb: str,
-        targetdb: Union[pyhmmer.plan7.OptimizedProfileBlock, pyhmmer.plan7.HMMFile],
         input_file: str,
-        output_file: str,
+        hmms_path: str,
+        prefetch: bool=False,
+        output_file: str = None,
         cpu: int = 4,
-        save_out=False,
         eval_con: float = 1e-10):
     """
-    Run hmmscan on input sequences with HMMs from a database.
+    Run HMMER's hmmscan program on a set of input sequences using with HMMs from a database.
 
     Parameters
     ----------
-    hmmdb : str
-        Path to the HMM database.
-    targetdb : if prefetching: pyhmmer.plan7.OptimizedProfileBlock else: pyhmmer.plan7.HMMFile
-         The HMM profiles to search against.
     input_file : str
         Path to the input sequence file.
-    output_file : str
-        Path to the output file.
+    hmms_path : str
+        Path to the HMM database.
+    prefetch : bool, optional
+        Specifies how the HMM are stored in meomry.
+    output_file : str, optional
+        Path to the output file if the users wants to write the file.
     cpu : int, optional
         The number of CPUs to use. Default is 4.
-    save_out : bool, optional
-        Whether to save the output to file. Default is False.
     eval_con : float, optional
         E-value threshold for domain reporting. Default is 1e-10.
 
     Returns
     -------
-    all_hits : pyhmmer.plan7.TopHits or None
-        The output hits if `save_out` is False, otherwise None.
+    all_hits : pyhmmer.plan7.TopHits or domtblout file
+        If the output_file has a name, it will be written to a domtblout file.
+        Otherwise, the user will get a list of pyhmmeer TopHits objects.
 
     Notes
     -----
@@ -260,29 +183,29 @@ def run_pyhmmer(
     The function supports two modes: normal mode and prefetching mode.
     In normal mode, the HMMs are pressed and stored in a directory before execution.
     In prefetching mode, the HMMs are kept in memory for faster search.
-    """
-    # Press hmms and store them in the pfam data folder
-    hmmpress_hmms(hmmdb, "../data/pfam/")
-
-    # Ensure input_file has .fasta extension
-    if not input_file.endswith('.fasta'):
-        input_file = f"{os.path.splitext(input_file)[0]}.fasta"
+    """ 
     # Ensure output_file has .domtblout extension
     if not output_file.endswith('.domtblout'):
         output_file = f"{os.path.splitext(output_file)[0]}.domtblout"
+
+    # HMM profile modes
+    if prefetch:
+        targets = prefetch_targets(hmms_path)
+    else:
+        targets = pyhmmer.plan7.HMMFile("../data/pfam/.h3m")
     
     # HMMscan execution with or without save_out
     with pyhmmer.easel.SequenceFile(input_file, digital=True) as seqs:
-        if save_out:
+        all_hits = list(pyhmmer.hmmer.hmmscan(seqs, targets, cpus=cpu, E=eval_con))
+        # check if we should save the output
+        if output_file is not None:
             with open(output_file, "wb") as dst:
                 for i, hits in enumerate(
                     pyhmmer.hmmer.hmmscan(
-                        seqs, targetdb, cpus=cpu, E=eval_con)):
+                        seqs, targets, cpus=cpu, E=eval_con)):
                     hits.write(dst, format="domains", header=i == 0)
-        else:
-            all_hits = list(pyhmmer.hmmer.hmmscan(seqs, targetdb, cpus=cpu, E=eval_con))
+    return all_hits
 
-    return all_hits if not save_out else None
 
 def parse_pyhmmer(all_hits):
     """
@@ -365,31 +288,31 @@ if __name__ == '__main__':
 
     logger.info('Sampled t and m data')
 
-    # reading the targets
-    targets = fetch_targets(PFAM_PATH, prefetching=True)
+    # press the HMM db
+    hmmpress_hmms(PFAM_PATH, "../data/pfam/")
 
-    logger.info('Loaded HMM targets')
+    logger.info('Pressed HMM DB')
 
-    # Execution
-    def run_hmmer_parallel(chunk_index, seq, which):
-        """Executes run_hmmer in parrallel"""
-        # Define paths for input and output files
+    # create worker function to scatter 
+    def worker_function(chunk_index, sequences, which):
+        # define paths for input and output files
         input_file_path = f"./results/{which}_input_{chunk_index}"
-        output_file_path = f"./results/{which}_output_{chunk_index}.domtblout"
-        
-        hitlist = run_hmmer(
-            seqs=seq,
+        output_file_path = f"./results/{which}_output_{chunk_index}"
+
+        # convert sequences to FASTA files
+        save_sequences_to_fasta(sequences, input_file_path)
+
+        hits = run_pyhmmer(
             input_file=input_file_path,
-            hmm=PFAM_PATH,
-            targets=targets,
+            hmms_path="../data/pfam/",
+            prefetch=True,
             output_file=output_file_path,
             cpu=1,
-            save_out=False,
-        )
+            eval_con=1e-5)
 
         # Parse pyhmmer output and save to CSV file
-        result_df = parse_pyhmmer(all_hits=hitlist)
-        result_df.to_csv(f"./results/{which}_result.csv", index=False)
+        accessions_parsed = parse_pyhmmer(all_hits=hits)
+        accessions_parsed.to_csv(f"./results/{which}_result_{chunk_index}.csv", index=False)
 
     # chunking the data to chunk_size sequence bits (change if sample or all
     # proteins)
@@ -403,12 +326,9 @@ if __name__ == '__main__':
     # parallel computing on how many CPUs (n_jobs=)
     logger.info('Running pyhmmer in parallel on all chunks')
 
-    with tqdm(total=len(meso_chunks) + len(thermo_chunks)) as pbar:
-        Parallel(n_jobs=njobs)(delayed(run_hmmer_parallel)(i, chunk, "meso")
-                               for i, chunk in enumerate(meso_chunks))
-        pbar.update(len(meso_chunks))
-        Parallel(n_jobs=njobs)(delayed(run_hmmer_parallel)(i, chunk, "thermo")
-                               for i, chunk in enumerate(thermo_chunks))
-        pbar.update(len(thermo_chunks))
+    Parallel(n_jobs=njobs)(delayed(worker_function)(chunk_index, sequences , "meso")
+                               for chunk_index, sequences  in enumerate(meso_chunks))
+    Parallel(n_jobs=njobs)(delayed(worker_function)(chunk_index, sequences , "thermo")
+                               for chunk_index, sequences in enumerate(thermo_chunks))
 
     logger.info('Parallelization complete')
