@@ -184,7 +184,11 @@ def run_pyhmmer(
     In normal mode, the HMMs are pressed and stored in a directory before execution.
     In prefetching mode, the HMMs are kept in memory for faster search.
     """ 
-    # Ensure output_file has .domtblout extension
+    # ensure input file has .fasta extension
+    if not input_file.endswith('.fasta'):
+        input_file = f"{os.path.splitext(input_file)[0]}.fasta"
+
+    # ensure output_file has .domtblout extension
     if not output_file.endswith('.domtblout'):
         output_file = f"{os.path.splitext(output_file)[0]}.domtblout"
 
@@ -295,6 +299,18 @@ if __name__ == '__main__':
 
     # create worker function to scatter 
     def worker_function(chunk_index, sequences, which):
+        """
+        A wrapping function that runs and parses pyhmmer in chunks
+
+        Parameters
+        ----------
+        chunk_index : int
+            number of sequences chunks
+        sequences : str
+            a list of dataframe containing protein sequences
+        which : bool
+            class of proteins
+        """
         # define paths for input and output files
         input_file_path = f"./results/{which}_input_{chunk_index}"
         output_file_path = f"./results/{which}_output_{chunk_index}"
@@ -304,7 +320,7 @@ if __name__ == '__main__':
 
         hits = run_pyhmmer(
             input_file=input_file_path,
-            hmms_path="../data/pfam/",
+            hmms_path=PFAM_PATH,
             prefetch=True,
             output_file=output_file_path,
             cpu=1,
