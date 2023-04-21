@@ -41,7 +41,6 @@ PFAM_PATH = Path("/Users/humoodalanzi/pfam/Pfam-A.hmm")  # ./Pfam-A.hmm
 SAMPLE_DB_PATH = Path("../notebooks/learn2therm_sample_50k_exploration.csv")
 
 
-
 def hmmpress_hmms(hmms_path, pfam_data_folder):
     """
     Presses the HMMs in the given HMM database and stores the resulting files in a specified directory.
@@ -85,11 +84,13 @@ def prefetch_targets(hmms_path: str):
     amino_acids = pyhmmer.easel.Alphabet.amino()
     optimized_profiles = list(pyhmmer.plan7.HMMPressedFile(hmms_path))
     targets = pyhmmer.plan7.OptimizedProfileBlock(
-        amino_acids, optimized_profiles)  
+        amino_acids, optimized_profiles)
     return targets
 
 
-def save_sequences_to_fasta(sequences: pd.core.frame.DataFrame, inputname: str = "input"):
+def save_sequences_to_fasta(
+        sequences: pd.core.frame.DataFrame,
+        inputname: str = "input"):
     """
     Returns a list of SeqRecord objects and creates a corresponding input Fasta of them
 
@@ -145,10 +146,11 @@ def save_sequences_to_fasta(sequences: pd.core.frame.DataFrame, inputname: str =
         SeqIO.write(records, file, "fasta")
     return file
 
+
 def run_pyhmmer(
         input_file: str,
         hmms_path: str,
-        prefetch: bool=False,
+        prefetch: bool = False,
         output_file: str = None,
         cpu: int = 4,
         eval_con: float = 1e-10):
@@ -183,7 +185,7 @@ def run_pyhmmer(
     The function supports two modes: normal mode and prefetching mode.
     In normal mode, the HMMs are pressed and stored in a directory before execution.
     In prefetching mode, the HMMs are kept in memory for faster search.
-    """ 
+    """
     # ensure input file has .fasta extension
     if not input_file.endswith('.fasta'):
         input_file = f"{os.path.splitext(input_file)[0]}.fasta"
@@ -197,10 +199,15 @@ def run_pyhmmer(
         targets = prefetch_targets(hmms_path)
     else:
         targets = pyhmmer.plan7.HMMFile("../data/pfam/.h3m")
-    
+
     # HMMscan execution with or without save_out
     with pyhmmer.easel.SequenceFile(input_file, digital=True) as seqs:
-        all_hits = list(pyhmmer.hmmer.hmmscan(seqs, targets, cpus=cpu, E=eval_con))
+        all_hits = list(
+            pyhmmer.hmmer.hmmscan(
+                seqs,
+                targets,
+                cpus=cpu,
+                E=eval_con))
         # check if we should save the output
         if output_file is not None:
             with open(output_file, "wb") as dst:
@@ -227,23 +234,25 @@ def parse_pyhmmer(all_hits):
     """
     # initialize an empty list to store the data
     data = []
-    
+
     # iterate over each protein hit
     for top_hits in all_hits:
         for hit in top_hits:
             # extract the query and accession IDs and decode the query ID
             query_id = hit.hits.query_name.decode('utf-8')
             accession_id = hit.accession.decode('utf-8')
-            
+
             # append the data to the list
             data.append([query_id, accession_id])
-    
+
     # create the DataFrame from the list
     df = pd.DataFrame(data, columns=["query_id", "accession_id"])
-    
-    # group the accession IDs by query ID and join them into a single string separated by ";"
-    df = df.groupby("query_id")["accession_id"].apply(lambda x: ";".join(x)).reset_index()
-    
+
+    # group the accession IDs by query ID and join them into a single string
+    # separated by ";"
+    df = df.groupby("query_id")["accession_id"].apply(
+        lambda x: ";".join(x)).reset_index()
+
     return df
 
 
@@ -261,7 +270,8 @@ if __name__ == '__main__':
 
     # Set up parallel processing and parsing
     total_size = int(sys.argv[1])  # Number of total sequences read
-    chunk_size = int(sys.argv[2])  # Number of sequences to process in each chunk
+    # Number of sequences to process in each chunk
+    chunk_size = int(sys.argv[2])
     njobs = int(sys.argv[3])  # Number of parallel processes to use
 
     logger.info('Parallel processing parameters obtained')
@@ -297,7 +307,7 @@ if __name__ == '__main__':
 
     logger.info('Pressed HMM DB')
 
-    # create worker function to scatter 
+    # create worker function to scatter
     def worker_function(chunk_index, sequences, which):
         """
         A wrapping function that runs and parses pyhmmer in chunks
@@ -328,7 +338,9 @@ if __name__ == '__main__':
 
         # Parse pyhmmer output and save to CSV file
         accessions_parsed = parse_pyhmmer(all_hits=hits)
-        accessions_parsed.to_csv(f"./results/{which}_result_{chunk_index}.csv", index=False)
+        accessions_parsed.to_csv(
+            f"./results/{which}_result_{chunk_index}.csv",
+            index=False)
 
     # chunking the data to chunk_size sequence bits (change if sample or all
     # proteins)
@@ -342,9 +354,19 @@ if __name__ == '__main__':
     # parallel computing on how many CPUs (n_jobs=)
     logger.info('Running pyhmmer in parallel on all chunks')
 
-    Parallel(n_jobs=njobs)(delayed(worker_function)(chunk_index, sequences , "meso")
-                               for chunk_index, sequences  in enumerate(meso_chunks))
-    Parallel(n_jobs=njobs)(delayed(worker_function)(chunk_index, sequences , "thermo")
-                               for chunk_index, sequences in enumerate(thermo_chunks))
+    Parallel(
+        n_jobs=njobs)(
+        delayed(worker_function)(
+            chunk_index,
+            sequences,
+            "meso") for chunk_index,
+        sequences in enumerate(meso_chunks))
+    Parallel(
+        n_jobs=njobs)(
+        delayed(worker_function)(
+            chunk_index,
+            sequences,
+            "thermo") for chunk_index,
+        sequences in enumerate(thermo_chunks))
 
     logger.info('Parallelization complete')
