@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FAFSA.compute_local_hmmer &mdash; FAFSA 1.0.1 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            FAFSA
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">FAFSA</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">FAFSA.compute_local_hmmer</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for FAFSA.compute_local_hmmer</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">The script executes HMMER against pfam and generate output files</span>
+
+<span class="sd">The packages you need to run this script are the following:</span>
+<span class="sd">- biopython</span>
+<span class="sd">- HMMER (http://hmmer.org/documentation.html)</span>
+<span class="sd">- pandas</span>
+
+<span class="sd">You also need to have:</span>
+<span class="sd">- pfam db locally</span>
+<span class="sd">- protein db</span>
+
+<span class="sd">Note</span>
+<span class="sd">-----</span>
+<span class="sd">Initially, this script was designed to run HMMER on all our proteins in pairs, thus the mass commenting at the end</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="c1"># system dependecies</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+
+<span class="c1"># job stuff</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">joblib</span> <span class="kn">import</span> <span class="n">delayed</span><span class="p">,</span> <span class="n">Parallel</span>
+
+
+
+<span class="c1"># library dependencies</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+
+<span class="c1"># biopython</span>
+<span class="kn">from</span> <span class="nn">Bio</span> <span class="kn">import</span> <span class="n">SeqIO</span>
+<span class="kn">from</span> <span class="nn">Bio.Seq</span> <span class="kn">import</span> <span class="n">Seq</span>
+<span class="kn">from</span> <span class="nn">Bio.SeqRecord</span> <span class="kn">import</span> <span class="n">SeqRecord</span>
+
+
+<span class="c1"># Paths (used to need as I was planning to use this script for hyak)</span>
+
+<span class="c1">#### important note re: PFAM_PATH -&gt; the user should have a locally</span>
+<span class="c1"># hmmerpressed copy of pfam-A.hmm ####</span>
+<span class="n">PFAM_PATH</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;/Users/humoodalanzi/pfam/Pfam-A.hmm&quot;</span><span class="p">)</span>  <span class="c1"># ./Pfam-A.hmm</span>
+<span class="c1"># ./learn2therm_sample_50k.csv</span>
+<span class="n">SAMPLE_DB_PATH</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;../notebooks/learn2therm_sample_50k_exploration.csv&quot;</span><span class="p">)</span>
+
+<span class="c1"># For hyak implementation</span>
+<span class="c1"># ID_DB_PATH = Path(&quot;/Users/humoodalanzi/pfam/proteins_id.zip&quot;) #</span>
+<span class="c1"># ./proteins_id.zip</span>
+
+
+<div class="viewcode-block" id="hmmer_wrapper"><a class="viewcode-back" href="../../FAFSA.html#FAFSA.compute_local_hmmer.hmmer_wrapper">[docs]</a><span class="k">def</span> <span class="nf">hmmer_wrapper</span><span class="p">(</span>
+        <span class="n">seq</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+        <span class="n">input_filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">pfam_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">input_filename_with_ext</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">output_filename_with_ext</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">cpu</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Executes HMMER against pfam</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">    ------------</span>
+<span class="sd">    seq : pandas.core.frame.DataFrame</span>
+<span class="sd">        a dataframe with string amino acid sequences in a &#39;protein_seq&#39; column</span>
+<span class="sd">        (has to be processed in a certain way)</span>
+<span class="sd">    input_filename : str</span>
+<span class="sd">        A file name for the input of the transformed seq to FASTA</span>
+<span class="sd">    pfam_path : str</span>
+<span class="sd">        path of the HMMER/pfam db</span>
+<span class="sd">    input_filename_with_ext : str</span>
+<span class="sd">        A file name for the input FASTA has to include the ext. FASTA</span>
+<span class="sd">    output_filename_with_ext : str</span>
+<span class="sd">        output file name perferred extension is domtblout</span>
+<span class="sd">    cpu : 4</span>
+<span class="sd">        number of cpus for i/o</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">    ------------</span>
+<span class="sd">    file : TextIOWrapper (Input fasta file)</span>
+<span class="sd">        the input fasta file created from the list of SeqRecord objects</span>
+<span class="sd">    file : TextIOWrapper (Output domtblout file)</span>
+<span class="sd">        an output domtblout file of the HMMER/pfam results</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># wrapper execution</span>
+    <span class="c1"># User should define an amino acid sequence as Pandas series</span>
+
+    <span class="c1"># generate meso and thermo files</span>
+    <span class="n">read_seq</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">input_filename</span><span class="p">)</span>
+
+    <span class="c1"># place files into HMMER/pfam</span>
+    <span class="n">run_hmmer</span><span class="p">(</span>
+        <span class="n">pfam_path</span><span class="p">,</span>
+        <span class="n">input_filename_with_ext</span><span class="p">,</span>
+        <span class="n">output_filename_with_ext</span><span class="p">,</span>
+        <span class="n">cpu</span><span class="p">)</span></div>
+
+
+<span class="c1"># Create a list of SeqRecord objects</span>
+<span class="c1"># Write the list of SeqRecord objects to a FASTA file</span>
+<div class="viewcode-block" id="read_seq"><a class="viewcode-back" href="../../FAFSA.html#FAFSA.compute_local_hmmer.read_seq">[docs]</a><span class="k">def</span> <span class="nf">read_seq</span><span class="p">(</span><span class="n">lists</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">inputname</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;input&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns a list of SeqRecord objects and creates a corresponding input Fasta of them</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">    ------------</span>
+<span class="sd">    list : pandas.core.frame.DataFrame</span>
+<span class="sd">        a dataframe with string amino acid sequences in a &#39;protein_seq&#39; column</span>
+<span class="sd">    input name : str, default = &#39;input&#39;</span>
+<span class="sd">        a name for the input fasta file</span>
+
+
+<span class="sd">    Returns:</span>
+<span class="sd">    ------------</span>
+<span class="sd">    file : TextIOWrapper</span>
+<span class="sd">        the input fasta file created from the list of SeqRecord objects</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    -------</span>
+<span class="sd">    ValueError :</span>
+<span class="sd">        if the input dataframe is empty</span>
+<span class="sd">    AttributeError :</span>
+<span class="sd">        if any of the sequences are invalid</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># check if input is empty</span>
+    <span class="k">if</span> <span class="n">lists</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Input dataframe is empty&quot;</span><span class="p">)</span>
+
+    <span class="c1"># check if sequences are valid (for ID_DB_PATH)</span>
+    <span class="k">for</span> <span class="n">seq</span> <span class="ow">in</span> <span class="n">lists</span><span class="p">[</span><span class="s1">&#39;protein_seq&#39;</span><span class="p">]:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">Seq</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">BaseException</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;Invalid sequence&quot;</span><span class="p">)</span>
+
+    <span class="c1"># function</span>
+    <span class="n">records</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">seq</span> <span class="ow">in</span> <span class="n">lists</span><span class="o">.</span><span class="n">itertuples</span><span class="p">():</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">record</span> <span class="o">=</span> <span class="n">SeqRecord</span><span class="p">(</span><span class="n">Seq</span><span class="p">(</span><span class="n">seq</span><span class="p">),</span> <span class="nb">id</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">index</span><span class="p">))</span>
+            <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid sequence: </span><span class="si">{</span><span class="n">seq</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># raise error if seq not valid</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">records</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;No valid sequences found in input&quot;</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">inputname</span><span class="si">}</span><span class="s2">.fasta&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+        <span class="n">SeqIO</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">records</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="s2">&quot;fasta&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">file</span></div>
+
+
+<div class="viewcode-block" id="run_hmmer"><a class="viewcode-back" href="../../FAFSA.html#FAFSA.compute_local_hmmer.run_hmmer">[docs]</a><span class="k">def</span> <span class="nf">run_hmmer</span><span class="p">(</span>
+        <span class="n">DB_PATH</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">input_filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">output_filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">num_cpu</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Runs HMMER search against the Pfam database using the hmmscan command</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">    ------------</span>
+<span class="sd">    DB_PATH : str</span>
+<span class="sd">        the path of the HMMER/pfam database</span>
+<span class="sd">    input_filename : str</span>
+<span class="sd">        a name for the input fasta file (don&#39;t forget extension!)</span>
+<span class="sd">    output_filename : str</span>
+<span class="sd">        a name for the domtblout output file (don&#39;t forget extension!)</span>
+<span class="sd">    num_cpu : int</span>
+
+
+<span class="sd">    Returns:</span>
+<span class="sd">    ------------</span>
+<span class="sd">    file : TextIOWrapper (Output domtblout file)</span>
+<span class="sd">        an output domtblout file of the HMMER/pfam results</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    -------</span>
+<span class="sd">    AttributeError :</span>
+<span class="sd">        in development</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_filename</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+        <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">&quot;hmmscan&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;--cpu&quot;</span><span class="p">,</span>
+                        <span class="nb">str</span><span class="p">(</span><span class="n">num_cpu</span><span class="p">),</span>
+                        <span class="s2">&quot;--domtblout&quot;</span><span class="p">,</span>
+                        <span class="n">output_filename</span><span class="p">,</span>
+                        <span class="n">DB_PATH</span><span class="p">,</span>
+                        <span class="n">input_filename</span><span class="p">],</span>
+                       <span class="n">stdout</span><span class="o">=</span><span class="n">file</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">file</span></div>
+
+
+<span class="c1"># if __name__ == &#39;__main__&#39;:</span>
+<span class="c1">#     # Logging</span>
+<span class="c1">#     logger = logging.getLogger()</span>
+<span class="c1">#     logger.setLevel(logging.INFO)</span>
+<span class="c1">#     fh = logging.FileHandler(&#39;hmmer.log&#39;, mode=&#39;w&#39;)</span>
+<span class="c1">#     formatter = logging.Formatter(</span>
+<span class="c1">#         &#39;%(filename)-12s %(asctime)s;%(funcName)-12s: %(levelname)-8s %(message)s&#39;)</span>
+<span class="c1">#     fh.setFormatter(formatter)</span>
+<span class="c1">#     logger.addHandler(fh)</span>
+
+<span class="c1">#     logger.info(&quot;TEST LOG&quot;)</span>
+
+<span class="c1">#     # Data prep and processing</span>
+
+<span class="c1">#     # reading the data</span>
+<span class="c1">#     # protein_database = pd.read_csv(ID_DB_PATH, index_col=0)</span>
+<span class="c1">#     # sample</span>
+<span class="c1">#     df_sample = pd.read_csv(SAMPLE_DB_PATH, index_col=0)</span>
+<span class="c1">#     logger.info(&#39;Loaded database&#39;)</span>
+
+<span class="c1">#     # separating the meso and thermo</span>
+<span class="c1">#     # meso_seq_db = protein_database.loc[protein_database[&quot;identity&quot;] == &quot;m&quot;]</span>
+<span class="c1">#     # thermo_seq_db = protein_database.loc[protein_database[&quot;identity&quot;] == &quot;t&quot;]</span>
+
+<span class="c1">#     # sample</span>
+<span class="c1">#     meso_seq_db2 = df_sample[[&quot;meso_index&quot;, &quot;m_protein_seq&quot;]]</span>
+<span class="c1">#     thermo_seq_db2 = df_sample[[&quot;thermo_index&quot;, &quot;t_protein_seq&quot;]]</span>
+<span class="c1">#     logger.info(&#39;Data seperated into t and m&#39;)</span>
+
+<span class="c1">#     # processing meso to be suitable for HMMER</span>
+<span class="c1">#     # meso_seq_pre = meso_seq_db[[&quot;protein_seq&quot;, &quot;protein_int_index&quot;]]</span>
+<span class="c1">#     # meso_seq_list = meso_seq_pre.set_index(&quot;protein_int_index&quot;).iloc[:15]</span>
+<span class="c1">#     # meso_seq_list.index.name = None</span>
+
+<span class="c1">#     # sample</span>
+<span class="c1">#     meso_seq_list2 = meso_seq_db2.set_index(&quot;meso_index&quot;).iloc[:500]</span>
+<span class="c1">#     meso_seq_list2.index.name = None</span>
+<span class="c1">#     meso_seq_list2.rename({&#39;m_protein_seq&#39;: &#39;protein_seq&#39;}, axis=&quot;columns&quot;, inplace=True)</span>
+
+<span class="c1">#     # processing meso to be suitable for HMMER</span>
+<span class="c1">#     # thermo_seq_pre = thermo_seq_db[[&quot;protein_seq&quot;, &quot;protein_int_index&quot;]]</span>
+<span class="c1">#     # thermo_seq_list = thermo_seq_pre.set_index(&quot;protein_int_index&quot;).iloc[:15]</span>
+<span class="c1">#     # thermo_seq_list.index.name = None</span>
+
+<span class="c1">#     # sample</span>
+<span class="c1">#     thermo_seq_list2 = thermo_seq_db2.set_index(&quot;thermo_index&quot;).iloc[:500]</span>
+<span class="c1">#     thermo_seq_list2.index.name = None</span>
+<span class="c1">#     thermo_seq_list2.rename({&#39;t_protein_seq&#39;: &#39;protein_seq&#39;}, axis=&quot;columns&quot;, inplace=True)</span>
+
+<span class="c1">#     logger.info(&#39;Sampled t and m data&#39;)</span>
+
+<span class="c1">#     # Execution</span>
+<span class="c1">#     def hmmer_wrapper_parallel(chunk_index, seq, which):</span>
+<span class="c1">#         &quot;&quot;&quot;Executes hmmer wrapper in parrallel&quot;&quot;&quot;</span>
+<span class="c1">#         hmmer_wrapper(</span>
+<span class="c1">#             seq=seq,</span>
+<span class="c1">#             input_filename=f&quot;{which}_input_{chunk_index}&quot;,</span>
+<span class="c1">#             input_filename_with_ext=f&quot;{which}_input_{chunk_index}.fasta&quot;,</span>
+<span class="c1">#             output_filename_with_ext=f&quot;{which}_output_{chunk_index}.domtblout&quot;,</span>
+<span class="c1">#             pfam_path=PFAM_PATH,</span>
+<span class="c1">#             cpu=1)</span>
+
+<span class="c1">#     # chunking the data to 100 sequence bits (change if sample or all proteins)</span>
+<span class="c1">#     meso_chunks = [meso_seq_list2[i:i + 100]</span>
+<span class="c1">#                    for i in range(0, len(meso_seq_list2), 100)]</span>
+<span class="c1">#     thermo_chunks = [thermo_seq_list2[i:i + 100]</span>
+<span class="c1">#                      for i in range(0, len(thermo_seq_list2), 100)]</span>
+
+<span class="c1">#     # parallel computing on how many CPUs (n_jobs=)</span>
+<span class="c1">#     Parallel(n_jobs=2)(delayed(hmmer_wrapper_parallel)(i, chunk, &quot;meso&quot;)</span>
+<span class="c1">#                        for i, chunk in enumerate(meso_chunks))</span>
+<span class="c1">#     Parallel(n_jobs=2)(delayed(hmmer_wrapper_parallel)(i, chunk, &quot;thermo&quot;)</span>
+<span class="c1">#                        for i, chunk in enumerate(thermo_chunks))</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Logan Roberts, Humood Alanzi, Chau Vuong, Ryan Francis, Amin Mosallenejad.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

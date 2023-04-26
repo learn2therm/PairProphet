@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FAFSA.train_val_classification &mdash; FAFSA 1.0.1 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            FAFSA
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">FAFSA</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">FAFSA.train_val_classification</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for FAFSA.train_val_classification</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module takes in a pandas dataframe from</span>
+<span class="sd">c5_input_cleaning and runs it through a</span>
+<span class="sd">RandomForestClassifier model from scitkit learn.</span>
+<span class="sd">Returns a Boolean prediction for protein pair</span>
+<span class="sd">functionality.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">sklearn.preprocessing</span>
+<span class="kn">import</span> <span class="nn">sklearn.model_selection</span>
+<span class="kn">import</span> <span class="nn">sklearn.neighbors</span>
+<span class="kn">import</span> <span class="nn">sklearn.ensemble</span>
+<span class="kn">import</span> <span class="nn">sklearn.feature_selection</span>
+<span class="kn">import</span> <span class="nn">sklearn.metrics</span>
+
+
+<div class="viewcode-block" id="train_model"><a class="viewcode-back" href="../../FAFSA.html#FAFSA.train_val_classification.train_model">[docs]</a><span class="k">def</span> <span class="nf">train_model</span><span class="p">(</span><span class="n">dataframe</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[],</span> <span class="n">target</span><span class="o">=</span><span class="p">[]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Takes dataframe and splits it into a training and testing set.</span>
+<span class="sd">    Note: Data is called train and test, but this test set is currently</span>
+<span class="sd">    closer to a validation set. Keeping nomenclature to keep model robust.</span>
+<span class="sd">    Trains a KNN classifier model with selected data.</span>
+
+<span class="sd">    Params</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dataframe: Pandas dataframe</span>
+<span class="sd">    columns: list of strings, representing input features</span>
+<span class="sd">    target: list of strings, representing target feature(s)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    -Sk-learn model object</span>
+<span class="sd">    -train data (features)</span>
+<span class="sd">    -train data (target)</span>
+<span class="sd">    -validation data (features)</span>
+<span class="sd">    -validation data (target)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># split data</span>
+    <span class="n">train</span><span class="p">,</span> <span class="n">val</span> <span class="o">=</span> <span class="n">sklearn</span><span class="o">.</span><span class="n">model_selection</span><span class="o">.</span><span class="n">train_test_split</span><span class="p">(</span>
+        <span class="n">dataframe</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.15</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># test input arguments</span>
+    <span class="k">assert</span> <span class="s2">&quot;pandas.core.frame.DataFrame&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">train</span><span class="p">))</span>
+    <span class="k">assert</span> <span class="s2">&quot;pandas.core.frame.DataFrame&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">val</span><span class="p">))</span>
+    <span class="k">assert</span> <span class="s2">&quot;str&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">columns</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+    <span class="k">assert</span> <span class="s2">&quot;str&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">target</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+
+    <span class="c1"># split into input and output feature(s)</span>
+    <span class="n">train_X</span> <span class="o">=</span> <span class="n">train</span><span class="p">[</span><span class="n">columns</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+    <span class="n">val_X</span> <span class="o">=</span> <span class="n">val</span><span class="p">[</span><span class="n">columns</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+
+    <span class="n">train_y</span> <span class="o">=</span> <span class="n">train</span><span class="p">[</span><span class="n">target</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">val_y</span> <span class="o">=</span> <span class="n">val</span><span class="p">[</span><span class="n">target</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># scale data</span>
+    <span class="n">scaler</span> <span class="o">=</span> <span class="n">sklearn</span><span class="o">.</span><span class="n">preprocessing</span><span class="o">.</span><span class="n">StandardScaler</span><span class="p">()</span>
+    <span class="n">train_X</span> <span class="o">=</span> <span class="n">scaler</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">train_X</span><span class="p">)</span>
+    <span class="n">val_X</span> <span class="o">=</span> <span class="n">scaler</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">val_X</span><span class="p">)</span>
+
+    <span class="c1"># train model with hyperparams optimized</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">sklearn</span><span class="o">.</span><span class="n">ensemble</span><span class="o">.</span><span class="n">RandomForestClassifier</span><span class="p">(</span>
+        <span class="n">n_estimators</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+        <span class="n">max_depth</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">max_samples</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
+        <span class="n">max_features</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">min_weight_fraction_leaf</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">min_samples_split</span><span class="o">=</span><span class="mi">17</span><span class="p">)</span>
+
+    <span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_X</span><span class="p">,</span> <span class="n">train_y</span><span class="o">.</span><span class="n">ravel</span><span class="p">())</span>
+
+    <span class="k">return</span> <span class="n">model</span><span class="p">,</span> <span class="n">train_X</span><span class="p">,</span> <span class="n">train_y</span><span class="p">,</span> <span class="n">val_X</span><span class="p">,</span> <span class="n">val_y</span></div>
+
+
+<div class="viewcode-block" id="evaluate_model"><a class="viewcode-back" href="../../FAFSA.html#FAFSA.train_val_classification.evaluate_model">[docs]</a><span class="k">def</span> <span class="nf">evaluate_model</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">val_X</span><span class="p">,</span> <span class="n">val_y</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Takes a trained model and test data and tests the model.</span>
+
+<span class="sd">    Params</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model: sklearn.neighbors.KNeighborsClassifier</span>
+<span class="sd">    test_X: numpy array</span>
+<span class="sd">    test_y: numpy array</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Vector of predictions based on the model (numpy array)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># test input arguments</span>
+    <span class="k">assert</span> <span class="s2">&quot;sklearn&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">model</span><span class="p">))</span>
+    <span class="k">assert</span> <span class="s2">&quot;numpy.ndarray&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">val_X</span><span class="p">))</span>
+    <span class="k">assert</span> <span class="s2">&quot;numpy.ndarray&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">val_y</span><span class="p">))</span>
+
+    <span class="n">preds</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">val_X</span><span class="p">)</span>
+
+    <span class="c1"># not printed during model validation step</span>
+    <span class="n">precision_score</span> <span class="o">=</span> <span class="n">sklearn</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">precision_score</span><span class="p">(</span><span class="n">val_y</span><span class="p">,</span> <span class="n">preds</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">preds</span><span class="p">,</span> <span class="n">precision_score</span></div>
+
+
+<div class="viewcode-block" id="plot_model"><a class="viewcode-back" href="../../FAFSA.html#FAFSA.train_val_classification.plot_model">[docs]</a><span class="k">def</span> <span class="nf">plot_model</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">val_X</span><span class="p">,</span> <span class="n">val_y</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Takes a test classifier model and plots the confusion matrix.</span>
+
+<span class="sd">    Params</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model: sklearn.neighbors.KNeighborsClassifier</span>
+<span class="sd">    test_X: numpy array</span>
+<span class="sd">    test_y: numpy array</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    -Confusion predictions vs. observations</span>
+<span class="sd">    -Model score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># test input arguments</span>
+    <span class="k">assert</span> <span class="s2">&quot;sklearn&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">model</span><span class="p">))</span>
+    <span class="k">assert</span> <span class="s2">&quot;numpy.ndarray&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">val_X</span><span class="p">))</span>
+    <span class="k">assert</span> <span class="s2">&quot;numpy.ndarray&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">val_y</span><span class="p">))</span>
+
+    <span class="n">score</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">val_X</span><span class="p">,</span> <span class="n">val_y</span><span class="p">)</span>
+    <span class="n">preds</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">val_X</span><span class="p">)</span>
+
+    <span class="c1"># plot confusion matrix</span>
+    <span class="n">confusion_matrix</span> <span class="o">=</span> <span class="n">sklearn</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">confusion_matrix</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="n">val_y</span><span class="p">)</span>
+    <span class="n">cm_plot</span> <span class="o">=</span> <span class="n">sklearn</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">ConfusionMatrixDisplay</span><span class="p">(</span><span class="n">confusion_matrix</span><span class="p">)</span>
+
+    <span class="n">cm_plot</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">Blues</span><span class="p">)</span>
+    <span class="n">cm_plot</span><span class="o">.</span><span class="n">ax_</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Confusion Matrix&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">score</span></div>
+
+
+<div class="viewcode-block" id="rf_wrapper"><a class="viewcode-back" href="../../FAFSA.html#FAFSA.train_val_classification.rf_wrapper">[docs]</a><span class="k">def</span> <span class="nf">rf_wrapper</span><span class="p">(</span><span class="n">dataframe</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Takes dataframe and runs it through kNN model.</span>
+
+<span class="sd">    Params</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dataframe: Pandas dataframe</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    -Target feature predictions</span>
+<span class="sd">    -Parity plot</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">assert</span> <span class="s1">&#39;pandas.core.frame.DataFrame&#39;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">dataframe</span><span class="p">))</span>
+
+    <span class="c1"># user inputs target feature</span>
+    <span class="n">target</span> <span class="o">=</span> <span class="s1">&#39;protein_match&#39;</span>
+
+    <span class="c1"># define input features</span>
+    <span class="n">input_features</span> <span class="o">=</span> <span class="p">[</span><span class="n">columns</span> <span class="k">for</span> <span class="n">columns</span> <span class="ow">in</span> <span class="n">dataframe</span><span class="p">]</span>
+
+    <span class="n">input_features</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+
+    <span class="c1"># train the model based off data split</span>
+    <span class="n">model</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">val_X</span><span class="p">,</span> <span class="n">val_y</span> <span class="o">=</span> <span class="n">train_model</span><span class="p">(</span>
+        <span class="n">dataframe</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">input_features</span><span class="p">,</span>
+        <span class="n">target</span><span class="o">=</span><span class="n">target</span>
+    <span class="p">)</span>
+
+    <span class="c1"># test the model and return predictions</span>
+    <span class="n">preds</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">evaluate_model</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">val_X</span><span class="p">,</span> <span class="n">val_y</span><span class="p">)</span>
+
+    <span class="c1"># plot the results of the model</span>
+    <span class="n">score</span> <span class="o">=</span> <span class="n">plot_model</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">val_X</span><span class="p">,</span> <span class="n">val_y</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">preds</span><span class="p">,</span> <span class="n">score</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Logan Roberts, Humood Alanzi, Chau Vuong, Ryan Francis, Amin Mosallenejad.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
