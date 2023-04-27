@@ -140,7 +140,7 @@ if __name__ == '__main__':
     logger.info("TEST LOG")
 
     # set path directory
-    dir_path = "scripts/results"
+    dir_path = "/Users/humoodalanzi/ValidProt/scripts/results"
 
     def get_file_pairs(directory_path):
         """
@@ -148,6 +148,7 @@ if __name__ == '__main__':
         """
         meso_files = glob.glob(f"{directory_path}/meso_result_*.csv")
         thermo_files = glob.glob(f"{directory_path}/thermo_result_*.csv")
+        print(meso_files)
         meso_files.sort()
         thermo_files.sort()
         file_pairs = []
@@ -167,6 +168,8 @@ if __name__ == '__main__':
     logger.info("Calculating similarity")
     # Get file pairs and calculate similarity for each pair
     file_pairs = get_file_pairs(dir_path)
+    print(file_pairs)
+    print(dir_path)
     results = {}
     for file1, file2 in file_pairs:
         logger.info(f"Processing {file1} and {file2}")
