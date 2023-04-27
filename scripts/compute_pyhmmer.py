@@ -284,18 +284,18 @@ if __name__ == '__main__':
     logger.info('Loaded database')
 
     # separating the meso and thermo
-    meso_seq_db = df_sample[["meso_index", "m_protein_seq"]]
-    thermo_seq_db = df_sample[["thermo_index", "t_protein_seq"]]
+    meso_seq_db = df_sample[["meso_protein_int_index", "m_protein_seq"]]
+    thermo_seq_db = df_sample[["thermo_protein_int_index", "t_protein_seq"]]
     logger.info('Data seperated into t and m')
 
     # processing meso to be suitable for HMMER
-    meso_seq_list = meso_seq_db.set_index("meso_index").iloc[:total_size]
+    meso_seq_list = meso_seq_db.set_index("meso_protein_int_index").iloc[:total_size]
     meso_seq_list.index.name = None
     meso_seq_list.rename({'m_protein_seq': 'protein_seq'},
                          axis="columns", inplace=True)
 
     # processing thermo to be suitable for HMMER
-    thermo_seq_list = thermo_seq_db.set_index("thermo_index").iloc[:total_size]
+    thermo_seq_list = thermo_seq_db.set_index("thermo_protein_int_index").iloc[:total_size]
     thermo_seq_list.index.name = None
     thermo_seq_list.rename(
         {'t_protein_seq': 'protein_seq'}, axis="columns", inplace=True)
