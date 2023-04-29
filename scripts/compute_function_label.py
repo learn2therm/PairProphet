@@ -32,18 +32,8 @@ import pyhmmer
 
 def parse_function_csv(file_path: str) -> Dict[str, List[str]]:
     """
-    Reads a CSV file and returns a dictionary with query IDs as keys and a list
-    of accession IDs as values.
-
-    Parameters
-    ----------
-    file_path : str
-        File path to the HMMER csv output
-
-    Returns
-    -------
-    Dict[str, List[str]]
-        a dictionary consisting of the query ID and accession IDs as strings
+    Parses the CSV file with protein IDs and their corresponding accession IDs
+    and returns a dictionary with protein IDs as keys and accession IDs as values.
     """
     # Create a dictionary to store csv results
     protein_dict = {}
@@ -60,13 +50,17 @@ def parse_function_csv(file_path: str) -> Dict[str, List[str]]:
     return protein_dict
 
 
-def find_jaccard_similarity(set1, set2):
+
+def find_jaccard_similarity(set1: set, set2: set) -> float:
     """
     Calculates the Jaccard similarity score between two sets.
     """
-    intersection = set1.intersection(set2)
-    union = set1.union(set2)
-    return len(intersection) / len(union)
+    intersection = len(set1.intersection(set2))
+    union = len(set1.union(set2))
+    if union == 0:
+        return 0.0
+    else:
+        return intersection / union
 
 
 def calculate_similarity(file1: str, file2: str, threshold: float) -> Dict[str, Tuple[str, float]]:
@@ -85,13 +79,14 @@ def calculate_similarity(file1: str, file2: str, threshold: float) -> Dict[str, 
     # Calculate the Jaccard similarity score between each protein in file1 and file2
     for query1, accs1 in dict1.items():
         for query2, accs2 in dict2.items():
-            score = find_jaccard_similarity(set(accs1), set(accs2))
-            scores[(query1, query2)] = score
+            if query1 == query2:
+                score = find_jaccard_similarity(set(accs1), set(accs2))
+                scores[(query1, query2)] = score
     
     # Create a dictionary to store the functional tuple values
     functional = {}
     
-    # Set the functional tuple value based on the Jaccard similarity score threshold
+     # Set the functional tuple value based on the Jaccard similarity score threshold
     for (query1, query2), score in scores.items():
         if score >= threshold:
             functional[(query1, query2)] = ('Yes', score)
@@ -99,7 +94,6 @@ def calculate_similarity(file1: str, file2: str, threshold: float) -> Dict[str, 
             functional[(query1, query2)] = ('No', score)
     
     return functional
-
 
 
 def write_function_output(output_dict: Dict[str, Tuple[str, float]], output_file: str):
@@ -173,7 +167,8 @@ if __name__ == '__main__':
     results = {}
     for file1, file2 in file_pairs:
         logger.info(f"Processing {file1} and {file2}")
-        output_file = f"functional_{os.path.basename(file1)}"
+        file_chunk_index = int(file1.split("_")[-1].split(".")[0])
+        output_file = f"functional_{file_chunk_index}"
         similarity_scores = calculate_similarity(file1, file2, threshold)
         write_function_output(similarity_scores, output_file)
         results[(file1, file2)] = output_file

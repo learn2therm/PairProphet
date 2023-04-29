@@ -200,21 +200,15 @@ def run_pyhmmer(
     else:
         targets = pyhmmer.plan7.HMMFile("../data/pfam/.h3m")
 
-    # HMMscan execution with or without save_out
+    # HMMscan execution with or without saving output to file
     with pyhmmer.easel.SequenceFile(input_file, digital=True) as seqs:
-        all_hits = list(
-            pyhmmer.hmmer.hmmscan(
-                seqs,
-                targets,
-                cpus=cpu,
-                E=eval_con))
+        all_hits = list(pyhmmer.hmmer.hmmscan(seqs, targets, cpus=cpu, E=eval_con))
         # check if we should save the output
         if output_file is not None:
             with open(output_file, "wb") as dst:
-                for i, hits in enumerate(
-                    pyhmmer.hmmer.hmmscan(
-                        seqs, targets, cpus=cpu, E=eval_con)):
+                for i, hits in enumerate(all_hits):
                     hits.write(dst, format="domains", header=i == 0)
+
     return all_hits
 
 
@@ -232,8 +226,8 @@ def parse_pyhmmer(all_hits):
     pandas.DataFrame
         A dataframe containing the query and accession IDs.
     """
-    # initialize an empty list to store the data
-    data = []
+    # initialize an empty dictionary to store the data
+    parsed_hits = {}
 
     # iterate over each protein hit
     for top_hits in all_hits:
@@ -242,16 +236,17 @@ def parse_pyhmmer(all_hits):
             query_id = hit.hits.query_name.decode('utf-8')
             accession_id = hit.accession.decode('utf-8')
 
-            # append the data to the list
-            data.append([query_id, accession_id])
+            # if the query_id already exists in the dictionary, append the accession_id
+            # to the existing value
+            if query_id in parsed_hits:
+                parsed_hits[query_id].append(accession_id)
+            # otherwise, create a new key-value pair in the dictionary
+            else:
+                parsed_hits[query_id] = [accession_id]
 
-    # create the DataFrame from the list
-    df = pd.DataFrame(data, columns=["query_id", "accession_id"])
-
-    # group the accession IDs by query ID and join them into a single string
-    # separated by ";"
-    df = df.groupby("query_id")["accession_id"].apply(
-        lambda x: ";".join(x)).reset_index()
+    # create the DataFrame from the dictionary and convert list of accession IDs to string
+    df = pd.DataFrame(parsed_hits.items(), columns=["query_id", "accession_id"])
+    df["accession_id"] = df["accession_id"].apply(lambda x: ';'.join(x))
 
     return df
 
@@ -284,18 +279,18 @@ if __name__ == '__main__':
     logger.info('Loaded database')
 
     # separating the meso and thermo
-    meso_seq_db = df_sample[["meso_protein_int_index", "m_protein_seq"]]
-    thermo_seq_db = df_sample[["thermo_protein_int_index", "t_protein_seq"]]
+    meso_seq_db = df_sample[["prot_pair_index", "m_protein_seq"]]
+    thermo_seq_db = df_sample[["prot_pair_index", "t_protein_seq"]]
     logger.info('Data seperated into t and m')
 
     # processing meso to be suitable for HMMER
-    meso_seq_list = meso_seq_db.set_index("meso_protein_int_index").iloc[:total_size]
+    meso_seq_list = meso_seq_db.set_index("prot_pair_index").iloc[:total_size]
     meso_seq_list.index.name = None
     meso_seq_list.rename({'m_protein_seq': 'protein_seq'},
                          axis="columns", inplace=True)
 
     # processing thermo to be suitable for HMMER
-    thermo_seq_list = thermo_seq_db.set_index("thermo_protein_int_index").iloc[:total_size]
+    thermo_seq_list = thermo_seq_db.set_index("prot_pair_index").iloc[:total_size]
     thermo_seq_list.index.name = None
     thermo_seq_list.rename(
         {'t_protein_seq': 'protein_seq'}, axis="columns", inplace=True)
@@ -328,6 +323,7 @@ if __name__ == '__main__':
         # convert sequences to FASTA files
         save_sequences_to_fasta(sequences, input_file_path)
 
+        # run HMMER via pyhmmer
         hits = run_pyhmmer(
             input_file=input_file_path,
             hmms_path=PFAM_PATH,
