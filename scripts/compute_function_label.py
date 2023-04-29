@@ -168,7 +168,7 @@ if __name__ == '__main__':
     for file1, file2 in file_pairs:
         logger.info(f"Processing {file1} and {file2}")
         file_chunk_index = int(file1.split("_")[-1].split(".")[0])
-        output_file = f"functional_{file_chunk_index}"
+        output_file = f"functional_{file_chunk_index}.csv"
         similarity_scores = calculate_similarity(file1, file2, threshold)
         write_function_output(similarity_scores, output_file)
         results[(file1, file2)] = output_file
