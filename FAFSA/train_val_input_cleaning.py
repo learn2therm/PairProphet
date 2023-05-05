@@ -12,8 +12,13 @@ import pandas as pd
 # sample dataframe can be passed into wrapper for training
 df = pd.read_csv('learn2therm_sample_50k.csv')
 
-# create target that describes whether protein pair is functional
-df['protein_match'] = ((df['bit_score'] > 50 ) & (df['query_align_cov'] > 0.8))
+# # create target that describes whether protein pair is functional
+# df['protein_match'] = ((df['bit_score'] > 50 ) & (df['query_align_cov'] > 0.8))
+
+#target from Humood
+target = pd.read_csv('protein_match_6k.csv')
+df = pd.merge(df, target, on=['prot_pair_index'])
+
 
 # keep columns that can be used as features
 columns_to_keep = [

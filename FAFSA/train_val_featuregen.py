@@ -139,7 +139,7 @@ Function below is necessary for inputs with
 two protein sequences.
 """
 
-def get_fasta_from_dataframe(dataframe, output_file_a, output_file_b):
+def get_fasta_from_dataframe(dataframe, output_file_a:str, output_file_b:str):
     """
     adjust this to write function with BioPython
     separate functions for each of the input sequences
@@ -149,12 +149,12 @@ def get_fasta_from_dataframe(dataframe, output_file_a, output_file_b):
     
     #meso sequence to fasta
     with open(output_file_a, 'w') as f:
-        for _, row in df.iterrows():
+        for _, row in dataframe.iterrows():
             f.write('>{}\n{}\n'.format((row['prot_pair_index']), row['m_protein_seq']))
     
     #thermo sequence to fasta
     with open(output_file_b, 'w') as f:
-        for _, row in df.iterrows():
+        for _, row in dataframe.iterrows():
             f.write('>{}\n{}\n'.format((row['prot_pair_index']), (row['t_protein_seq'])))
    
     #return output files
