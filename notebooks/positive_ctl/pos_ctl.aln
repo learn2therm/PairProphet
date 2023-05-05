@@ -1,0 +1,12 @@
+Align pdb3hdd.ent 111 with pdb1enh.ent 54
+Twists 0 ini-len 48 ini-rmsd 0.33 opt-equ 52 opt-rmsd 0.71 chain-rmsd 0.33 Score 143.81 align-len 52 gaps 0 (0.00%)
+P-value 4.53e-11 Afp-num 2481 Identity 100.00% Similarity 100.00%
+Block  0 afp  6 score 143.81 rmsd  0.33 gap 0 (0.00%)
+
+                  .    :    .    :    .    :    .    :    .    :
+Chain 1:    5 RTAFSSEQLARLKREFNENRYLTERRRQQLSSELGLNEAQIKIWFQNKRAKI
+              1111111111111111111111111111111111111111111111111111
+Chain 2:    5 RTAFSSEQLARLKREFNENRYLTERRRQQLSSELGLNEAQIKIWFQNKRAKI
+
+Note: positions are from PDB; the numbers between alignments are block index
+
