@@ -16,7 +16,11 @@ def model_dev(sequences):
     #Humood/Amin Component
 
     #Chau Component
-    
+    """
+    Input: Dataframe with PDB IDs and Uniprot IDs (sequences are not required for this component)
+    Output: Boolean on whether the structures are similar
+    Params: Base environment + BioPython + FATCAT
+    """
     #Logan Component
     """
     Input: Dataframe with BLAST metrics/sequences from Ryan (pandas dataframe) 
