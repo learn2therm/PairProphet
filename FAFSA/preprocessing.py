@@ -44,12 +44,12 @@ def connect_db(path: str):
     s_time = time.time()
 
     version = duckdb.__version__
-    print(f'Version {version} detected.')
+    print(f'DuckDB version {version} detected.')
 
     # Checks for compatible installation of duckdb.
-    if not version in ['0.6.0', '0.6.1']:
-        raise VersionError("""learn2therm was generated using DuckDB storage version 39. It is only
-                           compatible with duckdb versions 0.6.0 and 0.6.1. Please check your
+    if not version in ['0.7.0', '0.7.1']:
+        raise VersionError("""learn2therm is only
+                           compatible with duckdb versions 0.7.0 and 0.7.1. Please check your
                            installation. Refer to https://duckdb.org/internals/storage.html for more
                            details.""")
 
@@ -70,7 +70,7 @@ def connect_db(path: str):
     e_time = time.time()
     elapsed_time = e_time - s_time
     print(f'Connection established! Execution time: {elapsed_time} seconds')
-    return con
+    return con, tables
 
 
 def build_fafsa(con, min_ogt_diff: int = 20, min_16s: int = 1300,
@@ -123,7 +123,8 @@ def build_fafsa(con, min_ogt_diff: int = 20, min_16s: int = 1300,
     taxa_pairs_cmd = """CREATE OR REPLACE TABLE fafsa_taxa_pairs AS
                         SELECT *
                         FROM taxa_pairs
-                        WHERE is_pair = True"""
+                        INNER JOIN taxa_pairs_lab ON (taxa_pairs.__index_level_0__ = taxa_pairs_lab.__index_level_0__)
+                        WHERE taxa_pairs_lab.is_pair = True"""
     con.execute(taxa_pairs_cmd)
 
     e_time = time.time()
@@ -131,25 +132,14 @@ def build_fafsa(con, min_ogt_diff: int = 20, min_16s: int = 1300,
     print(f'Finished constructing fafsa_taxa_pairs. Execution time: {elapsed_time} seconds')
     print('Constructing fafsa_taxa...')
 
-    # Commands to identify all taxa that are implicated in learn2therm pairs.
-    meso_cmd = """SELECT DISTINCT meso_index
-                  FROM taxa_pairs
-                  WHERE is_pair = True"""
-    thermo_cmd = """SELECT DISTINCT thermo_index
-                    FROM taxa_pairs
-                    WHERE is_pair = True"""
-
-    useful_thermo = con.execute(thermo_cmd).df()
-    useful_meso = con.execute(meso_cmd).df()
-
-    # Generates tuple object containing all relevant taxa
-    useful_taxa = tuple(list(useful_meso['meso_index']) + list(useful_thermo['thermo_index']))
-
     # Builds FAFSA taxa table using only paired taxa from learn2therm.
     taxa_cmd = f"""CREATE OR REPLACE TABLE fafsa_taxa AS
                    SELECT *
                    FROM taxa
-                   WHERE taxa_index IN {useful_taxa}"""
+                   WHERE taxid IN 
+                   (SELECT DISTINCT query_id FROM fafsa_taxa_pairs)
+                   OR taxid IN
+                   (SELECT DISTINCT subject_id FROM fafsa_taxa_pairs)"""
     con.execute(taxa_cmd)
 
     e_time2 = time.time()
@@ -160,14 +150,14 @@ def build_fafsa(con, min_ogt_diff: int = 20, min_16s: int = 1300,
     # Builds FAFSA table containing taxa pairs and their associated optimal growth temperatures
     # (ogt). Excludes 16S sequences and ogt difference below cutoff values from function input.
     ogt_pairs_cmd = f"""CREATE OR REPLACE TABLE fafsa_ogt_taxa_pairs AS SELECT fafsa_taxa_pairs.*,
-                        taxa_m.ogt AS meso_ogt,
-                        taxa_t.ogt AS thermo_ogt,
-                        taxa_t.ogt - taxa_m.ogt AS ogt_diff,
-                        taxa_m.len_16s AS meso_16s_len,
-                        taxa_t.len_16s AS thermo_16s_len
+                        taxa_m.temperature AS meso_ogt,
+                        taxa_t.temperature AS thermo_ogt,
+                        taxa_t.temperature - taxa_m.temperature AS ogt_diff,
+                        taxa_m."16s_len" AS meso_16s_len,
+                        taxa_t."16s_len" AS thermo_16s_len
                         FROM fafsa_taxa_pairs
-                        JOIN fafsa_taxa AS taxa_m ON (fafsa_taxa_pairs.meso_index = taxa_m.taxa_index)
-                        JOIN fafsa_taxa AS taxa_t ON (fafsa_taxa_pairs.thermo_index = taxa_t.taxa_index)
+                        JOIN fafsa_taxa AS taxa_m ON (fafsa_taxa_pairs.subject_id = taxa_m.taxid)
+                        JOIN fafsa_taxa AS taxa_t ON (fafsa_taxa_pairs.query_id = taxa_t.taxid)
                         WHERE ogt_diff >= {min_ogt_diff}
                         AND meso_16s_len >= {min_16s}
                         AND thermo_16s_len >= {min_16s}"""
@@ -181,18 +171,13 @@ def build_fafsa(con, min_ogt_diff: int = 20, min_16s: int = 1300,
     # Builds FAFSA table containing protein pairs
     protein_pair_cmd = """CREATE OR REPLACE TABLE fafsa_protein_pairs AS
                           SELECT protein_pairs.*,
-                          otp.local_gap_compressed_percent_id AS local_gap_compressed_percent_id_16s,
-                          otp.scaled_local_query_percent_id AS scaled_local_query_percent_id_16s,
-                          otp.scaled_local_symmetric_percent_id AS scaled_local_symmetric_percent_id_16s,
-                          otp.query_align_cov AS query_align_cov_16s,
-                          otp.subject_align_cov AS subject_align_cov_16s,
-                          otp.bit_score AS bit_score_16s,
                           otp.meso_ogt AS m_ogt,
                           otp.thermo_ogt AS t_ogt,
                           otp.ogt_diff AS ogt_difference
                           FROM protein_pairs
                           INNER JOIN fafsa_ogt_taxa_pairs AS otp
-                          ON (protein_pairs.taxa_pair_index = otp.taxa_pair_index)"""
+                          ON (protein_pairs.thermo_taxid = otp.query_id)
+                          AND (protein_pairs.meso_taxid = otp.subject_id)"""
     con.execute(protein_pair_cmd)
 
     e_time4 = time.time()
@@ -203,8 +188,8 @@ def build_fafsa(con, min_ogt_diff: int = 20, min_16s: int = 1300,
     # Builds FAFSA table containing proteins that belong to taxa from fafsa_taxa_pairs.
     prot_filt_cmd = """CREATE OR REPLACE TABLE fafsa_proteins AS SELECT *
                        FROM proteins
-                       WHERE protein_int_index IN (SELECT DISTINCT meso_protein_int_index FROM protein_pairs) OR
-                       protein_int_index IN (SELECT DISTINCT thermo_protein_int_index FROM protein_pairs)
+                       WHERE pid IN (SELECT DISTINCT meso_pid FROM fafsa_protein_pairs) OR
+                       pid IN (SELECT DISTINCT thermo_pid FROM fafsa_protein_pairs)
                     """
     con.execute(prot_filt_cmd)
 
@@ -218,24 +203,13 @@ def build_fafsa(con, min_ogt_diff: int = 20, min_16s: int = 1300,
                        SELECT fafsa_protein_pairs.*,
                        proteins_m.protein_seq AS m_protein_seq,
                        proteins_t.protein_seq AS t_protein_seq,
-                       proteins_m.protein_desc AS m_protein_desc,
-                       proteins_t.protein_desc AS t_protein_desc,
-                       proteins_m.protein_len AS m_protein_len,
-                       proteins_t.protein_len AS t_protein_len
                        FROM fafsa_protein_pairs
                        JOIN fafsa_proteins AS proteins_m
-                       ON (fafsa_protein_pairs.meso_protein_int_index = proteins_m.protein_int_index)
+                       ON (fafsa_protein_pairs.meso_pid = proteins_m.pid)
                        JOIN fafsa_proteins AS proteins_t
-                       ON (fafsa_protein_pairs.thermo_protein_int_index =
-                           proteins_t.protein_int_index)"""
+                       ON (fafsa_protein_pairs.thermo_pid =
+                           proteins_t.pid)"""
     con.execute(big_table_cmd)
-
-    if plots is True:
-
-        sankey_plots(con, min_ogt_diff)
-
-    else:
-        pass
 
     print('Finishing up...')
     con.commit()
