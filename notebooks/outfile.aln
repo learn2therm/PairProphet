@@ -1,0 +1,36 @@
+Align P0A9P0.pdb 474 with Q9H3D4.pdb 680
+Twists 4 ini-len 128 ini-rmsd 7.02 opt-equ 139 opt-rmsd 3.95 chain-rmsd 32.19 Score 141.86 align-len 328 gaps 189 (57.62%)
+P-value 8.48e-01 Afp-num 92355 Identity 3.05% Similarity 9.45%
+Block  0 afp  2 score 39.96 rmsd  1.68 gap 0 (0.00%)
+Block  1 afp  3 score 63.03 rmsd  1.69 gap 0 (0.00%)
+Block  2 afp  3 score 71.37 rmsd  0.99 gap 0 (0.00%)
+Block  3 afp  5 score 42.29 rmsd 10.01 gap 22 (0.35%)
+Block  4 afp  3 score 52.77 rmsd  2.75 gap 30 (0.56%)
+
+                  .    :    .    :    .    :    .    :    .    :    .    :    .    :
+Chain 1:   15 GPAGYSAAFRCADLGLETVIVERYNTLGGVCL------------------------NVGCIPSKALLHVA
+              111111111111111                                         22222222222222
+Chain 2:  350 RDRKADEDSIRKQQVSDSTKNGDGTKRPFRQNTHGIQMTSIKKRRSPDDELLYLPVRGRETYEMLLKIKE
+
+                  .    :    .    :    .    :    .    :    .    :    .    :    .    :
+Chain 1:   61 KVIEEAKALAEHGIVFGEPKTDIDKIRTWKEKVINQLTGGLAGMAKGRKVKVVNGLGKFTGANTLEVEGE
+              222222222             33333333333333333333333333                      
+Chain 2:  420 SLELMQYLPQ------------HTIETYRQQQQQQHQHLLQKQTSIQSPSSYGNSSPPLNKMNSMNKLPS
+
+                  .    :    .    :    .    :    .    :    .    :    .    :    .    :
+Chain 1:  131 NGK-------------------------------------------------TVINFDNAIIAAGSRP--
+                                                                  4444444444444444  
+Chain 2:  478 VSQLINPQQRNALTPTTIPDGMGANIPMMGTHMPMAGDMNGLSPTQALPPPLSMPSTSHCTPPPPYPTDC
+
+                  .    :    .    :    .    :    .    :    .    :    .    :    .    :
+Chain 1:  150 ----IQLPFIPHEDPRIWDSTDALELKEVPERLLVMGGGIIGLEMGTVYHALGSQIDVVEMFDQVIPAAD
+                  44444444444444           44444444444444                    5555555
+Chain 2:  548 SIVSFLARLGCSSCLDYF-----------TTQGLTTIYQIEHYSMDD----------------LASLKIP
+
+                  .    :    .    :    .    :    .    :    .
+Chain 1:  216 KDIVKVFTKRISKKFNLMLETKVTAVEAKEDGIYVTMEGKKAPAEPQR
+              5555555555555555                        55555555
+Chain 2:  591 EQFRHAIWKGILDHRQLHEFSSPSHLLRTPSSASTVSVGSSETRGERV
+
+Note: positions are from PDB; the numbers between alignments are block index
+
