@@ -12,8 +12,10 @@ import pandas as pd
 # sample dataframe can be passed into wrapper for training
 df = pd.read_csv('learn2therm_sample_50k.csv')
 
-# create target that describes whether protein pair is functional
-df['protein_match'] = df['t_protein_desc'] == df['m_protein_desc']
+#target from Humood
+# target = pd.read_csv('protein_match_50k.csv')
+# df = pd.merge(df, target, on=['prot_pair_index'])
+
 
 # keep columns that can be used as features
 columns_to_keep = [
@@ -33,14 +35,6 @@ columns_to_keep = [
 def check_input_type(dataframe):
     """
     Takes in input dataframe and asserts that it is the correct data type.
-
-    Params
-    ----------
-    dataframe: Pandas dataframe
-
-    Returns
-    -------
-    dataframe: Pandas dataframe
     """
     assert "pandas.core.frame.DataFrame" in str(
         type(dataframe)), 'Not a pandas dataframe!'
@@ -50,17 +44,12 @@ def check_input_type(dataframe):
 
 def clean_input_columns(dataframe):
     """
-    Cleans preselected columns out of the dataframe
-    to eliminate identifier columns + columns that don't
-    have relationship with the target.
+    We want to clean certain columns out of the Pfam dataframe.
+    Need to eliminate identifier columns + columns that don't have
+    relationship with the target.
 
-     Params
-    ----------
-    dataframe: Pandas dataframe
-
-    Returns
-    -------
-    dataframe: Pandas dataframe
+    Input: Pandas dataframe (from Pfam)
+    Output: Updated dataframe.
     """
 
     for title in dataframe:
@@ -74,16 +63,11 @@ def clean_input_columns(dataframe):
 
 def verify_input_columns(dataframe):
     """
-    Function raises an error is one of the columns we need for the model is not
+    This function raises an error is one of the columns we need for the model is not
     present in the dataframe.
 
-    Params
-    ----------
-    dataframe: Pandas dataframe
-
-    Returns
-    -------
-    dataframe: Pandas dataframe
+    Input: Pandas dataframe.
+    Output: Pandas dataframe.
     """
     for title in columns_to_keep:
 
@@ -99,13 +83,8 @@ def check_input_nans(dataframe):
     """
     Checks for NaN values in input dataframe. Removes rows with NaN values present.
 
-    Params
-    ----------
-    dataframe: Pandas dataframe
-
-    Returns
-    -------
-    dataframe: Pandas dataframe
+    Input: Pandas dataframe
+    Output: Pandas dataframe
 
     """
     has_nan = dataframe.isna().any().any()
@@ -126,14 +105,6 @@ def verify_protein_pairs(dataframe):
     """
     Checks that input data has two protein sequences. Will need to generalize this function other data sets
     to simply make sure two sequences are entered. Code below is for our protein database
-
-    Params
-    ----------
-    dataframe: Pandas dataframe
-
-    Returns
-    -------
-    dataframe: Pandas dataframe
     """
     assert 'm_protein_len' in dataframe, 'Dataframe missing mesophillic sequence!'
     assert 't_protein_len' in dataframe, 'Dataframe missing thermophillic sequence!'
@@ -146,13 +117,8 @@ def input_cleaning_wrapper(dataframe):
     Takes in a pandas dataframe and runs it through each of the cleaning
     and verification steps.
 
-    Params
-    ----------
-    dataframe: Pandas dataframe
-
-    Returns
-    -------
-    dataframe: Pandas dataframe
+    Input: Pandas dataframe
+    Output: Pandas dataframe
 
     """
 

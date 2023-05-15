@@ -17,8 +17,8 @@ import sklearn.metrics
 
 def train_model(dataframe, columns=[], target=[]):
     """
-    Takes dataframe and splits it into a training and testing set.
-    Runs training data through a RandomForestClassifier().
+    Takes dataframe and splits it into a training and testing set. 
+    Trains a RF Classifier with data.
 
     Params
     ----------
@@ -134,7 +134,7 @@ def plot_model(model, val_X, val_y):
 
 def rf_wrapper(dataframe):
     """
-    Takes dataframe and runs it through kNN model.
+    Takes dataframe and runs it through RandomForest model.
 
     Params
     ----------
