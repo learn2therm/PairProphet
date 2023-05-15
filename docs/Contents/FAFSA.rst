@@ -1,8 +1,8 @@
 FAFSA package
 =============
 
-Submodules
-----------
+HMMER_API
+++++++++++
 
 FAFSA.HMMER\_API module
 -----------------------
@@ -12,6 +12,9 @@ FAFSA.HMMER\_API module
    :undoc-members:
    :show-inheritance:
 
+HMMER_Local
+++++++++++
+
 FAFSA.compute\_local\_hmmer module
 ----------------------------------
 
@@ -20,18 +23,13 @@ FAFSA.compute\_local\_hmmer module
    :undoc-members:
    :show-inheritance:
 
+BLAST_Alignment
+++++++++++
+
 FAFSA.compute\_pair\_function module
 ------------------------------------
 
 .. automodule:: FAFSA.compute_pair_function
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-FAFSA.find\_structures module
------------------------------
-
-.. automodule:: FAFSA.find_structures
    :members:
    :undoc-members:
    :show-inheritance:
@@ -52,6 +50,14 @@ FAFSA.preprocessing module
    :undoc-members:
    :show-inheritance:
 
+FAFSA.rmf\_test module
+----------------------
+
+.. automodule:: FAFSA.rmf_test
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 FAFSA.sample\_for\_train module
 -------------------------------
 
@@ -59,6 +65,28 @@ FAFSA.sample\_for\_train module
    :members:
    :undoc-members:
    :show-inheritance:
+
+FAFSA.user\_blast module
+------------------------
+
+.. automodule:: FAFSA.user_blast
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Find_Structures
+++++++++++
+
+FAFSA.find\_structures module
+-----------------------------
+
+.. automodule:: FAFSA.find_structures
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Machine_Learning
+++++++++++
 
 FAFSA.train\_val\_classification module
 ---------------------------------------
@@ -80,14 +108,6 @@ FAFSA.train\_val\_wrapper module
 --------------------------------
 
 .. automodule:: FAFSA.train_val_wrapper
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: FAFSA
    :members:
    :undoc-members:
    :show-inheritance:
