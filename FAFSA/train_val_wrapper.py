@@ -8,7 +8,7 @@ from train_val_input_cleaning import df
 from train_val_featuregen import create_new_dataframe
 
 
-def train_val_wrapper(dataframe):
+def train_val_wrapper(dataframe, feature_list=None):
     """
     Takes dataframe and runs it through cleaning script.
     Generates features with iFeatureOmegaCLI.
@@ -17,6 +17,7 @@ def train_val_wrapper(dataframe):
     Input
     ----------
     Pandas dataframe
+    List of features from iFeatureOmega
 
     Returns
     -------
@@ -27,12 +28,14 @@ def train_val_wrapper(dataframe):
     # clean input dataframe
     cleaned = input_cleaning_wrapper(dataframe)
 
-    #generate features from amino acid sequence
-    df_with_features = create_new_dataframe(cleaned, 'meso_50k.fasta', descriptors=['AAC', 'GAAC'])
+    if feature_list is not None:
+        # generate features from amino acid sequence
+        df = create_new_dataframe(cleaned, 'meso_50k.fasta', 
+                    descriptors=[feature for feature in feature_list])
+    else:
+        pass
 
     # run through model
-    classifier = rf_wrapper(df_with_features)
+    classifier = rf_wrapper(df)
 
     return classifier
-
-print(train_val_wrapper(df))

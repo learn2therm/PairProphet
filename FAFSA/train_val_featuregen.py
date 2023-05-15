@@ -5,26 +5,32 @@ package for proteins and nucleic acids.
 
 import iFeatureOmegaCLI
 import pandas as pd
-import Bio.SeqIO
-import io
-from io import StringIO
+# import Bio.SeqIO
+# import io
+# from io import StringIO
 
-"""
-Define a feature list from iFeatureOmega's catalog of descriptors.
-Features have individual runtime <40 seconds when creating new dataframe.
-Omitted some of the very high dimensional features (>1000-D).
-"""
 
 feature_list = ['AAC', 'GAAC', 'DistancePair',
                 'CTDC', 'CTDT', 'CTDD', 'CTriad', 'GDPC type 1', 'GDPC type 2',
-                'CKSAAGP type 1', 'CKSAAGP type 2', 'PseKRAAC type 2', 'PseKRAAC type 3A', 
+                'CKSAAGP type 1', 'CKSAAGP type 2', 'PseKRAAC type 2', 'PseKRAAC type 3A',
                 'PseKRAAC type 7', 'PseKRAAC type 9', 'Geary', 'APAAC', 'QSOrder']
 
 
 def get_fasta_from_dataframe(
         dataframe, output_file_a: str, output_file_b: str):
     """
-    adjust this to write function with BioPython
+    Generates fasta file type from pandas dataframe.
+
+    Parameters
+    ----------
+    -Dataframe (pandas dataframe)
+    -Names of output fasta files (str)
+
+    Returns
+    -------
+    Two fasta files with protein sequences and prot_pair_index
+
+    Note: Want to adjust this to write function with BioPython
     separate functions for each of the input sequences
     in training, seq_a = meso and seq_b = thermo
     """
@@ -48,13 +54,13 @@ def get_fasta_from_dataframe(
     return [output_file_a, output_file_b]
 
 
-def get_protein_descriptors(fasta: str, descriptors=[]):
+def get_protein_descriptors(fasta_file: str, descriptors=[]):
     """
     Generates features from a protein sequence
 
     Parameters
     ----------
-    Fasta file with protein sequences.
+    Fasta file with amino acid sequences.
 
     Returns
     -------
@@ -62,7 +68,7 @@ def get_protein_descriptors(fasta: str, descriptors=[]):
     """
 
     # create iProtein object
-    protein = iFeatureOmegaCLI.iProtein(fasta)
+    protein = iFeatureOmegaCLI.iProtein(fasta_file)
 
     # not sure why we need this yet. Right now it is stored in local directory.
     params = protein.import_parameters('protein_parameters.json')
@@ -76,7 +82,7 @@ def get_protein_descriptors(fasta: str, descriptors=[]):
     return protein_descriptors
 
 
-def create_new_dataframe(dataframe, output_files, descriptors=[]):
+def create_new_dataframe(dataframe, output_files: list, descriptors=[]):
     """
     Creates new dataframe with descriptors added.
 
@@ -112,6 +118,7 @@ def create_new_dataframe(dataframe, output_files, descriptors=[]):
         feature_dict = {}
 
         for key in desc_a:
+
             if 'AAC' in key:
                 feature_dict[key] = desc_a[key] - desc_b[key]
             elif 'GAAC' in key:
