@@ -10,7 +10,7 @@ database to demonstrate functionality.
 import pandas as pd
 
 # sample dataframe can be passed into wrapper for training
-df = pd.read_csv('learn2therm_sample_50k.csv')
+# df = pd.read_csv('learn2therm_sample_50k.csv')
 
 #target from Humood
 # target = pd.read_csv('protein_match_50k.csv')
