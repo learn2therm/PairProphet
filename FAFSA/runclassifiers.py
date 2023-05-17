@@ -147,6 +147,53 @@ def runClassifiers(dataframe, columns=[], target=[], model=RandomForestClassifie
     #consider zipping results to csv
     return Results
 
+def k_fold_cross_val(dataframe, n_splits=10):  
+    """
+    Runs k-fold cross validation on dataset.
+    Default = 10-fold.
+
+    Params
+    ----------
+    -dataframe: Pandas dataframe
+    -n_splits: Number of cross validations (int)
+
+    Returns
+    -------
+    -vector of predictions
+    """
+    
+    dev, test = sklearn.model_selection.train_test_split(dataframe, test_size=0.15, random_state=1)
+
+    train, val = sklearn.model_selection.train_test_split(dev, test_size=0.15, random_state=1)
+    
+    target = 'protein_match'
+    input_features = [columns for columns in df]
+    input_features.remove(target)
+    
+    dev_X = dev[input_features].values
+    test_X = test[input_features].values
+
+    dev_y = dev[target].values.reshape(-1,1)
+    test_y = test[target].values.reshape(-1,1) 
+
+    from sklearn.model_selection import StratifiedKFold
+
+    cv = StratifiedKFold(n_splits, shuffle=True)
+
+    for (train_index, test_index) in cv.split(dev_X, dev_y):
+
+        train_X = dev_X[train_index]
+        val_X = dev_X[test_index]
+
+        train_y = dev_y[train_index]
+        val_y = dev_y[test_index]
+
+        model.fit(train_X, train_y)
+
+        preds = model.predict(val_X)
+
+        return preds
+
 # if __name__ == '__main__':
 #     # print('Please, enter number of cross validation:')
 #     import argparse
