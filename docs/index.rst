@@ -15,11 +15,12 @@ centralizing the searching process to one software pipeline that can
 be executed with a single command. 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 4
    :hidden:
    :caption: Contents:
 
    Contents/FAFSA
+   Contents/About
 
 .. toctree::
    :maxdepth: 2
@@ -27,8 +28,4 @@ be executed with a single command.
    :caption: Guidelines:
 
    Guidelines/FAFSA
-   
-Directories
-==================
-
-* :ref:`FAFSA`
+ 
