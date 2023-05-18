@@ -46,7 +46,7 @@ classifiers = [
 #     SVC(),
 ]
 
-def runClassifiers(dataframe, columns=[], target=[], model=RandomForestClassifier()):
+def runClassifiers(dataframe, columns=[], target=[]):
 
     """
     Takes dataframe and splits it into a training and testing set. 
@@ -194,13 +194,13 @@ def k_fold_cross_val(dataframe, n_splits=10):
 
         return preds
 
-# if __name__ == '__main__':
-#     # print('Please, enter number of cross validation:')
-#     import argparse
-#     p = argparse.ArgumentParser(description='Run Machine Learning Classifiers.')
+if __name__ == '__main__':
+    # print('Please, enter number of cross validation:')
+    import argparse
+    p = argparse.ArgumentParser(description='Run Machine Learning Classifiers.')
 
-#     p.add_argument('-data', '--dataset', type=str, help='~/dataset.csv', default='optimumDataset.csv')
+    p.add_argument('-data', '--dataset', type=str, help='~/dataset.csv', default='learn2therm_50k.csv')
 
-#     args = p.parse_args()
+    args = p.parse_args()
 
-#     runClassifiers(args)
+    runClassifiers(args)
