@@ -21,7 +21,7 @@ formats:
    - pdf
    - epub
 
-python:
-   install:
-   - requirements: environment.yml
-   - setup: setup.py
+# python:
+#    install:
+#    - requirements: environment.yml
+#    - setup: setup.py
