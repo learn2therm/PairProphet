@@ -10,7 +10,10 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.ensemble import BaggingClassifier, \
     RandomForestClassifier, \
     AdaBoostClassifier, \
-    GradientBoostingClassifier
+    GradientBoostingClassifier, \
+    ExtraTreesClassifier
+
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 names = ['LR', 'KNN', 'DT', 'NB', 'RF', 'Bagging', 'AB', 'GB', 'SVM']
 
@@ -33,7 +36,7 @@ classifiers = [
         min_weight_fraction_leaf=0,
         min_samples_split=17),
     #RF Classifier with bagging (with optuna)
-    BaggingClassifier(RandomForestClassifier
+    BaggingClassifier(sklearn.ensemble.RandomForestClassifier
     (n_estimators=200, max_depth=None, 
      min_weight_fraction_leaf=0.000215),max_samples=0.5, 
     max_features=0.5),
@@ -46,7 +49,17 @@ classifiers = [
 #     SVC(),
 ]
 
-def runClassifiers(dataframe, columns=[], target=[]):
+F = open('evaluationResults.txt', 'w')
+
+F.write('Evaluation Scale:'+'\n')
+F.write('0.0% <=Accuracy<= 100.0%'+'\n')
+F.write('0.0 <=AUC<= 1.0'+'\n') #area under curve
+F.write('0.0 <=auPR<= 1.0'+'\n')  # average_Precision
+F.write('0.0 <=F1_Score<= 1.0'+'\n')
+F.write('-1.0 <=MCC<= 1.0'+'\n')
+F.write('_______________________________________'+'\n')
+
+def runClassifiers(filename:str, dataframe, columns=[], target=[], model=RandomForestClassifier()):
 
     """
     Takes dataframe and splits it into a training and testing set. 
@@ -143,63 +156,32 @@ def runClassifiers(dataframe, columns=[], target=[]):
 
         accuracy = [_*100.0 for _ in accuracy]
         Results[name + ' Accuracy, F1 Score'] = [accuracy, F1_Score]
+        
+        F.write('Classifier: {}\n'.format(name))
+        F.write('Accuracy: {0:.4f}%\n'.format(np.mean(accuracy)))
+        F.write('AUC: {0:.4f}\n'.format( np.mean(AUC)))
+        F.write('auPR: {0:.4f}\n'.format(np.mean(avg_precision))) # average_Precision
+        F.write('F1_Score: {0:.4f}\n'.format(np.mean(F1_Score)))
+        F.write('MCC: {0:.4f}\n'.format(np.mean(MCC)))
+
+#         TN, FP, FN, TP = CM.ravel()
+        F.write('Recall: {0:.4f}\n'.format( np.mean(Recall)) )
+        F.write('_______________________________________'+'\n')
     
-    #consider zipping results to csv
+    F.close()
+    
     return Results
 
-def k_fold_cross_val(dataframe, n_splits=10):  
-    """
-    Runs k-fold cross validation on dataset.
-    Default = 10-fold.
-
-    Params
-    ----------
-    -dataframe: Pandas dataframe
-    -n_splits: Number of cross validations (int)
-
-    Returns
-    -------
-    -vector of predictions
-    """
-    
-    dev, test = sklearn.model_selection.train_test_split(dataframe, test_size=0.15, random_state=1)
-
-    train, val = sklearn.model_selection.train_test_split(dev, test_size=0.15, random_state=1)
-    
-    target = 'protein_match'
-    input_features = [columns for columns in df]
-    input_features.remove(target)
-    
-    dev_X = dev[input_features].values
-    test_X = test[input_features].values
-
-    dev_y = dev[target].values.reshape(-1,1)
-    test_y = test[target].values.reshape(-1,1) 
-
-    from sklearn.model_selection import StratifiedKFold
-
-    cv = StratifiedKFold(n_splits, shuffle=True)
-
-    for (train_index, test_index) in cv.split(dev_X, dev_y):
-
-        train_X = dev_X[train_index]
-        val_X = dev_X[test_index]
-
-        train_y = dev_y[train_index]
-        val_y = dev_y[test_index]
-
-        model.fit(train_X, train_y)
-
-        preds = model.predict(val_X)
-
-        return preds
 
 # if __name__ == '__main__':
 #     # print('Please, enter number of cross validation:')
 #     import argparse
 #     p = argparse.ArgumentParser(description='Run Machine Learning Classifiers.')
 
-#     p.add_argument('-data', '--dataset', type=str, help='~/dataset.csv', default='learn2therm_50k.csv')
+#     p.add_argument('-cv', '--nFCV', type=int, help='Number of crossValidation', default=10)
+#     p.add_argument('-data', '--dataset', type=str, help='~/dataset.csv', default='optimumDataset.csv')
+#     p.add_argument('-roc', '--auROC', type=int, help='Print ROC Curve', default=1, choices=[0, 1])
+#     p.add_argument('-box', '--boxPlot', type=int, help='Print Accuracy Box Plaot', default=1, choices=[0, 1])
 
 #     args = p.parse_args()
 
