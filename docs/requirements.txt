@@ -20,6 +20,7 @@
 - libgfortran5=11.3.0=h9dfd629_28
 - llvm-openmp=14.0.6=h0dcd299_0
 - mathjax=2.7.7=h694c41f_3
+- matplotlib=3.7.1=py311hecd8cb5_1
 - mkl=2023.1.0=h59209a4_43558
 - mkl-service=2.4.0=py311h6c40b1e_1
 - mkl_fft=1.3.6=py311hdb55bb0_1
