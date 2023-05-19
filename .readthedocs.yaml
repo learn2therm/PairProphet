@@ -21,7 +21,7 @@ formats:
    - pdf
    - epub
 
-# python:
-install:
+python:
+   install:
    - requirements: docs/requirements.txt
    - setup: setup.py
