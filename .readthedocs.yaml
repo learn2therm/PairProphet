@@ -22,7 +22,7 @@ formats:
    - epub
 
 # python:
-   install:
+install:
    - requirements: docs/requirements.txt
    - setup: setup.py
    setup_py_install: true
