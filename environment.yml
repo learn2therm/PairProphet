@@ -5,6 +5,7 @@ channels:
   - plotly
 dependencies:
   - biopython
+  - autopep8
   - numpy
   - pandas
   - python
@@ -17,3 +18,4 @@ dependencies:
       - sphinx
       - sphinx-rtd-theme
       - pyhmmer
+      - pylint
