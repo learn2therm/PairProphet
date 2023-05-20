@@ -82,6 +82,31 @@ def get_protein_descriptors(fasta_file: str, descriptors=[]):
     return protein_descriptors
 
 
+def clean_new_dataframe(dataframe):
+    """Creates two new columns of bit score
+    normalized by the protein length.
+
+    Returns
+    -------
+    Pandas dataframe
+    """
+
+    # drop indexing columns created by feature gen
+    dataframe = dataframe.drop(
+        columns=dataframe.columns[dataframe.columns.str.contains('index|Unnamed')])
+
+    assert (dataframe.filter(like='index|Unnamed').shape)[1] == 0
+
+    # turn inf into NaN
+    dataframe = dataframe.replace([np.inf, -np.inf], np.nan)
+
+    # assert NaN's are removed
+    nan_counts = df.isna().sum()
+    assert nan_counts.unique() == [0]
+
+    return dataframe
+
+
 def create_new_dataframe(dataframe, output_files: list, descriptors=[]):
     """
     Creates new dataframe with descriptors added.
@@ -143,5 +168,7 @@ def create_new_dataframe(dataframe, output_files: list, descriptors=[]):
             how='outer',
             left_index=True,
             right_index=True)
+
+    df = clean_new_dataframe(df)
 
     return df
