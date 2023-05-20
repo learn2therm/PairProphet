@@ -145,3 +145,26 @@ def create_new_dataframe(dataframe, output_files: list, descriptors=[]):
             right_index=True)
 
     return df
+
+def clean_new_dataframe(dataframe):
+
+    """Seperate cleaning step necessary
+    afert input cleaning module. Feature generation
+    also yields so artifacts that need to be removed.
+    """
+
+    #drop indexing columns created by feature gen
+    dataframe = dataframe.drop(columns=dataframe.columns[dataframe.columns.str.contains('index|Unnamed')])
+
+    assert (dataframe.filter(like='index|Unnamed').shape)[1] == 0
+    
+    #turn inf into NaN
+    dataframe = dataframe.replace([np.inf, -np.inf], np.nan)
+
+    #assert NaN's are removed
+    nan_counts = df.isna().sum()
+    assert nan_counts.unique() == [0]
+
+    return dataframe
+
+
