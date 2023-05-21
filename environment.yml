@@ -15,6 +15,7 @@ dependencies:
   - python-kaleido
   - joblib
   - sphinx
+  - plotly
   - pip:
       - duckdb
       - sphinx
