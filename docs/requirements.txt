@@ -63,6 +63,7 @@
     - conda-env==2.4.2
     - docutils==0.18.1
     - duckdb==0.8.0
+    - ifeatureomegacli==1.0.2
     - imagesize==1.4.1
     - jinja2==3.1.2
     - markupsafe==2.1.2

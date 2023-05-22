@@ -22,3 +22,4 @@ dependencies:
       - sphinx-rtd-theme
       - pyhmmer
       - pylint
+      - iFeatureOmegaCLI
