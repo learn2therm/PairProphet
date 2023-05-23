@@ -79,6 +79,10 @@ def get_protein_descriptors(fasta_file: str, descriptors=[]):
         protein.get_descriptor(descriptor)
         protein_descriptors.update({f'{descriptor}': protein.encodings})
 
+    # make sure output is a dictionary of correct length
+    assert "dict" in str(type(protein_descriptors))
+    assert len(protein_descriptors) == len(descriptors)
+
     return protein_descriptors
 
 
