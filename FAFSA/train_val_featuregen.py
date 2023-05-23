@@ -87,8 +87,8 @@ def get_protein_descriptors(fasta_file: str, descriptors=[]):
 
 
 def clean_new_dataframe(dataframe):
-    """Creates two new columns of bit score
-    normalized by the protein length.
+    """Asserts that artifact columns generated
+    from iFeatureOmega such as "index" are removed.
 
     Returns
     -------
