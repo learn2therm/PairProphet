@@ -227,9 +227,10 @@ This component is in developing phase this quarter as we will only ensure that t
 # Component 5 - Training and Validation
 ## Software Component Five: train_val_script.py
 
-    **Params:** Pandas dataframe containing sampled data from our protein database from Components 0-2 + metric of interest from Component 3.
+    **Params:** Pandas dataframe containing sampled data from our protein database from sampling component + metric of interest from HMMER/Strucutural components..
 
     **Inputs:** Training: Pandas Dataframe containing known protein pairs with Boolean metric of interest.
+                          Training includes feature engineering using iFeatureOmegaCLI.
                 Testing: Pair of amino acid sequences from Component 3.
 
     **Outputs:**  Boolean Prediction (Functional pair: True or Functional pair: False)
@@ -237,15 +238,13 @@ This component is in developing phase this quarter as we will only ensure that t
 
     **Metrics:**
 
-    **Packages:** pandas, matplotlib, numpy, scikit-learn (.ensemble, .preprocessing, .model_selection, neighbors, .feature_selection), unittest
+    **Packages:** pandas, matplotlib, numpy, scikit-learn (.ensemble, .preprocessing, .model_selection, neighbors, .feature_selection), unittest, iFeatureOmegaCLI
     
 The purpose of this component is to train a machine learning classifier model on our large dataset of protein pairs. 
 
-For training, the model will take in a pandas dataframe containing protein pairs as examples. The database will be cleaned until 10 quantitative features remain, including alignment metrics, optimal growth temperature, bit scores, sequence length, and alignment coverage. The cleaned dataframe will also include a Boolean target, classifying the protein as either a functional pair or not a functional pair. The model will be trained and tested based on this data.
+For training, the model will take in a pandas dataframe containing protein pairs as examples. The database will be cleaned until 10 quantitative features remain, including alignment metrics, optimal growth temperature, bit scores, sequence length, and alignment coverage. The sequences are then run through a feature generation algorithm, adding a variable-length vector of features to supplement model training. The cleaned dataframe will also include a Boolean target, classifying the protein as either a functional pair or not a functional pair. The model will be trained and tested based on this data.
 
-The upstream Pfam parsing component requires more development before data scraped from Pfam can be used to train and validate the model. Right now, it is trained and validated from a n=50,000 sample from Learn2Therm database. Ongoing work is being done regarding integrating this component with the upstream.
-
-This component will undergo significant further development during the spring. We plan to add functionality such that it can use data scraped from other protein databases than Pfam as features, including tertiary and quarternary structural data. Furthermore, we plan to improve our confidence in predicition and eventually develop a quantitative functionality prediction.
+This component will undergo significant further development to include structural information as a separate target representing Boolean protein pair functionality. The targets from HMMER and structural search are combined to improve classification accuracy.
 
 
 ### **Subcomponent 1**: Test for pandas dataframe input
@@ -286,8 +285,29 @@ This component will undergo significant further development during the spring. W
 
         3) Test than takes an example that is missing one of the sequences and raises an error.
 
+### **Subcomponent 3**: Generate features with iFeatureOmega.
 
-### **Subcomponent 3**: Train the model with sample data. 
+**Use case**: 
+
+        User needs an expanded feature space to train a machine learning classifier in order to improve classification accuracy.
+
+**Code**: 
+
+        A set of three functions create a pandas dataframe with appended features from iFeatureOmega.
+
+        1) Reads sequences in input pandas dataframe and generates two fasta files for each protein pair.
+        2) Takes fasta files from upstream and generates descriptors using methods from iFeatureOmega. Descriptors are generated for each individual sequence, and are represented as floats.
+        3) Takes newly generated descriptors and appends them into original dataframe. For each protein pair, embedded function calculates either a ratio or a difference between descriptors.
+
+              Input: Pandas dataframe
+              Output: Pandas dataframe with appended features.
+
+**Test**: 
+
+        Asserts that input is a pandas dataframe, shape of descriptor dictionary matches number of descriptors in input, and new dataframe has indexing columns removed.
+
+
+### **Subcomponent 4**: Train the model with sample data. 
 
 **Use case**: 
 
@@ -304,26 +324,43 @@ This component will undergo significant further development during the spring. W
 
         Asserts that input data type is a pandas dataframe and that output has 5 objects (model, dev_X, dev_y, test_X, test_y).
 
-
-### **Subcomponent 4**: Test the model with sample data. 
+### **Subcomponent 5**: Test performance of many different classifiers on training or testing data. 
 
 **Use case**: 
 
-        Uses test dataframe to evaluate the performance of the model and return a vector of Boolean predictions.
+        User has basic understanding of ML framework in Python and wants to test performance between multiple classifiers. This subcomponent is optional, and can be accessed as a separate script.
 
 **Code**: 
 
-        Function takes testing dataframe along with the model trained in the previous component. Runs testing dataframe through a RandomForestClassifier and returns a vector of predictions.
+        Function takes cleaned dataframe with appended features. Accesses a predefined dictionary of 9 different classifier models (hyperparameters pre-optimized with Optuna) and runs all models with input data. Returns a .txt file that describes statistical results of each model, as well as a dictionary with each model's accuracy and F1 score.
 
               Input: Model, Pandas dataframe
-              Output: Numpy array
+              Output: Vector of predictions, dictionary of accuracy scores, evaluationResults.txt
 
 **Test**: 
 
         Asserts that input is a pandas dataframe, output is a numpy array, and the length of the output vector is equal to the number of examples.
 
 
-### **Subcomponent 5**: Plot a confusion matrix of the test results.
+### **Subcomponent 6**: Test the model with sample data. 
+
+**Use case**: 
+
+        Uses test dataframe to evaluate the performance of the model and return a vector of Boolean predictions. Also creates a .txt file for the user to assess performance
+
+**Code**: 
+
+        Function takes testing dataframe along with the model trained in the previous component. Runs testing dataframe through a RandomForestClassifier (default) and returns a vector of predictions, along with a .txt file with scoring metrics. The user also has an option to choose a different classifier model at the command line.
+
+              Input: Model, Pandas dataframe
+              Output: Numpy array, evaluationResults.txt
+
+**Test**: 
+
+        Asserts that input is a pandas dataframe, output is a numpy array, and the length of the output vector is equal to the number of examples.
+
+
+### **Subcomponent 7**: Plot a confusion matrix of the test results.
 
 **Use case**: 
 
@@ -340,7 +377,7 @@ This component will undergo significant further development during the spring. W
 
         N/A. Looking to eventually develop a test using python image prediction module.
 
-### **Subcomponent 6**: Calculate a 'functionality' metric that is the ultimate output of component five.
+### **Subcomponent 8**: Calculate a 'functionality' metric that is the ultimate output of component five.
 
 Our goal is to develop some functionality score between a pair of proteins that is not just based on our singular classifier model. This will factor in information from multiple softwares as opposed to just Pfam, which is the focus during the first part of the project. This will be built during spring quarter.
 
