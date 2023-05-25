@@ -4,6 +4,7 @@ Unit tests for input cleaning and ML modules.
 import unittest
 import pandas as pd
 import numpy as np
+import os
 
 from FAFSA.train_val_classification import train_model
 from FAFSA.train_val_classification import evaluate_model
@@ -187,3 +188,57 @@ class TestWrapper(unittest.TestCase):
         # want to check that the # of predictions is equal to # of examples
         preds, _ = evaluate_model(model, val_X, val_y)
         self.assertEqual(len(val_y), len(preds))
+
+
+"""
+Test feature generation functions
+"""
+from FAFSA.train_val_featuregen import get_fasta_from_dataframe
+from FAFSA.train_val_featuregen import get_protein_descriptors
+from FAFSA.train_val_featuregen import clean_new_dataframe
+from FAFSA.train_val_featuregen import create_new_dataframe
+
+class TestGetFastaFromDataframe(unittest.TestCase):
+
+    def test_get_fasta_from_dataframe(self):
+        # Example input dataframe
+        dataframe = pd.DataFrame({
+            'prot_pair_index': [1, 2, 3],
+            'm_protein_seq': ['MESOSEQ1', 'MESOSEQ2', 'MESOSEQ3'],
+            't_protein_seq': ['THERMOSEQ1', 'THERMOSEQ2', 'THERMOSEQ3']
+        })
+
+        # Set up output file paths
+        output_file_a = 'output_a.fasta'
+        output_file_b = 'output_b.fasta'
+
+        try:
+            # Call the function
+            fasta_files = get_fasta_from_dataframe(dataframe, output_file_a, output_file_b)
+
+            # Assert the existence of output files
+            self.assertTrue(os.path.exists(output_file_a))
+            self.assertTrue(os.path.exists(output_file_b))
+
+            # Read the contents of the output files
+            with open(output_file_a, 'r') as file_a:
+                contents_a = file_a.read()
+            with open(output_file_b, 'r') as file_b:
+                contents_b = file_b.read()
+
+            # Assert the contents of the output files
+            expected_a = '>1\nMESOSEQ1\n>2\nMESOSEQ2\n>3\nMESOSEQ3\n'
+            expected_b = '>1\nTHERMOSEQ1\n>2\nTHERMOSEQ2\n>3\nTHERMOSEQ3\n'
+            self.assertEqual(contents_a, expected_a)
+            self.assertEqual(contents_b, expected_b)
+
+            # Assert the returned file paths
+            self.assertEqual(fasta_files, [output_file_a, output_file_b])
+
+        finally:
+            # Clean up - delete the output files
+            if os.path.exists(output_file_a):
+                os.remove(output_file_a)
+            if os.path.exists(output_file_b):
+                os.remove(output_file_b)
+

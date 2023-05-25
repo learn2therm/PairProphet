@@ -1,0 +1,24 @@
+{
+  "version": "1.2",
+  "dbname": "db.fasta",
+  "dbtype": "Protein",
+  "db-version": 5,
+  "description": "db.fasta",
+  "number-of-letters": 312,
+  "number-of-sequences": 1,
+  "last-updated": "2023-05-09T12:48:00",
+  "number-of-volumes": 1,
+  "bytes-total": 49692,
+  "bytes-to-cache": 418,
+  "files": [
+    "db.fasta.pdb",
+    "db.fasta.phr",
+    "db.fasta.pin",
+    "db.fasta.pog",
+    "db.fasta.pos",
+    "db.fasta.pot",
+    "db.fasta.psq",
+    "db.fasta.ptf",
+    "db.fasta.pto"
+  ]
+}

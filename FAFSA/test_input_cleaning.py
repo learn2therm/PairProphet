@@ -1,10 +1,6 @@
 """
-This module takes a dataframe from the data scraping component
-and cleans it so that it can be passed through a machine
-learning algorithm.
-In this training/validation stage of the project, we will
-load a sample CSV (n=50,000) with protein pairs from our large
-database to demonstrate functionality.
+This module cleans dataframe from user input for upstream classifier.
+Keeps both protein sequences for reporting results.
 """
 
 from sklearn.utils import resample
@@ -47,7 +43,10 @@ columns_to_keep = [
     't_protein_len',
     'protein_match',
     'norm_bit_score_m',
-    'norm_bits_score_t']
+    'norm_bits_score_t',
+    'm_protein_seq',
+    't_protein_seq',
+    'prot_pair_index']
 
 
 def normalize_bit_scores(dataframe):
@@ -71,8 +70,8 @@ def normalize_bit_scores(dataframe):
 
 
 def check_input_type(dataframe):
-    """
-    Takes in input dataframe and asserts that it is the correct data type.
+    """Takes in input dataframe and asserts 
+    that it is the correct data type.
 
     Returns
     -------
@@ -128,7 +127,6 @@ def check_input_nans(dataframe):
     -------
     Pandas dataframe
     """
-
     has_nan = dataframe.isna().any().any()
     nan_rows = dataframe[dataframe.isna().any(axis=1)]
 
@@ -152,6 +150,7 @@ def verify_protein_pairs(dataframe):
     -------
     Pandas dataframe
     """
+
     assert 'm_protein_len' in dataframe, 'Dataframe missing mesophillic sequence!'
     assert 't_protein_len' in dataframe, 'Dataframe missing thermophillic sequence!'
 

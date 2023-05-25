@@ -9,6 +9,9 @@ these can be developed as individual scripts.
 Runtime: 
 """
 
+from FAFSA.train_val_wrapper import train_val_wrapper
+from FAFSA.test_model import test_model
+
 def model_dev(sequences):
 
     #Ryans Component
@@ -43,12 +46,16 @@ def model_dev(sequences):
     Output: csv files with 6 columns (seq1, seq2, protein_match (Humood + Amin), protein_match(ML), Jaccard Score)
     Params: Base environment + iFeatureOmega dependencies 
     """
-    model_output = rf_wrapper(blast_seq, boolean1, boolean2)
+
+    #need to save model to use in next script
+    model_output = train_val_wrapper(dataframe, feature_list=[])
 
     return model_output
 
+trained_model = model_dev()
 
-def main():
+
+def main(test_sequences):
 
     """
     Function for user to interact with.
@@ -66,3 +73,7 @@ def main():
     Output: csv files with 6 columns (seq1, seq2, protein_match (Humood + Amin), protein_match (Chau) protein_match(ML), Jaccard Score)
     Params: Base environment + iFeatureOmega dependencies 
     """
+
+    test_model(trained_model, test_X, test_y)
+
+    return evaluation

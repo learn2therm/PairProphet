@@ -37,22 +37,22 @@ For a more detailed exposition on the modular/importable code, please see [packa
 # Workflow
 
 1) Retrieve data from Learn2Therm DB
-2) Sample from large DB, feature selection, data formatting
+2) Sample from large DB, select features, format data.
 
     a) sampling notebook found in [notebooks](./notebooks/)
 3) Family identification with Pfam
 
     a) examples of generating outputs from Pfam in [examples](./examples/local_hmmer_example.ipynb)
-4) Family identification with PDB + other softwares
-5) Develop model to predict protein pair functionality
+4) Structure-based family identification with Fatcat + other softwares
+5) Develop model to predict protein pair functionality. Include engineered features in addition to features selected in 1).
 
     a) examples of model development in [notebooks](./notebooks/)
-6) Optimize scoring methods to improve quality of analysis
+6) Report whether each protein pair is functional along with confidence metrics.
 
 # Outputs
 
 Boolean prediction of whether protein pair is functional.
-Functionality analysis (ongoing work).
+Text file with confidence statistics.
 
 # Community Guidelines
 
