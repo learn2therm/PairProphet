@@ -170,7 +170,7 @@ def runClassifiers(filename:str, dataframe, columns=[], target=[], model=RandomF
     
     F.close()
     
-    return Results, model
+    return Results
 
 
 # if __name__ == '__main__':

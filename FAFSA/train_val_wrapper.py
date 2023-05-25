@@ -2,10 +2,10 @@
 Wrapper functions for all of the machine learning component.
 """
 
-from FAFSA.train_val_classification import rf_wrapper
-from FAFSA.train_val_input_cleaning import input_cleaning_wrapper
-# from FAFSA.train_val_input_cleaning import df
-from FAFSA.train_val_featuregen import create_new_dataframe
+from train_val_classification import rf_wrapper
+from train_val_input_cleaning import input_cleaning_wrapper
+from train_val_input_cleaning import df
+from train_val_featuregen import create_new_dataframe
 
 
 def train_val_wrapper(dataframe, feature_list=None):
