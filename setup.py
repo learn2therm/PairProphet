@@ -9,7 +9,7 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 
 setup(
     name="FAFSA",  
-    version="2023.3",  # Required
+    version="2023.6",  # Required
     long_description=long_description, 
     long_description_content_type="text/markdown", 
     url="https://github.com/learn2therm/ValidProt",
