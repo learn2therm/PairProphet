@@ -3,7 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-# scikit-learn :
+#testing function
+
 from sklearn.linear_model import LogisticRegression, SGDClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
@@ -68,7 +69,7 @@ F.write('-1.0 <=MCC<= 1.0'+'\n')
 F.write('_______________________________________'+'\n')
 
 
-def test_model(args, test_X, test_y):
+def test_model(model, dataframe, target=[]):
     """
     Takes a trained model and test data and tests the model.
 
@@ -83,7 +84,24 @@ def test_model(args, test_X, test_y):
     Vector of predictions based on the model (numpy array)
     """
 
-    model = args.classifier
+    model = model
+    
+    df_seqs = dataframe[['m_protein_seq', 't_protein_seq', 'prot_pair_index']]
+    
+    dataframe = dataframe.drop(columns=['m_protein_seq', 't_protein_seq', 'prot_pair_index'])
+    
+    target = 'protein_match'
+    features = [columns for columns in dataframe]
+    features.remove(target)
+    print(features)
+    
+    # split into input and output feature(s)
+    test_X = dataframe[features].values
+    test_y = dataframe[target].values.reshape(-1, 1)
+
+    # scale data
+    scaler = sklearn.preprocessing.StandardScaler()
+    test_X = scaler.fit_transform(test_X)
 
     accuracy = []
     avg_precision = []
@@ -96,10 +114,6 @@ def test_model(args, test_X, test_y):
     assert "sklearn" in str(type(model))
     assert "numpy.ndarray" in str(type(test_X))
     assert "numpy.ndarray" in str(type(test_y))
-
-    # scale data
-    scaler = sklearn.preprocessing.StandardScaler()
-    test_X = scaler.fit_transform(test_X)
 
     #vector of predictions
     preds = model.predict(test_X)
@@ -125,9 +139,7 @@ def test_model(args, test_X, test_y):
     sklearn.metrics.ConfusionMatrixDisplay(confusion_matrix).plot()
 
     accuracy = [_*100.0 for _ in accuracy]
-    Results[name + ' Accuracy, F1 Score'] = [accuracy, F1_Score]
     
-    F.write('Classifier: {}\n'.format(name))
     F.write('Accuracy: {0:.4f}%\n'.format(np.mean(accuracy)))
     F.write('AUC: {0:.4f}\n'.format( np.mean(AUC)))
     F.write('auPR: {0:.4f}\n'.format(np.mean(avg_precision))) # average_Precision
@@ -137,9 +149,14 @@ def test_model(args, test_X, test_y):
 #         TN, FP, FN, TP = CM.ravel()
     F.write('Recall: {0:.4f}\n'.format( np.mean(Recall)) )
     F.write('_______________________________________'+'\n')
-
-    return preds, precision_score
-
+    
+    #merge dataframes together to report results
+    df_seqs['prediction'] = preds
+    
+    #save to csv
+    df_seqs.to_csv('predictions.csv')
+  
+    return preds, precision_score, df_seqs
 
 if __name__ == '__main__':
     import argparse
