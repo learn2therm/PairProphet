@@ -73,6 +73,10 @@ def normalize_bit_scores(dataframe):
 def check_input_type(dataframe):
     """
     Takes in input dataframe and asserts that it is the correct data type.
+
+    Returns
+    -------
+    Pandas dataframe
     """
     assert "pandas.core.frame.DataFrame" in str(
         type(dataframe)), 'Not a pandas dataframe!'
@@ -81,13 +85,12 @@ def check_input_type(dataframe):
 
 
 def clean_input_columns(dataframe):
-    """
-    We want to clean certain columns out of the Pfam dataframe.
-    Need to eliminate identifier columns + columns that don't have
-    relationship with the target.
+    """Cleans out columns that are not in
+    a predefined list of features.
 
-    Input: Pandas dataframe (from Pfam)
-    Output: Updated dataframe.
+    Returns
+    -------
+    Pandas dataframe
     """
 
     for title in dataframe:
@@ -100,12 +103,12 @@ def clean_input_columns(dataframe):
 
 
 def verify_input_columns(dataframe):
-    """
-    This function raises an error is one of the columns we need for the model is not
-    present in the dataframe.
+    """Asserts that columns we want to keep
+    remain in the dataframe.
 
-    Input: Pandas dataframe.
-    Output: Pandas dataframe.
+    Returns
+    -------
+    Pandas dataframe
     """
     for title in columns_to_keep:
 
@@ -118,13 +121,14 @@ def verify_input_columns(dataframe):
 
 
 def check_input_nans(dataframe):
-    """
-    Checks for NaN values in input dataframe. Removes rows with NaN values present.
+    """Checks for NaN values in input dataframe. 
+    Removes rows with NaN values present.
 
-    Input: Pandas dataframe
-    Output: Pandas dataframe
-
+    Returns
+    -------
+    Pandas dataframe
     """
+
     has_nan = dataframe.isna().any().any()
     nan_rows = dataframe[dataframe.isna().any(axis=1)]
 
@@ -141,8 +145,12 @@ def check_input_nans(dataframe):
 
 def verify_protein_pairs(dataframe):
     """
-    Checks that input data has two protein sequences. Will need to generalize this function other data sets
-    to simply make sure two sequences are entered. Code below is for our protein database
+    Checks that input data has two protein sequences
+    with simple assert statements.
+    
+    Returns
+    -------
+    Pandas dataframe
     """
     assert 'm_protein_len' in dataframe, 'Dataframe missing mesophillic sequence!'
     assert 't_protein_len' in dataframe, 'Dataframe missing thermophillic sequence!'
@@ -155,9 +163,9 @@ def input_cleaning_wrapper(dataframe):
     Takes in a pandas dataframe and runs it through each of the cleaning
     and verification steps.
 
-    Input: Pandas dataframe
-    Output: Pandas dataframe
-
+    Returns
+    -------
+    Pandas dataframe
     """
     # normalize bit scores
     normed = normalize_bit_scores(dataframe)
