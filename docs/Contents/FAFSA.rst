@@ -1,24 +1,13 @@
 FAFSA package
 =============
 
-HMMER_API
+HMMER
 ++++++++++
 
-FAFSA.HMMER\_API module
+FAFSA.hmmer module
 -----------------------
 
-.. automodule:: FAFSA.HMMER_API
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-HMMER_Local
-++++++++++
-
-FAFSA.compute\_local\_hmmer module
-----------------------------------
-
-.. automodule:: FAFSA.compute_local_hmmer
+.. automodule:: FAFSA.hmmer
    :members:
    :undoc-members:
    :show-inheritance:
@@ -26,48 +15,16 @@ FAFSA.compute\_local\_hmmer module
 BLAST_Alignment
 ++++++++++
 
-FAFSA.compute\_pair\_function module
-------------------------------------
-
-.. automodule:: FAFSA.compute_pair_function
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-FAFSA.model\_input module
--------------------------
-
-.. automodule:: FAFSA.model_input
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 FAFSA.preprocessing module
---------------------------
+------------------------------------
 
 .. automodule:: FAFSA.preprocessing
    :members:
    :undoc-members:
    :show-inheritance:
 
-FAFSA.rmf\_test module
-----------------------
-
-.. automodule:: FAFSA.rmf_test
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-FAFSA.sample\_for\_train module
--------------------------------
-
-.. automodule:: FAFSA.sample_for_train
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 FAFSA.user\_blast module
-------------------------
+-------------------------
 
 .. automodule:: FAFSA.user_blast
    :members:
