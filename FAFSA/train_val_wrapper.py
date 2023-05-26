@@ -30,8 +30,8 @@ def train_val_wrapper(dataframe, feature_list=None):
 
     if feature_list is not None:
         # generate features from amino acid sequence
-        df = create_new_dataframe(cleaned, 'meso_50k.fasta', 
-                    descriptors=[feature for feature in feature_list])
+        df = create_new_dataframe(cleaned, ['sequences_a.fasta', 'sequeneces_b.fasta'],
+                                  descriptors=[feature for feature in feature_list])
     else:
         pass
 

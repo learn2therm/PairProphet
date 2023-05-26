@@ -168,4 +168,4 @@ def rf_wrapper(dataframe):
     # plot the results of the model
     score = plot_model(model, val_X, val_y)
 
-    return preds, score
+    return preds, score, model
