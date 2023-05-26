@@ -1,4 +1,5 @@
 # FAFSA (Function annotated from sequence alignment)
+Check out our project's documention via [Read The Docs](https://validprot.readthedocs.io/)!
 
 # Background
 
