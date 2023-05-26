@@ -16,24 +16,22 @@ import sklearn.metrics
 
 
 def train_model(dataframe, columns=[], target=[]):
-    """
+    '''
     Takes dataframe and splits it into a training and testing set. 
     Trains a RF Classifier with data.
 
-    Params
-    ----------
-    dataframe: Pandas dataframe
-    columns: list of strings, representing input features
-    target: list of strings, representing target feature(s)
-
-    Returns
-    -------
-    -Sk-learn model object
-    -train data (features)
-    -train data (target)
-    -validation data (features)
-    -validation data (target)
-    """
+    Args:
+        dataframe: Pandas dataframe
+        columns: list of strings, representing input features
+        target: list of strings, representing target feature(s)
+        
+    Returns:
+        Sk-learn model object
+        train data (features)
+        train data (target)
+        validation data (features)
+        validation data (target)
+    '''
     # split data
     train, val = sklearn.model_selection.train_test_split(
         dataframe, test_size=0.15, random_state=1)
