@@ -74,17 +74,6 @@ FAFSA.user\_blast module
    :undoc-members:
    :show-inheritance:
 
-Find_Structures
-++++++++++
-
-FAFSA.find\_structures module
------------------------------
-
-.. automodule:: FAFSA.find_structures
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Machine_Learning
 ++++++++++
 
@@ -108,6 +97,22 @@ FAFSA.train\_val\_wrapper module
 --------------------------------
 
 .. automodule:: FAFSA.train_val_wrapper
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+FAFSA.evaluate\_model module
+--------------------------------
+
+.. automodule:: FAFSA.evaluate_model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+FAFSA.evaluate\_input\_cleaning module
+--------------------------------
+
+.. automodule:: FAFSA.evaluate_input_cleaning
    :members:
    :undoc-members:
    :show-inheritance:
