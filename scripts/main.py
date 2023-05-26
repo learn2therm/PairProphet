@@ -14,6 +14,7 @@ from FAFSA.train_val_input_cleaning import columns_to_keep
 from FAFSA.preprocessing import connect_db, build_fafsa
 from FAFSA.structure import download_structures, run_fatcat
 
+
 def model_dev(dbpath):
 
     #Ryans Component
@@ -33,6 +34,7 @@ def model_dev(dbpath):
     Params: Base environment + PyHMMER + Joblib
     """
     df = con.execute("""SELECT m_protein_seq, t_protein_seq, prot_pair_index, meso_pid, thermo_pid, meso_pdb, thermo_pdb""").df()
+    test = con.execute("""SELECT pid, protein_seq FROM fafsa_proteins""")
     run_hmmr(df)
     parse_hmmer(path_to_csv)
 

@@ -1,22 +1,211 @@
 """
 The following is importable code for running HMMER 
 either locally via pyhmmer or via Interpro's API
+
+TODO:
+- Amin update documentation
 """
 # system dependecies
+import asyncio
+from concurrent.futures import ProcessPoolExecutor
+import json
+import logger
+import nest_asyncio
 import os
+import requests
 import time
+import urllib.parse
 
 # library dependencies
 import duckdb as ddb
+import httpx
 from joblib import Parallel, delayed
 import pandas as pd
 import pyhmmer
 
 # local dependencies
-
+import FAFSA.utils
 
 ####### API HMMER
+async def send_request(semaphore, sequence, client):
+    """
+    Sends a POST request to the HMMER API with a protein sequence.
+    -------------
+    Parameters:
+    -------------
+    semaphore: asyncio.Semaphore
+        A semaphore to limit concurrent requests.
+    sequence: str
+        The protein sequence to be sent in the request.
+    client: httpx.AsyncClient
+        An HTTP client for sending the request.
+    -------------
+    Returns:
+    -------------
+    response: httpx.Response
+        The response received from the HMMER API.
+    """
 
+    url = 'https://www.ebi.ac.uk/Tools/hmmer/search/hmmscan'
+    headers = {'Content-Type': 'application/x-www-form-urlencoded',
+               'Accept': 'application/json'}
+    data = {'hmmdb': 'pfam', 'seq': f'>seq\n{sequence}'}
+    data = urllib.parse.urlencode(data).encode('ascii')
+
+    async with semaphore:
+        response = await client.post(url, headers=headers, data=data, follow_redirects=False, timeout=15000)
+
+    return response
+
+
+async def process_response(semaphore, sequence, response, client, pid, max_retries=3):
+    """
+    Processes the response received from the HMMER API.
+    -------------
+    Parameters:
+    -------------
+    semaphore: asyncio.Semaphore
+        A semaphore to limit concurrent requests.
+    sequence: str
+        The protein sequence associated with the response.
+    response: httpx.Response
+        The response received from the HMMER API.
+    client: httpx.AsyncClient
+        An HTTP client for sending subsequent requests.
+    pid: int
+        The protein ID associated with the sequence.
+    max_retries: int, optional
+        The maximum number of retries for failed requests (default is 3).
+    -------------
+    Returns:
+    -------------
+    dfff: pd.DataFrame or None
+        A DataFrame containing the search results for the protein sequence, or None if an error occurred.
+    """
+
+    redirect_url = response.headers.get('Location')
+
+    if redirect_url is None:
+        print("Error: No redirect URL found in response.")
+    else:
+        headers = {'Accept': 'application/json'}
+        async with semaphore:
+            for attempt in range(max_retries):
+                try:
+                    response2 = await client.get(redirect_url, headers=headers, timeout=15000)
+                    break
+                except httpx.ReadTimeout:
+                    if attempt < max_retries - 1:
+                        # Exponential backoff
+                        await asyncio.sleep(5 ** attempt)
+                    else:
+                        raise
+        try:
+            results = response2.json()
+            hits = results['results']['hits']
+        except KeyError:
+            logger.info(
+                f"Error: 'results' key not found in response for sequence {sequence}.")
+            return None
+        except json.JSONDecodeError:
+            logger.info(
+                f"Error: JSONDecodeError for sequence {sequence}. Response text: {response2.text}")
+            return None
+
+        if hits:
+            loop = asyncio.get_event_loop()
+            dfff = await loop.run_in_executor(None, pd.json_normalize, hits, 'domains', ['acc', 'name', 'score', 'evalue', 'pvalue', 'desc'])
+            dfff.insert(0, 'sequence', sequence)
+            # Add new column here
+            dfff.insert(0, 'pid', pid)
+            dfff = dfff.set_index('pid')  # Set new column as index
+            return dfff
+        else:
+            return None
+
+
+async def hmmerscanner(df: pd.DataFrame, k: int, max_concurrent_requests: int, output_path: str):
+    """
+    Runs the HMMER scanner for protein sequences.
+    -------------
+    Parameters:
+    -------------
+    df: pd.DataFrame
+        A DataFrame that contains protein sequences.
+    k: int
+        The number of protein sequences to search.
+    max_concurrent_requests: int
+        The maximum number of concurrent requests to the HMMER API.
+    output_path: str
+        The output directory of where the data will be stored.
+    -------------
+    Returns:
+    -------------
+    results_df: pd.DataFrame
+        A DataFrame containing the search results for all protein sequences.
+    """
+
+    if k > 1000:
+        print("Use local function for the number of sequences more than 1000.")
+        return pd.DataFrame()
+
+    sequences = df['protein_seq'][:k]
+    # Get corresponding prot_pair_index values
+    indices = df['pid'][:k]
+    tasks = []
+    semaphore = asyncio.Semaphore(max_concurrent_requests)
+
+    # Use a process pool to parallelize JSON processing and DataFrame creation
+    with ProcessPoolExecutor() as executor:
+        loop = asyncio.get_event_loop()
+        async with httpx.AsyncClient() as client:
+            for seq, idx in zip(sequences, indices):  # Include the index here
+                task = asyncio.create_task(
+                    send_request(semaphore, seq, client))
+                tasks.append(task)
+
+            responses = await asyncio.gather(*tasks)
+
+            tasks = []
+            for (seq, idx), response in zip(zip(sequences, indices), responses):  # Include the index here
+                task = asyncio.create_task(process_response(
+                    semaphore, seq, response, client, idx))  # idx is the prot
+                tasks.append(task)
+
+            results = await asyncio.gather(*tasks)
+    common_columns = set.intersection(
+        *(set(df.columns) for df in results if df is not None))
+    results_df = pd.concat(
+        [result[list(common_columns)] for result in results if result is not None])
+    # write result to csv
+    results_df.to_csv(f'{output_path}API_output.csv')
+    return results_df
+
+
+def run_hmmerscanner(df: pd.DataFrame, k: int, max_concurrent_requests: int):
+    """
+    This function runs the hmmerscanner function within an event loop and returns the search results as
+    a DataFrame.
+    -------------
+    Parameters:
+    -------------
+    df: pandas.core.DataFrame
+    A DataFrame that contains protein sequences.
+    k: int
+    The number of protein sequences to search.
+    max_concurrent_requests: int
+    The maximum number of concurrent requests to the HMMER API.
+    -------------
+    Returns:
+    -------------
+    
+    results_df: pandas.core.DataFrame
+        A DataFrame containing the search results for all protein sequences.
+    """
+
+    # Set up the event loop and call the hmmerscanner function
+    nest_asyncio.apply()
+    return asyncio.run(hmmerscanner(df, k, max_concurrent_requests))
 
 
 ####### Local HMMER
@@ -301,5 +490,5 @@ def local_hmmer_wrapper(chunk_index, dbpath, chunked_pid_inputs,
     # Parse pyhmmer output and save to CSV file
     accessions_parsed = parse_pyhmmer(all_hits=hits, chunk_query_ids=chunk_query_ids)
     accessions_parsed.to_csv(
-        f'{out_dir}/{chunk_index}_output.parquet',
+        f'{out_dir}/{chunk_index}_output.csv',
         index=False)
