@@ -30,7 +30,6 @@ jobs:
       run: |
         conda update -n base -c defaults conda
         conda install python=${{ matrix.python-version }}
-        conda env update --file environment.yml --name base --prune
     - name: Install package and testing dependencies
       run: |
         conda env update --file environment.yml --name base
