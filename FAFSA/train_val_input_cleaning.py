@@ -56,10 +56,10 @@ def normalize_bit_scores(dataframe):
     normalized by the protein length.
 
     Args:
-        Dataframe (pandas dataframe)
+        pandas dataframe
 
     Returns:
-        Dataframe (pandas dataframe)
+        pandas dataframe
     '''
     dataframe['norm_bit_score_m'] = dataframe['bit_score'] / \
         dataframe['m_protein_len']
@@ -77,10 +77,10 @@ def check_input_type(dataframe):
     Takes in input dataframe and asserts that it is the correct data type.
 
     Args:
-        Dataframe (pandas dataframe)
+        pandas dataframe
 
     Returns:
-        Dataframe (pandas dataframe)
+        pandas dataframe
     '''
     assert "pandas.core.frame.DataFrame" in str(
         type(dataframe)), 'Not a pandas dataframe!'
@@ -94,10 +94,10 @@ def clean_input_columns(dataframe):
     a predefined list of features.
 
     Args:
-        Dataframe (pandas dataframe)
+        pandas dataframe
 
     Returns:
-        Dataframe (pandas dataframe)
+        pandas dataframe
     '''
     for title in dataframe:
         if title not in columns_to_keep:
@@ -114,10 +114,10 @@ def verify_input_columns(dataframe):
     remain in the dataframe.
 
     Args:
-        Dataframe (pandas dataframe)
+        pandas dataframe
 
     Returns:
-        Dataframe (pandas dataframe)
+        pandas dataframe
     '''
     for title in columns_to_keep:
 
@@ -134,10 +134,10 @@ def check_input_nans(dataframe):
     Checks for NaN values in input dataframe.
     Removes rows with NaN values present.
     Args:
-        Dataframe (pandas dataframe)
+        pandas dataframe
 
     Returns:
-        Dataframe (pandas dataframe)
+        pandas dataframe
     '''
     has_nan = dataframe.isna().any().any()
     nan_rows = dataframe[dataframe.isna().any(axis=1)]
@@ -158,10 +158,10 @@ def verify_protein_pairs(dataframe):
     Checks that input data has two protein sequences
     with simple assert statements.
     Args:
-        Dataframe (pandas dataframe)
+        pandas dataframe
 
     Returns:
-        Dataframe (pandas dataframe)
+        pandas dataframe
     '''
     assert 'm_protein_len' in dataframe, 'Dataframe missing mesophillic sequence!'
     assert 't_protein_len' in dataframe, 'Dataframe missing thermophillic sequence!'
@@ -174,10 +174,10 @@ def input_cleaning_wrapper(dataframe):
     Takes in a pandas dataframe and runs it through each of the cleaning
     and verification steps.
     Args:
-        Dataframe (pandas dataframe)
+        pandas dataframe
 
     Returns:
-        Dataframe (pandas dataframe)
+        pandas dataframe
     '''
     # normalize bit scores
     normed = normalize_bit_scores(dataframe)
