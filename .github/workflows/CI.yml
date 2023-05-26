@@ -39,6 +39,7 @@ jobs:
         pip install -e .[tests]
     - name: Lint with flake8
       run: |
+        $ conda init bash
         conda activate base
         conda install flake8
         # stop the build if there are Python syntax errors or undefined names
