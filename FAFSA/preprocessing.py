@@ -8,10 +8,7 @@ Functions:
     build_fafsa: Constructs fafsa database from learn2therm database.
 '''
 
-import os
 import time
-import numpy as np
-
 import duckdb
 
 
@@ -24,28 +21,13 @@ def connect_db(path: str):
         path (str): Path to DuckDB database file containing learn2therm.
 
     Returns:
-        con (duckdb.DuckDBPyConnection): A DuckDB connection object linking script to
-        learn2therm database.
+        con (duckdb.DuckDBPyConnection): A DuckDB connection object linking
+                                         script to learn2therm database.
 
     Raises:
-        VersionError: DuckDB installation is not one of 0.6.0 or 0.6.1.
         AttributeError: Input database contains no tables.
     '''
     s_time = time.time()
-
-    version = duckdb.__version__
-    print(f'DuckDB version {version} detected.')
-
-    # Checks for compatible installation of duckdb.
-    if not version in ['0.7.0', '0.7.1']:
-        raise VersionError("""learn2therm is only
-                           compatible with duckdb versions 0.7.0 and 0.7.1. Please check your
-                           installation. Refer to https://duckdb.org/internals/storage.html for more
-                           details.""")
-
-        e_time = time.time()
-        elapsed_time = e_time - s_time
-        print(f'Finished with VersionError. Execution time: {elapsed_time} seconds')
 
     print('Connecting to database...')
     con = duckdb.connect(path)
@@ -65,17 +47,20 @@ def connect_db(path: str):
 
 def build_fafsa(con, min_ogt_diff: int = 20, min_16s: int = 1300):
     '''
-    Converts learn2therm DuckDB database into a DuckDB database for FAFSA by adding filtered and
-    constructed tables. Ensure at lease 100 GB of free disk space and 30 GB of system memory are 
-    available before running on the full database.
+    Converts learn2therm DuckDB database into a DuckDB database for FAFSA by
+    adding filtered and constructed tables. Ensure at lease 20 GB of free disk
+    space and 30 GB of system memory are available before running on the full
+    database.
 
     Args:
-        con (duckdb.DuckDBPyConnection): DuckDB connection object. Links script to DuckDB SQL 
-        database.
-        min_ogt_diff (int): Cutoff for minimum difference in optimal growth temperature between 
-        thermophile and mesophile pairs. Default 20 deg C.
-        min_16s (int): Cutoff for minimum 16S read length for taxa. Default 1300 bp. Filters out 
-        organisms with poor or incomplete 16S sequencing.
+        con (duckdb.DuckDBPyConnection): DuckDB connection object. Links script
+                                         to DuckDB SQL database.
+        min_ogt_diff (int): Cutoff for minimum difference in optimal growth
+                            temperature between thermophile and mesophile
+                            pairs. Default 20 deg C.
+        min_16s (int): Cutoff for minimum 16S read length for taxa. Default
+                       1300 bp. Filters out organisms with poor or incomplete
+                       16S sequencing.
 
     Returns:
         None. Database object is modified in place.
@@ -85,9 +70,9 @@ def build_fafsa(con, min_ogt_diff: int = 20, min_16s: int = 1300):
         ValueError: Minimum 16S sequence read is 1 bp.
         AttributeError: Database must be in the learn2therm format.
     '''
-
     if min_ogt_diff < 0:
-        raise ValueError('Optimal growth temperature difference must be positive.')
+        raise ValueError("""Optimal growth temperature difference must be
+                         positive.""")
 
     if min_16s < 1:
         raise ValueError('16S must have at least 1 bp read.')
@@ -97,7 +82,8 @@ def build_fafsa(con, min_ogt_diff: int = 20, min_16s: int = 1300):
                             WHERE TABLE_TYPE='BASE TABLE'""").df()
 
     # Check if proper tables exist in database. If they do not, raise an error.
-    if (item in tables for item in ['proteins', 'protein_pairs', 'taxa', 'taxa_pairs']):
+    if (item in tables for item in ['proteins', 'protein_pairs', 'taxa',
+                                    'taxa_pairs']):
         pass
 
     else:
@@ -110,41 +96,49 @@ def build_fafsa(con, min_ogt_diff: int = 20, min_16s: int = 1300):
     taxa_pairs_cmd = """CREATE OR REPLACE TABLE fafsa_taxa_pairs AS
                         SELECT *
                         FROM taxa_pairs
-                        INNER JOIN taxa_pairs_lab ON (taxa_pairs.__index_level_0__ = taxa_pairs_lab.__index_level_0__)
+                        INNER JOIN taxa_pairs_lab
+                        ON (taxa_pairs.__index_level_0__ =
+                        taxa_pairs_lab.__index_level_0__)
                         WHERE taxa_pairs_lab.is_pair = True"""
     con.execute(taxa_pairs_cmd)
 
     e_time = time.time()
     elapsed_time = e_time - s_time
-    print(f'Finished constructing fafsa_taxa_pairs. Execution time: {elapsed_time} seconds')
+    print(f"""Finished constructing fafsa_taxa_pairs. Execution time:
+          {elapsed_time} seconds""")
     print('Constructing fafsa_taxa...')
 
     # Builds FAFSA taxa table using only paired taxa from learn2therm.
-    taxa_cmd = f"""CREATE OR REPLACE TABLE fafsa_taxa AS
-                   SELECT *
-                   FROM taxa
-                   WHERE taxid IN 
-                   (SELECT DISTINCT query_id FROM fafsa_taxa_pairs)
-                   OR taxid IN
-                   (SELECT DISTINCT subject_id FROM fafsa_taxa_pairs)"""
+    taxa_cmd = """CREATE OR REPLACE TABLE fafsa_taxa AS
+                  SELECT *
+                  FROM taxa
+                  WHERE taxid IN
+                  (SELECT DISTINCT query_id FROM fafsa_taxa_pairs)
+                  OR taxid IN
+                  (SELECT DISTINCT subject_id FROM fafsa_taxa_pairs)"""
     con.execute(taxa_cmd)
 
     e_time2 = time.time()
     elapsed_time = e_time2 - e_time
-    print(f'Finished constructing fafsa_taxa. Execution time: {elapsed_time} seconds')
+    print(f"""Finished constructing fafsa_taxa. Execution time:
+          {elapsed_time} seconds""")
     print('Filtering on ogt and 16S sequence parameters...')
 
-    # Builds FAFSA table containing taxa pairs and their associated optimal growth temperatures
-    # (ogt). Excludes 16S sequences and ogt difference below cutoff values from function input.
-    ogt_pairs_cmd = f"""CREATE OR REPLACE TABLE fafsa_ogt_taxa_pairs AS SELECT fafsa_taxa_pairs.*,
+    # Builds FAFSA table containing taxa pairs and their associated optimal
+    # growth temperatures (ogt). Excludes 16S sequences and ogt difference
+    # below cutoff values from function input.
+    ogt_pairs_cmd = f"""CREATE OR REPLACE TABLE fafsa_ogt_taxa_pairs AS
+                        SELECT fafsa_taxa_pairs.*,
                         taxa_m.temperature AS meso_ogt,
                         taxa_t.temperature AS thermo_ogt,
                         taxa_t.temperature - taxa_m.temperature AS ogt_diff,
                         taxa_m."16s_len" AS meso_16s_len,
                         taxa_t."16s_len" AS thermo_16s_len
                         FROM fafsa_taxa_pairs
-                        JOIN fafsa_taxa AS taxa_m ON (fafsa_taxa_pairs.subject_id = taxa_m.taxid)
-                        JOIN fafsa_taxa AS taxa_t ON (fafsa_taxa_pairs.query_id = taxa_t.taxid)
+                        JOIN fafsa_taxa AS taxa_m
+                        ON (fafsa_taxa_pairs.subject_id = taxa_m.taxid)
+                        JOIN fafsa_taxa AS taxa_t
+                        ON (fafsa_taxa_pairs.query_id = taxa_t.taxid)
                         WHERE ogt_diff >= {min_ogt_diff}
                         AND meso_16s_len >= {min_16s}
                         AND thermo_16s_len >= {min_16s}"""
@@ -169,20 +163,26 @@ def build_fafsa(con, min_ogt_diff: int = 20, min_16s: int = 1300):
 
     e_time4 = time.time()
     elapsed_time = e_time4 - e_time3
-    print(f'Finished constructing fafsa_protein_pairs. Execution time: {elapsed_time} seconds')
+    print(f"""Finished constructing fafsa_protein_pairs. Execution time:
+          {elapsed_time} seconds""")
     print('Constructing fafsa_proteins...')
 
-    # Builds FAFSA table containing proteins that belong to taxa from fafsa_taxa_pairs.
+    # Builds FAFSA table containing proteins that belong to taxa from
+    # fafsa_taxa_pairs.
     prot_filt_cmd = """CREATE OR REPLACE TABLE fafsa_proteins AS SELECT *
                        FROM proteins
-                       WHERE pid IN (SELECT DISTINCT meso_pid FROM fafsa_protein_pairs) OR
-                       pid IN (SELECT DISTINCT thermo_pid FROM fafsa_protein_pairs)
+                       WHERE pid IN (SELECT DISTINCT meso_pid
+                                     FROM fafsa_protein_pairs)
+                       OR
+                       pid IN (SELECT DISTINCT thermo_pid
+                               FROM fafsa_protein_pairs)
                     """
     con.execute(prot_filt_cmd)
 
     e_time5 = time.time()
     elapsed_time = e_time5 - e_time4
-    print(f'Finished constructing fafsa_proteins. Execution time: {elapsed_time} seconds')
+    print(f"""Finished constructing fafsa_proteins. Execution time:
+          {elapsed_time} seconds""")
     print('Constructing final dataset...')
 
     # Builds final FAFSA data table for downstream sampling.
