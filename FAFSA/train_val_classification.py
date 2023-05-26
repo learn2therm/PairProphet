@@ -70,7 +70,7 @@ def train_model(dataframe, columns=[], target=[]):
     return model, train_X, train_y, val_X, val_y
 
 
-def evaluate_model(model, val_X, val_y):
+def validate_model(model, val_X, val_y):
     """
     Takes a trained model and test data and tests the model.
 
@@ -163,7 +163,7 @@ def rf_wrapper(dataframe):
     )
 
     # test the model and return predictions
-    preds, _ = evaluate_model(model, val_X, val_y)
+    preds, _ = validate_model(model, val_X, val_y)
 
     # plot the results of the model
     score = plot_model(model, val_X, val_y)
