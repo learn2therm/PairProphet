@@ -17,14 +17,14 @@ import sklearn.metrics
 
 def train_model(dataframe, columns=[], target=[]):
     '''
-    Takes dataframe and splits it into a training and testing set. 
+    Takes dataframe and splits it into a training and testing set.
     Trains a RF Classifier with data.
 
     Args:
         dataframe: Pandas dataframe
         columns: list of strings, representing input features
         target: list of strings, representing target feature(s)
-        
+
     Returns:
         Sk-learn model object
         train data (features)
@@ -69,20 +69,18 @@ def train_model(dataframe, columns=[], target=[]):
 
 
 def validate_model(model, val_X, val_y):
-    """
+    '''
     Takes a trained model and test data and tests the model.
 
-    Params
-    ----------
-    model: sklearn.neighbors.KNeighborsClassifier
-    test_X: numpy array
-    test_y: numpy array
+    Args:
+        model: sklearn.neighbors.KNeighborsClassifier
+        test_X: numpy array
+        test_y: numpy array
 
-    Returns
-    -------
-    Vector of predictions based on the model (numpy array)
-    """
-
+    Returns:
+        Vector of predictions based on the model (numpy array)
+         Precision score of model
+    '''
     # test input arguments
     assert "sklearn" in str(type(model))
     assert "numpy.ndarray" in str(type(val_X))
@@ -97,21 +95,18 @@ def validate_model(model, val_X, val_y):
 
 
 def plot_model(model, val_X, val_y):
-    """
+    '''
     Takes a test classifier model and plots the confusion matrix.
 
-    Params
-    ----------
-    model: sklearn.neighbors.KNeighborsClassifier
-    test_X: numpy array
-    test_y: numpy array
+    Args:
+        model: sklearn.neighbors.RandomForestClassifier
+        test_X: numpy array
+        test_y: numpy array
 
-    Returns
-    -------
-    -Confusion predictions vs. observations
-    -Model score
-    """
-
+    Returns:
+        Confusion predictions vs. observations
+        Model score
+    '''
     # test input arguments
     assert "sklearn" in str(type(model))
     assert "numpy.ndarray" in str(type(val_X))
@@ -131,19 +126,16 @@ def plot_model(model, val_X, val_y):
 
 
 def rf_wrapper(dataframe):
-    """
-    Takes dataframe and runs it through RandomForest model.
+    '''
+    Takes a test classifier model and plots the confusion matrix.
 
-    Params
-    ----------
-    dataframe: Pandas dataframe
+    Args:
+        dataframe: Pandas dataframe
 
-    Returns
-    -------
-    -Target feature predictions
-    -Parity plot
-    """
-
+    Returns:
+        Target feature predictions
+        Parity plot
+    '''
     assert 'pandas.core.frame.DataFrame' in str(type(dataframe))
 
     # user inputs target feature
