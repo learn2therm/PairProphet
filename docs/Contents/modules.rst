@@ -12,5 +12,4 @@ scripts
 .. toctree::
    :maxdepth: 4
 
-   main
-   runclassifiers
+   scripts
