@@ -8,7 +8,6 @@ import os
 
 from FAFSA.preprocessing import connect_db
 from FAFSA.preprocessing import build_fafsa
-from FAFSA.preprocessing import sankey_plots
 
 def get_db_path(filename = 'fafsa_testing'):
     '''
@@ -137,33 +136,3 @@ class TestBuildFafsa(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             build_fafsa(con, min_16s = 0)
-
-
-class TestSankey(unittest.TestCase):
-    '''
-    Tests for sankey_plots function.
-    '''
-
-    def test_smoke(self):
-        '''
-        Smoke test to ensure Sankey plots are made without error.
-        '''
-
-        db_path = get_db_path()
-        con = connect_db(db_path)
-
-        min_ogt_diff = 20
-
-        sankey_plots(con, min_ogt_diff)
-
-    def test_ogt_out_of_range(self):
-        '''
-        Test for improper ogt spread.
-        '''
-        db_path = get_db_path()
-        con = connect_db(db_path)
-
-        min_ogt_diff = -10
-
-        with self.assertRaises(ValueError):
-            sankey_plots(con, min_ogt_diff)
