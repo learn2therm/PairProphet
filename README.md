@@ -30,7 +30,7 @@ conda activate validprot
 pip install .
 ```
 
-FAFSA is dependent on Python 3.9.
+FAFSA is dependent on Python 3.11.
 This package requires a conda environment with external dependencies of biopython and hmmer.
 For a more detailed exposition on the modular/importable code, please see [packages](./docs/package_components.md).
 

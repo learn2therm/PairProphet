@@ -19,4 +19,4 @@ conda activate validprot
 pip install .
 ```
 
-FAFSA is dependent on Python 3.9.
+FAFSA is dependent on Python 3.11.
