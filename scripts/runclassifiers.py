@@ -60,26 +60,22 @@ F.write('-1.0 <=MCC<= 1.0'+'\n')
 F.write('_______________________________________'+'\n')
 
 def runClassifiers(filename:str, dataframe, columns=[], target=[], model=RandomForestClassifier()):
-
-    """
+    '''
     Takes dataframe and splits it into a training and testing set. 
     Trains a RF Classifier with data.
 
-    Params
-    ----------
-    dataframe: Pandas dataframe
-    columns: list of strings, representing input features
-    target: list of strings, representing target feature(s)
+    Args:
+        dataframe: Pandas dataframe
+        columns: list of strings, representing input features
+        target: list of strings, representing target feature(s)
 
-    Returns
-    -------
-    -Accuracy score
-    -area under ROC curve
-    -train data (target)
-    -validation data (features)
-    -validation data (target)
-    """
-    
+    Returns:
+        Accuracy score
+        area under ROC curve
+        train data (target)
+        validation data (features)
+        validation data (target)
+    '''
     dev, test = sklearn.model_selection.train_test_split(dataframe, test_size=0.15, random_state=1)
 
     train, val = sklearn.model_selection.train_test_split(dev, test_size=0.15, random_state=1)
@@ -173,16 +169,16 @@ def runClassifiers(filename:str, dataframe, columns=[], target=[], model=RandomF
     return Results
 
 
-# if __name__ == '__main__':
-#     # print('Please, enter number of cross validation:')
-#     import argparse
-#     p = argparse.ArgumentParser(description='Run Machine Learning Classifiers.')
+if __name__ == '__main__':
+    # print('Please, enter number of cross validation:')
+    import argparse
+    p = argparse.ArgumentParser(description='Run Machine Learning Classifiers.')
 
-#     p.add_argument('-cv', '--nFCV', type=int, help='Number of crossValidation', default=10)
-#     p.add_argument('-data', '--dataset', type=str, help='~/dataset.csv', default='optimumDataset.csv')
-#     p.add_argument('-roc', '--auROC', type=int, help='Print ROC Curve', default=1, choices=[0, 1])
-#     p.add_argument('-box', '--boxPlot', type=int, help='Print Accuracy Box Plaot', default=1, choices=[0, 1])
+    p.add_argument('-cv', '--nFCV', type=int, help='Number of crossValidation', default=10)
+    p.add_argument('-data', '--dataset', type=str, help='~/dataset.csv', default='optimumDataset.csv')
+    p.add_argument('-roc', '--auROC', type=int, help='Print ROC Curve', default=1, choices=[0, 1])
+    p.add_argument('-box', '--boxPlot', type=int, help='Print Accuracy Box Plaot', default=1, choices=[0, 1])
 
-#     args = p.parse_args()
+    args = p.parse_args()
 
-#     runClassifiers(args)
+    runClassifiers(args)
