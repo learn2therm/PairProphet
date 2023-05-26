@@ -58,7 +58,7 @@ classifiers = [
     #     SVC(),
 ]
 
-def test_model(output_path, model, dataframe, target=[]):
+def evaluate_model(output_path, model, dataframe, target=[]):
     """
     Takes a trained model and test data and tests the model.
 
@@ -173,4 +173,4 @@ def test_model(output_path, model, dataframe, target=[]):
     
 #     args = p.parse_args()
 
-#     test_model(args, test_X, test_y)
+#     evaluate_model(args, test_X, test_y)
