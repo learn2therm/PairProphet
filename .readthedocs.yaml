@@ -6,8 +6,8 @@
 version: 2
 
 #Set the conda environment
-conda:
-  environment: environment.yml
+# conda:
+#   environment: environment.yml
 
 # Set the version of Python and other tools you might need
 build:
@@ -25,6 +25,6 @@ formats:
    - pdf
    - epub
 
-# python:
-#    install:
-#       - requirements: docs/requirements.txt
+python:
+   install:
+    - requirements: docs/requirements.txt
