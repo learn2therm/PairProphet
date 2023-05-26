@@ -20,6 +20,7 @@ be executed with a single command.
    :caption: Contents:
 
    Contents/FAFSA
+   Contents/scripts
    Contents/About
 
 .. toctree::
