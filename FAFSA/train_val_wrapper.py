@@ -9,22 +9,20 @@ from FAFSA.train_val_featuregen import create_new_dataframe
 
 
 def train_val_wrapper(dataframe, feature_list=None):
-    """
+    '''
     Takes dataframe and runs it through cleaning script.
     Generates features with iFeatureOmegaCLI.
     Passes result through RF Classifier model.
 
-    Input
-    ----------
-    Pandas dataframe
-    List of features from iFeatureOmega
+    Args:
+        Dataframe (pandas dataframe)
+        Features from iFeatureOmega (list)
 
-    Returns
-    -------
-    -Vector of predictions (numpy arrray)
-    -Parity plot
-    -Model score
-    """
+    Returns:
+        Vector of predictions (numpy arrray)
+        Parity plot
+        Model score
+    '''
     # clean input dataframe
     cleaned = input_cleaning_wrapper(dataframe)
 

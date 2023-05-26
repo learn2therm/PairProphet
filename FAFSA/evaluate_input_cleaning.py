@@ -50,13 +50,16 @@ columns_to_keep = [
 
 
 def normalize_bit_scores(dataframe):
-    """Creates two new columns of bit score
+    '''
+    Creates two new columns of bit score
     normalized by the protein length.
 
-    Returns
-    -------
-    Pandas dataframe
-    """
+    Args:
+        Dataframe (pandas dataframe)
+
+    Returns:
+        Dataframe (pandas dataframe)
+    '''
 
     dataframe['norm_bit_score_m'] = dataframe['bit_score'] / \
         dataframe['m_protein_len']
@@ -70,13 +73,15 @@ def normalize_bit_scores(dataframe):
 
 
 def check_input_type(dataframe):
-    """Takes in input dataframe and asserts 
-    that it is the correct data type.
+    '''
+    Takes in input dataframe and asserts that it is the correct data type.
 
-    Returns
-    -------
-    Pandas dataframe
-    """
+    Args:
+        Dataframe (pandas dataframe)
+
+    Returns:
+        Dataframe (pandas dataframe)
+    '''
     assert "pandas.core.frame.DataFrame" in str(
         type(dataframe)), 'Not a pandas dataframe!'
 
@@ -84,14 +89,16 @@ def check_input_type(dataframe):
 
 
 def clean_input_columns(dataframe):
-    """Cleans out columns that are not in
+    '''
+    Cleans out columns that are not in
     a predefined list of features.
 
-    Returns
-    -------
-    Pandas dataframe
-    """
+    Args:
+        Dataframe (pandas dataframe)
 
+    Returns:
+        Dataframe (pandas dataframe)
+    '''
     for title in dataframe:
         if title not in columns_to_keep:
             dataframe = dataframe.drop(columns=title)
@@ -102,13 +109,16 @@ def clean_input_columns(dataframe):
 
 
 def verify_input_columns(dataframe):
-    """Asserts that columns we want to keep
+    '''
+    Asserts that columns we want to keep
     remain in the dataframe.
 
-    Returns
-    -------
-    Pandas dataframe
-    """
+    Args:
+        Dataframe (pandas dataframe)
+
+    Returns:
+        Dataframe (pandas dataframe)
+    '''
     for title in columns_to_keep:
 
         if title not in dataframe:
@@ -120,13 +130,15 @@ def verify_input_columns(dataframe):
 
 
 def check_input_nans(dataframe):
-    """Checks for NaN values in input dataframe. 
+    '''
+    Checks for NaN values in input dataframe.
     Removes rows with NaN values present.
+    Args:
+        Dataframe (pandas dataframe)
 
-    Returns
-    -------
-    Pandas dataframe
-    """
+    Returns:
+        Dataframe (pandas dataframe)
+    '''
     has_nan = dataframe.isna().any().any()
     nan_rows = dataframe[dataframe.isna().any(axis=1)]
 
@@ -142,15 +154,15 @@ def check_input_nans(dataframe):
 
 
 def verify_protein_pairs(dataframe):
-    """
+    '''
     Checks that input data has two protein sequences
     with simple assert statements.
-    
-    Returns
-    -------
-    Pandas dataframe
-    """
+    Args:
+        Dataframe (pandas dataframe)
 
+    Returns:
+        Dataframe (pandas dataframe)
+    '''
     assert 'm_protein_len' in dataframe, 'Dataframe missing mesophillic sequence!'
     assert 't_protein_len' in dataframe, 'Dataframe missing thermophillic sequence!'
 
@@ -158,14 +170,15 @@ def verify_protein_pairs(dataframe):
 
 
 def input_cleaning_wrapper(dataframe):
-    """
+    '''
     Takes in a pandas dataframe and runs it through each of the cleaning
     and verification steps.
+    Args:
+        Dataframe (pandas dataframe)
 
-    Returns
-    -------
-    Pandas dataframe
-    """
+    Returns:
+        Dataframe (pandas dataframe)
+    '''
     # normalize bit scores
     normed = normalize_bit_scores(dataframe)
 

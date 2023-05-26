@@ -18,22 +18,16 @@ feature_list = ['AAC', 'GAAC', 'DistancePair',
 
 def get_fasta_from_dataframe(
         dataframe, output_file_a: str, output_file_b: str):
-    """
+    '''
     Generates fasta file type from pandas dataframe.
 
-    Parameters
-    ----------
-    -Dataframe (pandas dataframe)
-    -Names of output fasta files (str)
+    Args:
+        Dataframe (pandas dataframe)
+        Names of output fasta files (str)
 
-    Returns
-    -------
-    Two fasta files with protein sequences and prot_pair_index
-
-    Note: Want to adjust this to write function with BioPython
-    separate functions for each of the input sequences
-    in training, seq_a = meso and seq_b = thermo
-    """
+    Returns:
+        Two fasta files with protein sequences and prot_pair_index
+    '''
     # meso sequence to fasta
     with open(output_file_a, 'w') as f:
         for _, row in dataframe.iterrows():
@@ -55,18 +49,15 @@ def get_fasta_from_dataframe(
 
 
 def get_protein_descriptors(fasta_file: str, descriptors=[]):
-    """
-    Generates features from a protein sequence
+    '''
+    Generates features from a protein sequence.
 
-    Parameters
-    ----------
-    Fasta file with amino acid sequences.
+    Args:
+        Fasta file with amino acid sequences (fasta file)
 
-    Returns
-    -------
-    Vector of descriptors
-    """
-
+    Returns:
+        Vector of descriptors (numpy array)
+    '''
     # create iProtein object
     protein = iFeatureOmegaCLI.iProtein(fasta_file)
 
@@ -87,14 +78,16 @@ def get_protein_descriptors(fasta_file: str, descriptors=[]):
 
 
 def clean_new_dataframe(dataframe):
-    """Asserts that artifact columns generated
+    '''
+    Asserts that artifact columns generated
     from iFeatureOmega such as "index" are removed.
 
-    Returns
-    -------
-    Pandas dataframe
-    """
+    Args:
+        Pandas dataframe
 
+    Returns:
+        Pandas dataframe
+    '''
     # drop indexing columns created by feature gen
     dataframe = dataframe.drop(
         columns=dataframe.columns[dataframe.columns.str.contains('index|Unnamed')])
@@ -112,35 +105,30 @@ def clean_new_dataframe(dataframe):
 
 
 def create_new_dataframe(dataframe, output_files: list, descriptors=[]):
-    """
+    '''
     Creates new dataframe with descriptors added.
 
-    Parameters
-    ----------
-    Pandas dataframe, list of descriptors as strings, output file name.
+    Args:
+        Pandas dataframe, list of descriptors as strings, output file name.
 
-    Returns
-    -------
-    Dataframe including vector(s) of descriptors
-    """
-
+    Returns:
+        Dataframe including vector(s) of descriptors (pandas dataframe)
+    '''
     fasta_files = get_fasta_from_dataframe(
         dataframe, output_files[0], output_files[1])
 
     def compute_descriptor_ratio(fasta_files, descriptors=[]):
-        """
-        Generates dictionary of descriptors for each of the two input sequences.
+        '''
+    `   Generates dictionary of descriptors for each of the two input sequences.
         Computes the difference between each instance of a descriptor.
 
-        Parameters
-        ----------
-        List of two fasta files (str) and list of descriptors (str).
+        Args:
+            List of two fasta files (str) and list of descriptors (str).
 
-        Returns
-        -------
-        Dictionary with difference between descriptors for each of the
-        input sequences.
-        """
+        Returns:
+            Dictionary with difference between descriptors for each of the
+            input sequences.
+        '''
         desc_a = get_protein_descriptors(fasta_files[0], descriptors)
         desc_b = get_protein_descriptors(fasta_files[1], descriptors)
 
