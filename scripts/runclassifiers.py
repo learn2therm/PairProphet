@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import sklearn 
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
@@ -10,10 +11,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.ensemble import BaggingClassifier, \
     RandomForestClassifier, \
     AdaBoostClassifier, \
-    GradientBoostingClassifier, \
-    ExtraTreesClassifier
-
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+    GradientBoostingClassifier
 
 names = ['LR', 'KNN', 'DT', 'NB', 'RF', 'Bagging', 'AB', 'GB', 'SVM']
 
@@ -59,9 +57,11 @@ F.write('0.0 <=F1_Score<= 1.0'+'\n')
 F.write('-1.0 <=MCC<= 1.0'+'\n')
 F.write('_______________________________________'+'\n')
 
-def runClassifiers(filename:str, dataframe, columns=[], target=[], model=RandomForestClassifier()):
+def runClassifiers(args):
     '''
-    Takes dataframe and splits it into a training and testing set. 
+    Takes csv, converts to dataframe, and splits it into a 
+    training and testing set. 
+    Requires that dataframe is cleaned.
     Trains a RF Classifier with data.
 
     Args:
@@ -76,12 +76,23 @@ def runClassifiers(filename:str, dataframe, columns=[], target=[], model=RandomF
         validation data (features)
         validation data (target)
     '''
+
+    #need to turn input csv into dataframe
+    dataframe = pd.read_csv(args.dataset)
+
     dev, test = sklearn.model_selection.train_test_split(dataframe, test_size=0.15, random_state=1)
 
     train, val = sklearn.model_selection.train_test_split(dev, test_size=0.15, random_state=1)
-    
-    dev_X = dev[columns].values
-    test_X = test[columns].values
+
+    target = 'protein_match'
+    # columns = ['bit_score', 'local_gap_compressed_percent_id', 'scaled_local_query_percent_id', 'scaled_local_symmetric_percent_id',
+    #            'query_align_len', 'query_align_cov', 'subject_align_len', 'subject_align_cov', 'm_protein_len', 
+    #            't_protein_len', 'protein_match']
+    features = list(dataframe.columns.values)
+    features.remove(target)
+
+    dev_X = dev[features].values
+    test_X = test[features].values
 
     dev_y = dev[target].values.reshape(-1,1)
     test_y = test[target].values.reshape(-1,1) 
@@ -89,12 +100,12 @@ def runClassifiers(filename:str, dataframe, columns=[], target=[], model=RandomF
     # test input arguments
     assert "pandas.core.frame.DataFrame" in str(type(train))
     assert "pandas.core.frame.DataFrame" in str(type(val))
-    assert "str" in str(type(columns[0]))
+    assert "str" in str(type(features[0]))
     assert "str" in str(type(target[0]))
 
     # split into input and output feature(s)
-    train_X = train[columns].values
-    val_X = val[columns].values
+    train_X = train[features].values
+    val_X = val[features].values
 
     train_y = train[target].values.reshape(-1, 1)
     val_y = val[target].values.reshape(-1, 1)
@@ -170,14 +181,16 @@ def runClassifiers(filename:str, dataframe, columns=[], target=[], model=RandomF
 
 
 if __name__ == '__main__':
-    # print('Please, enter number of cross validation:')
+    print('Please specify output file name and dataset.')
     import argparse
     p = argparse.ArgumentParser(description='Run Machine Learning Classifiers.')
 
-    p.add_argument('-cv', '--nFCV', type=int, help='Number of crossValidation', default=10)
-    p.add_argument('-data', '--dataset', type=str, help='~/dataset.csv', default='optimumDataset.csv')
-    p.add_argument('-roc', '--auROC', type=int, help='Print ROC Curve', default=1, choices=[0, 1])
-    p.add_argument('-box', '--boxPlot', type=int, help='Print Accuracy Box Plaot', default=1, choices=[0, 1])
+    p.add_argument('-filename', '--output_path', type=str, help='Specify output file path', default='evaluationResults.txt') #figure out how to save to file path
+    p.add_argument('-dataset', '--dataset', type=str, help='~/dataset.csv', default='learn2therm_classifiers.csv')
+    # p.add_argument('-columns', '--columns', type=list, help='Specify feature columns', default = [
+    # 'bit_score','local_gap_compressed_percent_id','scaled_local_query_percent_id','scaled_local_symmetric_percent_id','query_align_len',
+    # 'query_align_cov','subject_align_len','subject_align_cov','m_protein_len', 't_protein_len', 'protein_match',
+    # 'norm_bit_score_m', 'norm_bits_score_t'])
 
     args = p.parse_args()
 
