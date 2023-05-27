@@ -29,21 +29,19 @@ import FAFSA.utils
 ####### API HMMER
 async def send_request(semaphore, sequence, client):
     """
-    Sends a POST request to the HMMER API with a protein sequence.
-    -------------
-    Parameters:
-    -------------
-    semaphore: asyncio.Semaphore
-        A semaphore to limit concurrent requests.
-    sequence: str
-        The protein sequence to be sent in the request.
-    client: httpx.AsyncClient
-        An HTTP client for sending the request.
-    -------------
+    Asynchronously sends a POST request to the HMMER API, submitting a protein sequence for analysis.
+
+    Args:
+        semaphore (asyncio.Semaphore): An object that controls concurrent request submission, helping to avoid server overload.
+        sequence (str): The protein sequence that is to be analyzed and included in the body of the POST request.
+        client (httpx.AsyncClient): An HTTP client for sending the request.
+
     Returns:
-    -------------
-    response: httpx.Response
-        The response received from the HMMER API.
+        httpx.Response: Response received from the HMMER API.
+
+    Raises:
+        httpx.HTTPStatusError: If the HTTP request returned a status code that denotes an error.
+        httpx.TimeoutException: If the request times out.
     """
 
     url = 'https://www.ebi.ac.uk/Tools/hmmer/search/hmmscan'
@@ -60,27 +58,23 @@ async def send_request(semaphore, sequence, client):
 
 async def process_response(semaphore, sequence, response, client, pid, max_retries=3):
     """
-    Processes the response received from the HMMER API.
-    -------------
-    Parameters:
-    -------------
-    semaphore: asyncio.Semaphore
-        A semaphore to limit concurrent requests.
-    sequence: str
-        The protein sequence associated with the response.
-    response: httpx.Response
-        The response received from the HMMER API.
-    client: httpx.AsyncClient
-        An HTTP client for sending subsequent requests.
-    pid: int
-        The protein ID associated with the sequence.
-    max_retries: int, optional
-        The maximum number of retries for failed requests (default is 3).
-    -------------
+    Processes the response received from the HMMER API, including retrying requests that have failed.
+
+    Args:
+        semaphore (asyncio.Semaphore): An object that controls concurrent request submission, helping to avoid server overload.
+        sequence (str): The protein sequence associated with the response.
+        response (httpx.Response): The response received from the HMMER API.
+        client (httpx.AsyncClient): An HTTP client for sending subsequent requests.
+        pid (int): The protein ID associated with the sequence.
+        max_retries (int, optional): The maximum number of retries for failed requests. Defaults to 3.
+
     Returns:
-    -------------
-    dfff: pd.DataFrame or None
-        A DataFrame containing the search results for the protein sequence, or None if an error occurred.
+        pd.DataFrame or None: A DataFrame containing the search results for the protein sequence, 
+        or None if an error occurred.
+
+    Raises:
+        KeyError: If expected key is not found in the response.
+        json.JSONDecodeError: If JSON decoding fails.
     """
 
     redirect_url = response.headers.get('Location')
@@ -126,23 +120,19 @@ async def process_response(semaphore, sequence, response, client, pid, max_retri
 
 async def hmmerscanner(df: pd.DataFrame, k: int, max_concurrent_requests: int, output_path: str):
     """
-    Runs the HMMER scanner for protein sequences.
-    -------------
-    Parameters:
-    -------------
-    df: pd.DataFrame
-        A DataFrame that contains protein sequences.
-    k: int
-        The number of protein sequences to search.
-    max_concurrent_requests: int
-        The maximum number of concurrent requests to the HMMER API.
-    output_path: str
-        The output directory of where the data will be stored.
-    -------------
+    Scans multiple protein sequences using the HMMER API, asynchronously submitting and processing each request.
+
+    Args:
+        df (pd.DataFrame): A DataFrame containing protein sequences.
+        k (int): The number of protein sequences to search.
+        max_concurrent_requests (int): The maximum number of concurrent requests to the HMMER API.
+        output_path (str): The output directory where the data will be stored.
+
     Returns:
-    -------------
-    results_df: pd.DataFrame
-        A DataFrame containing the search results for all protein sequences.
+        pd.DataFrame: A DataFrame containing the search results for all protein sequences.
+        
+    Raises:
+        ValueError: If the number of sequences exceeds the limit of 1000.
     """
 
     if k > 1000:
@@ -184,23 +174,19 @@ async def hmmerscanner(df: pd.DataFrame, k: int, max_concurrent_requests: int, o
 
 def run_hmmerscanner(df: pd.DataFrame, k: int, max_concurrent_requests: int):
     """
-    This function runs the hmmerscanner function within an event loop and returns the search results as
-    a DataFrame.
-    -------------
-    Parameters:
-    -------------
-    df: pandas.core.DataFrame
-    A DataFrame that contains protein sequences.
-    k: int
-    The number of protein sequences to search.
-    max_concurrent_requests: int
-    The maximum number of concurrent requests to the HMMER API.
-    -------------
+    Runs the asynchronous HMMER scanning operation in a new event loop.
+
+    Args:
+        df (pd.DataFrame): A DataFrame containing protein sequences.
+        k (int): The number of protein sequences to search.
+        max_concurrent_requests (int): The maximum number of concurrent requests to the HMMER API.
+
     Returns:
-    -------------
-    
-    results_df: pandas.core.DataFrame
-        A DataFrame containing the search results for all protein sequences.
+        pd.DataFrame: A DataFrame containing the search results for all protein sequences.
+
+    Raises:
+        nest_asyncio.NestingError: If the event loop is already running.
+        Any exceptions raised by hmmerscanner function.
     """
 
     # Set up the event loop and call the hmmerscanner function
