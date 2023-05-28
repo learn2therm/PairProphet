@@ -9,7 +9,8 @@ these can be developed as individual scripts.
 Runtime: 
 """
 
-from FAFSA.test_model import test_model, train_val_wrapper
+from FAFSA.evaluate_model import evaluate_model
+from FAFSA.train_val_wrapper import train_val_wrapper
 from FAFSA.train_val_input_cleaning import columns_to_keep
 from FAFSA.preprocessing import connect_db, build_fafsa
 from FAFSA.structure import download_structures, run_fatcat
@@ -81,6 +82,6 @@ def main(test_sequences):
     Params: Base environment + iFeatureOmega dependencies 
     """
 
-    test_model(trained_model, test_X, test_y)
+    evaluate_model(output_path:str, trained_model, dataframe, target=[])
 
     return evaluation
