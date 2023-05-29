@@ -1,11 +1,11 @@
-# FAFSA (Function annotated from sequence alignment)
+# PairProphet
 Check out our project's documention via [Read The Docs](https://validprot.readthedocs.io/)!
 
 # Background
 
-The following repository is for the project code associated with the two courses: Data Science Methods for Clean Energy Research (ChemE 545) and Software Engineering for Molecular Data Scientists (ChemE 546) at UW.
+The following repository is for the project code associated with the two courses: Data Science Methods for Clean Energy Research (ChemE 545) Software Engineering for Molecular Data Scientists (ChemE 546), and Molecular Data Science Capstone (ChemE 547) and at UW.
 
-FAFSA is a project developed by Humood Alanzi, Ryan Francis, Amin Mosallenejad, Logan Roberts, and Chau Vuong.
+PairProphet is a project developed by Humood Alanzi, Ryan Francis, Amin Mosallenejad, Logan Roberts, and Chau Vuong.
 
 Purpose: This package is developed to validate functionality between a pair of protein sequences.
 
@@ -23,14 +23,14 @@ Protein pair validation is time consuming and resource intensive, given that pro
 
 # Requirments & Installation
 To create and activate the environment specified in `environment.yml`
-and install the FAFSA package, do the following commands:
+and install the PairProphet package, do the following commands:
 ```
 conda env create --file environment.yml
 conda activate validprot
 pip install .
 ```
 
-FAFSA is dependent on Python 3.11.
+PairProphet is dependent on Python 3.11.
 This package requires a conda environment with external dependencies of biopython and hmmer.
 For a more detailed exposition on the modular/importable code, please see [packages](./docs/package_components.md).
 

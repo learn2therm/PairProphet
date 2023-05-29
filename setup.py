@@ -8,7 +8,7 @@ here = pathlib.Path(__file__).parent.resolve()
 long_description = (here / "README.md").read_text(encoding="utf-8")
 
 setup(
-    name="FAFSA",  
+    name="PairPro", # Required  
     version="2023.6",  # Required
     long_description=long_description, 
     long_description_content_type="text/markdown", 
@@ -22,7 +22,7 @@ setup(
     ],
     keywords="proteins, function",
     packages=find_packages(),
-    python_requires=">=3.7, <4",
+    python_requires=">=3.10, <4",
     extras_require={ 
         "test": ["coverage", 'pytest'],
     },

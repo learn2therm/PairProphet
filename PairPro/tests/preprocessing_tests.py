@@ -6,8 +6,8 @@ import unittest
 
 import os
 
-from FAFSA.preprocessing import connect_db
-from FAFSA.preprocessing import build_fafsa
+from PairProphet.preprocessing import connect_db
+from PairProphet.preprocessing import build_fafsa
 
 def get_db_path(filename = 'fafsa_testing'):
     '''

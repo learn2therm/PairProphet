@@ -1,11 +1,11 @@
 # Executables
-In this directory, you will find the different sub-modules of FAFSA package:
+In this directory, you will find the different sub-modules of PairProphet package:
 
-- Components 0-2 are located in the `preprocessing.py` script in the FAFSA subdirectory.
+- Components 0-2 are located in the `preprocessing.py` script in the PairProphet subdirectory.
 
 - Component 0 retrieves data from Learn2Therm database and produces basic data analyses of database transformation via Sankey plots.
 
-- Component 1 formats data for FAFSA pipeline such that it contains only relevant features and target data.
+- Component 1 formats data for PairProphet pipeline such that it contains only relevant features and target data.
 
 - Component 2 is a sampler for training the Learn2Therm database. Users can seek data subsets that fulfill their parameters and characterization goals.
 
