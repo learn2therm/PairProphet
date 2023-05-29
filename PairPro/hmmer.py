@@ -10,6 +10,7 @@ The local version is faster, but the API version is more accessible.
 TODO:
     - Add error handling/tests
     - Add downloading of HMMs
+    - Update parsing function documentation
 """
 # system dependecies
 import asyncio
@@ -361,11 +362,13 @@ def parse_pyhmmer(all_hits, chunk_query_ids):
 
     # add the missing query IDs with a placeholder value to indicate no accession information
     for missing_query_id in missing_query_ids:
-        parsed_hits[missing_query_id] = ['No Accession Information']
+        parsed_hits[missing_query_id] = [""]
 
-    # create the DataFrame from the dictionary and convert list of accession IDs to string
+    # create the DataFrame from the dictionary
     df = pd.DataFrame(parsed_hits.items(), columns=["query_id", "accession_id"])
-    df["accession_id"] = df["accession_id"].apply(lambda x: ';'.join(x))
+
+    # convert list of accession IDs to string
+    df["accession_id"] = df["accession_id"].apply(lambda x: ";".join(x) if x else "")
 
     return df
 
@@ -496,8 +499,8 @@ def process_pairs_table(dbpath, chunk_size:int, output_directory, jaccard_thresh
         CREATE OR REPLACE TABLE joined_pairs AS 
         SELECT p.meso_pid, p.thermo_pid, pr.accession AS meso_accession, pr2.accession AS thermo_accession
         FROM fafsa_protein_pairs AS p
-        RIGHT JOIN proteins_from_pairs AS pr ON (p.meso_pid = pr.pid)
-        RIGHT JOIN proteins_from_pairs AS pr2 ON (p.thermo_pid = pr2.pid)
+        INNER JOIN proteins_from_pairs AS pr ON (p.meso_pid = pr.pid)
+        INNER JOIN proteins_from_pairs AS pr2 ON (p.thermo_pid = pr2.pid)
     """
     conn.execute(query1)
 
@@ -510,20 +513,14 @@ def process_pairs_table(dbpath, chunk_size:int, output_directory, jaccard_thresh
         thermo_acc = row['thermo_accession']
 
         # parsing accessions logic
-        # Handle NULL values
-        if pd.isnull(meso_acc) and pd.isnull(thermo_acc):
+        if meso_acc == None and thermo_acc == None:
             score = None
             functional = None
-        elif pd.notnull(meso_acc) and pd.notnull(thermo_acc):
+        elif meso_acc and thermo_acc:
             # Preprocess the accessions
             meso_acc_set, thermo_acc_set = preprocess_accessions(meso_acc, thermo_acc)
-
-            if meso_acc_set == {"No accession Information"} and thermo_acc_set == {"No accession Information"}:
-                score = None
-                functional = None
-            else:
-                score = calculate_jaccard_similarity(meso_acc_set, thermo_acc_set)
-                functional = score > jaccard_threshold
+            score = calculate_jaccard_similarity(meso_acc_set, thermo_acc_set)
+            functional = score > jaccard_threshold
         else:
             # Handle unmatched rows
             score = None
