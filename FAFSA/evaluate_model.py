@@ -16,13 +16,6 @@ from sklearn.ensemble import BaggingClassifier, \
     GradientBoostingClassifier, \
     ExtraTreesClassifier
 
-from sklearn.metrics import accuracy_score, \
-    confusion_matrix, \
-    roc_auc_score,\
-    average_precision_score,\
-    auc,\
-    roc_curve, f1_score, recall_score, matthews_corrcoef, auc
-
 # create dictionary of models
 names = ['LR', 'KNN', 'DT', 'NB', 'RF', 'Bagging', 'AB', 'GB', 'SVM']
 
@@ -72,6 +65,13 @@ def evaluate_model(output_path, model, dataframe, target=[]):
     Returns:
         Vector of predictions (numpy arrray)
     '''
+    from sklearn.metrics import accuracy_score, \
+    confusion_matrix, \
+    roc_auc_score,\
+    average_precision_score,\
+    auc,\
+    roc_curve, f1_score, recall_score, matthews_corrcoef, auc
+    
     # initialize empty eval results file
     F = open('evaluationResults.txt', 'w')
 
