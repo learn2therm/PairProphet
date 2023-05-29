@@ -1,9 +1,15 @@
 """
-The following is importable code for running HMMER 
+The following are various importable code for running HMMER 
 either locally via pyhmmer or via Interpro's API
 
+The local version runs in parrallel using joblib.
+The API version runs in parrallel using asyncio.
+
+The local version is faster, but the API version is more accessible.
+
 TODO:
-- Amin update documentation
+    - Add error handling/tests
+    - Add downloading of HMMs
 """
 # system dependecies
 import asyncio
@@ -24,7 +30,7 @@ import pandas as pd
 import pyhmmer
 
 # local dependencies
-import FAFSA.utils
+import PairPro.utils
 
 ####### API HMMER
 async def send_request(semaphore, sequence, client):
@@ -200,23 +206,17 @@ def hmmpress_hmms(hmms_path, pfam_data_folder):
     """
     Presses the HMMs in the given HMM database and stores the resulting files in a specified directory.
 
-    Parameters
-    ----------
-    hmmdb_path : str
-        Path to the HMM database.
+    Args:
+        hmms_path (str): Path to the HMM database.
+        pfam_data_folder (str): Path to the directory where the HMMs should be stored.
 
-    pfam_data_folder : str, optional
-        Path to the directory where the HMMs should be stored.
+    Returns:
+        None
 
-    Returns
-    -------
-    None
-
-    Notes
-    -----
-    This function uses HMMER's hmmpress program to compress the HMMs in the given HMM database and
-    stores the resulting files in the specified directory for faster access during future HMMER runs.
-    If the specified directory does not exist, it will be created.
+    Notes:
+        This function uses HMMER's hmmpress program to compress the HMMs in the given HMM database
+        and stores the resulting files in the specified directory for faster access during future HMMER runs.
+        If the specified directory does not exist, it will be created.
     """
     hmms = pyhmmer.plan7.HMMFile(hmms_path)
     pyhmmer.hmmer.hmmpress(hmms, pfam_data_folder)
@@ -226,15 +226,11 @@ def prefetch_targets(hmms_path: str):
     """
     Prefetch HMM profiles from a given HMM database.
 
-    Parameters
-    ----------
-    hmms_path : str
-        Path to the pressed HMM database.
+    Args:
+        hmms_path (str): Path to the pressed HMM database.
 
-    Returns
-    -------
-    targets : pyhmmer.plan7.OptimizedProfileBlock
-        The HMM profiles loaded from the database.
+    Returns:
+        targets (pyhmmer.plan7.OptimizedProfileBlock): The HMM profiles loaded from the database.
     """
     # amino acid alphabet and prefetched inputs
     amino_acids = pyhmmer.easel.Alphabet.amino()
@@ -248,15 +244,11 @@ def save_to_digital_sequences(dataframe: pd.DataFrame):
     """
     Save protein sequences from a DataFrame to a digital sequence block.
 
-    Parameters
-    ----------
-    dataframe : pd.DataFrame
-        DataFrame containing PIDs (Protein IDs) and sequences.
+    Args:
+        dataframe (pd.DataFrame): DataFrame containing PIDs (Protein IDs) and sequences.
 
-    Returns
-    -------
-    DigitalSequenceBlock
-        A digital sequence block containing the converted sequences.
+    Returns:
+        pyhmmer.easel.DigitalSequenceBlock: A digital sequence block containing the converted sequences.
     """
     # Create empty list
     seqlist = []
@@ -287,43 +279,26 @@ def run_pyhmmer(
         cpu: int = 4,
         eval_con: float = 1e-10):
     """
-    Run HMMER's hmmscan program on a set of input sequences using with HMMs from a database.
-    Parameters
-    ----------
-    seqs : pyhmmer.easel.DigitalSequenceBlock
-        Path to the input sequence file.
+    Run HMMER's hmmscan program on a set of input sequences using HMMs from a database.
 
-    hmms_path : str
-        Path to the HMM database.
+    Args:
+        seqs (pyhmmer.easel.DigitalSequenceBlock): Digital sequence block of input sequences.
+        hmms_path (str): Path to the HMM database.
+        press_path (str): Path to the pressed HMM database.
+        prefetch (bool, optional): Specifies whether to use prefetching mode for HMM storage. Defaults to False.
+        output_file (str, optional): Path to the output file if the user wants to write the file. Defaults to None.
+        cpu (int, optional): The number of CPUs to use. Defaults to 4.
+        eval_con (float, optional): E-value threshold for domain reporting. Defaults to 1e-10.
 
-    press_path : str
-        Path to the pressed HMM database
+    Returns:
+        Union[pyhmmer.plan7.TopHits, str]: If output_file is specified, the function writes the results to a domtblout file and returns the file path.
+        Otherwise, it returns a list of pyhmmer.plan7.TopHits objects.
 
-    prefetch : bool, optional
-        Specifies how the HMM are stored in meomry.
-
-    output_file : str, optional
-        Path to the output file if the users wants to write the file.
-
-    cpu : int, optional
-        The number of CPUs to use. Default is 4.
-
-    eval_con : float, optional
-        E-value threshold for domain reporting. Default is 1e-10.
-
-    Returns
-    -------
-    all_hits : pyhmmer.plan7.TopHits or domtblout file
-        If the output_file has a name, it will be written to a domtblout file.
-        Otherwise, the user will get a list of pyhmmeer TopHits objects.
-
-    Notes
-    -----
-    This function runs HMMER's hmmscan program on a set of input sequences
-    using HMMs from a given database.
-    The function supports two modes: normal mode and prefetching mode.
-    In normal mode, the HMMs are pressed and stored in a directory before execution.
-    In prefetching mode, the HMMs are kept in memory for faster search.
+    Notes:
+        This function runs HMMER's hmmscan program on a set of input sequences using HMMs from a given database.
+        The function supports two modes: normal mode and prefetching mode.
+        In normal mode, the HMMs are pressed and stored in a directory before execution.
+        In prefetching mode, the HMMs are kept in memory for faster search.
     """
     # ensure output_file has .domtblout extension
     if output_file is not None and not output_file.endswith('.domtblout'):
@@ -348,19 +323,19 @@ def run_pyhmmer(
 
 def parse_pyhmmer(all_hits, chunk_query_ids):
     """
-    Parses the TopHit pyhmmer object getting the query and accession IDs and saves to a DataFrame
+    Parses the TopHit pyhmmer objects, extracting query and accession IDs, and saves them to a DataFrame.
 
-    Parameters
-    ----------
-    all_hits : list
-        A list of TopHit objects from pyhmmer.
-    chunk_query_ids : list
-        A list of query IDs from the chunk.
+    Args:
+        all_hits (list): A list of TopHit objects from pyhmmer.
+        chunk_query_ids (list): A list of query IDs from the chunk.
 
-    Returns
-    -------
-    pandas.DataFrame
-        A dataframe containing the query and accession IDs.
+    Returns:
+        pandas.DataFrame: A DataFrame containing the query and accession IDs.
+
+    Notes:
+        This function iterates over each protein hit in the provided list of TopHit objects and extracts the query and accession IDs.
+        The resulting query and accession IDs are then saved to a DataFrame.
+        Any query IDs that are missing from the parsed hits will be added to the DataFrame with a placeholder value indicating no accession information.
     """
     # initialize an empty dictionary to store the data
     parsed_hits = {}
@@ -399,43 +374,30 @@ def local_hmmer_wrapper(chunk_index, dbpath, chunked_pid_inputs,
     """
     A wrapping function that runs and parses pyhmmer in chunks.
 
-    Parameters
-    ----------
-    chunk_index : int
-        Number of sequence chunks.
+    Args:
+        chunk_index (int): Number of sequence chunks.
+        dbpath (str): Path to the database.
+        chunked_pid_inputs (pandas.DataFrame): DataFrame containing chunked PID inputs.
+        press_path (str): Path to the pressed HMM database.
+        out_path (str): Path to directory where output will be saved.
+        wakeup (int or None, optional): Delay in seconds before starting the execution. Default is None.
 
-    dbpath : str
-        Path to the database.
+    Returns:
+        None
 
-    chunked_pid_inputs : pandas.DataFrame
-        Dataframe containing chunked PID inputs.
+    Notes:
+        This function performs the following steps:
+        1. Queries the database to get sequences only from chunked_pid_inputs.
+        2. Converts the query result to a DataFrame.
+        3. Converts string sequences to pyhmmer digital blocks.
+        4. Runs HMMER via pyhmmer with the provided sequences.
+        5. Parses the pyhmmer output and saves it to a CSV file.
 
-    press_path : str
-        Path to the pressed HMM database
+        The parsed pyhmmer output is saved in the directory specified by OUTPUT_DIR,
+        with each chunk having its own separate output file named '{chunk_index}_output.csv'.
 
-    out_path : str
-        Path to directory where output will be saved
-
-    wakeup : int or None, optional
-        Delay in seconds before starting the execution, by default None.
-    Returns
-    -------
-    None
-
-    Notes
-    -----
-    This function performs the following steps:
-    1. Queries the database to get sequences only from chunked_pid_inputs.
-    2. Converts the query result to a dataframe.
-    3. Converts string sequences to pyhmmer digital blocks.
-    4. Runs HMMER via pyhmmer with the provided sequences.
-    5. Parses the pyhmmer output and saves it to a CSV file.
-
-    The parsed pyhmmer output is saved in the directory specified by OUTPUT_DIR,
-    with each chunk having its own separate output file named '{chunk_index}_output.csv'.
-
-    If the wakeup parameter is specified, the function will wait for the specified
-    number of seconds before starting the execution.
+        If the wakeup parameter is specified, the function will wait for the specified
+        number of seconds before starting the execution.
     """
     # we want to wait for execution to see if this worker is actually being used
     # or if it is in the process of being killed

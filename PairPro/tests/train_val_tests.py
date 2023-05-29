@@ -6,15 +6,15 @@ import pandas as pd
 import numpy as np
 import os
 
-from FAFSA.train_val_classification import train_model
-from FAFSA.train_val_classification import evaluate_model
-from FAFSA.train_val_classification import rf_wrapper
+from PairProphet.train_val_classification import train_model
+from PairProphet.train_val_classification import evaluate_model
+from PairProphet.train_val_classification import rf_wrapper
 
-from FAFSA.train_val_input_cleaning import check_input_type
-from FAFSA.train_val_input_cleaning import clean_input_columns
-from FAFSA.train_val_input_cleaning import verify_input_columns
-from FAFSA.train_val_input_cleaning import check_input_nans
-from FAFSA.train_val_input_cleaning import verify_protein_pairs
+from PairProphet.train_val_input_cleaning import check_input_type
+from PairProphet.train_val_input_cleaning import clean_input_columns
+from PairProphet.train_val_input_cleaning import verify_input_columns
+from PairProphet.train_val_input_cleaning import check_input_nans
+from PairProphet.train_val_input_cleaning import verify_protein_pairs
 
 df = pd.read_csv('learn2therm_sample_50k.csv')
 
@@ -193,10 +193,10 @@ class TestWrapper(unittest.TestCase):
 """
 Test feature generation functions
 """
-from FAFSA.train_val_featuregen import get_fasta_from_dataframe
-from FAFSA.train_val_featuregen import get_protein_descriptors
-from FAFSA.train_val_featuregen import clean_new_dataframe
-from FAFSA.train_val_featuregen import create_new_dataframe
+from PairProphet.train_val_featuregen import get_fasta_from_dataframe
+from PairProphet.train_val_featuregen import get_protein_descriptors
+from PairProphet.train_val_featuregen import clean_new_dataframe
+from PairProphet.train_val_featuregen import create_new_dataframe
 
 class TestGetFastaFromDataframe(unittest.TestCase):
 

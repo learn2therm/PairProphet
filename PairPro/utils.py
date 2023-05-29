@@ -7,7 +7,7 @@ You will find:
 import pandas as pd
 import itertools
 
-import distributed
+# import distributed
 import logging
 logger = logging.getLogger(__name__)
 
@@ -33,13 +33,14 @@ def start_logger_if_necessary(logger_name: str, log_file: str, log_level,
     logger.setLevel(log_level)
     fh = logging.FileHandler(log_file, mode=filemode)
     if worker:
-        worker_name = distributed.get_worker().name
-        fh.setFormatter(logging.Formatter('%(filename)s %(worker)s - %(asctime)s %(levelname)-8s %(message)s'))
-        if len(logger.handlers) == 0:
-            logger.addHandler(fh)
-        else:
-            logger.handlers[-1] = fh
-        logger = logging.LoggerAdapter(logger, extra={'worker': worker_name})
+        # worker_name = distributed.get_worker().name
+        # fh.setFormatter(logging.Formatter('%(filename)s %(worker)s - %(asctime)s %(levelname)-8s %(message)s'))
+        # if len(logger.handlers) == 0:
+        #     logger.addHandler(fh)
+        # else:
+        #     logger.handlers[-1] = fh
+        # logger = logging.LoggerAdapter(logger, extra={'worker': worker_name})
+        pass
     else:
         fh.setFormatter(logging.Formatter('%(filename)s - %(asctime)s %(levelname)-8s %(message)s'))
         if len(logger.handlers) == 0:
