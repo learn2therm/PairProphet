@@ -118,7 +118,7 @@ def run_fatcat(df, pdb_dir):
 
 if __name__ == "__main__":
     # Read the dataframe
-    df = pd.read_csv('../tmp/pair_sample.csv')
+    df = pd.read_csv('../data/pair_sample.csv')
     # Download structures from PDB or AlphaFold2
     download_structures(df, pdb_column='meso_pdb', u_column='meso_pid', pdb_dir='structures')
     download_structures(df, pdb_column='thermo_pdb', u_column='thermo_pid', pdb_dir='structures')
