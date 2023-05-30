@@ -67,8 +67,8 @@ def make_blast_df(df, mode='local'):
         alignment = aligner.align(subject, query)
         best_alignment = max(alignment, key=lambda x: x.score)
 
-        seq1_aligned = best_alignment[0]
-        seq2_aligned = best_alignment[1]
+        seq1_aligned = format(best_alignment).split('\n')[0]
+        seq2_aligned = format(best_alignment).split('\n')[2]
 
         # Coverage
         subject_cov = sum(c != '-' for c in seq1_aligned) / len(seq1_aligned)
