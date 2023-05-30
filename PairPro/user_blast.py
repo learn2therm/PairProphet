@@ -3,7 +3,6 @@ To do: Raise exception for invalid inputs, try capitalization before removing ro
 """
 from Bio import Align
 from Bio.Align import substitution_matrices
-import re
 import numpy as np
 import pandas as pd
 
