@@ -4,6 +4,7 @@ import os
 
 # library dependencies
 import pandas as pd
+import joblib
 from joblib import Parallel, delayed
 
 # local dependencies
@@ -13,7 +14,7 @@ from PairPro.train_val_wrapper import train_val_wrapper
 from PairPro.train_val_input_cleaning import columns_to_keep
 
 #need to understand how to import the trained model from main
-from PairPro.main import train_model
+# from PairPro.main import train_model
 
 ## build DB
 from PairPro.preprocessing import connect_db, build_fafsa
@@ -26,6 +27,10 @@ import PairPro.utils
 
 ##structure
 from PairPro.structure import download_structures, run_fatcat
+
+### Paths
+##ML Paths
+MODEL_PATH = './data/models/'
 
 def user_input(test_sequences, model, output_path:str):
     '''
@@ -79,6 +84,7 @@ def user_input(test_sequences, model, output_path:str):
     """
 
     #make evaluation into four class classifier (neither true, hmmer true, structure true, both true)
+    model = joblib.load(MODEL_PATH)
     evaluation = evaluate_model(df, model, output_path:str)
     
     return evaluation

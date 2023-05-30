@@ -16,7 +16,16 @@ setup(
     author="Humood Alanzi, Logan Roberts, Ryan Francis, Amin Mosallanejad, Chau Vuong ", 
     author_email="halanzi@uw.edu",
     classifiers=[
+        # Optional
+        # How mature is this project? Common values are
+        #   3 - Alpha
+        #   4 - Beta
+        #   5 - Production/Stable
         "Development Status :: 1 - Planning",
+        
+        # Indicate who your project is intended for
+        'Intended Audience :: Science/Research',
+        'Topic :: bioinformatics',
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
     ],

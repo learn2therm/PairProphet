@@ -10,27 +10,27 @@ database to demonstrate functionality.
 from sklearn.utils import resample
 import pandas as pd
 
-# sample dataframe can be passed into wrapper for training
-df = pd.read_csv('learn2therm_sample_50k.csv')
+# # sample dataframe can be passed into wrapper for training
+# df = pd.read_csv('learn2therm_sample_50k.csv')
 
-# target from Humood
-target = pd.read_csv('protein_match_50k.csv')
+# # target from Humood
+# target = pd.read_csv('protein_match_50k.csv')
 
-# # Separate the majority and minority classes
-majority_class = target[target['protein_match'] == 'Yes']
-minority_class = target[target['protein_match'] == 'No']
+# # # Separate the majority and minority classes
+# majority_class = target[target['protein_match'] == 'Yes']
+# minority_class = target[target['protein_match'] == 'No']
 
-# # Undersample the majority class to match the number of minority class samples
-n_samples = len(minority_class)
-undersampled_majority = resample(
-    majority_class,
-    n_samples=n_samples,
-    replace=False)
+# # # Undersample the majority class to match the number of minority class samples
+# n_samples = len(minority_class)
+# undersampled_majority = resample(
+#     majority_class,
+#     n_samples=n_samples,
+#     replace=False)
 
-# # Combine the undersampled majority class with the minority class
-balanced_data = pd.concat([undersampled_majority, minority_class])
+# # # Combine the undersampled majority class with the minority class
+# balanced_data = pd.concat([undersampled_majority, minority_class])
 
-df = pd.merge(df, target, on=['prot_pair_index'])
+# df = pd.merge(df, target, on=['prot_pair_index'])
 
 
 # keep columns that can be used as features

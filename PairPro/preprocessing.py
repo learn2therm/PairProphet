@@ -205,9 +205,9 @@ def build_pairpro(con, out_db_path, min_ogt_diff: int = 20, min_16s: int = 1300,
     con.execute(f"""ATTACH '{out_db_path}' AS out_db""")
     con.execute("""CREATE SCHEMA out_db.pairpro""")
     con.execute("""CREATE OR REPLACE TABLE out_db.pairpro.final AS 
-                   SELECT * FROM PairProphet.pairpro_final""")    
-        con.execute("""CREATE OR REPLACE TABLE out_db.pairpro.proteins AS 
-                   SELECT * FROM PairProphet.pairpro_proteins""")
+                   SELECT * FROM main.pairpro_final""")    
+    con.execute("""CREATE OR REPLACE TABLE out_db.pairpro.proteins AS 
+                   SELECT * FROM main.pairpro_proteins""")
     con.execute("""DETACH out_db""")    
                                                         
     print('Finishing up...')

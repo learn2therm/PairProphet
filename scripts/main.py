@@ -20,6 +20,7 @@ import logging
 import os
 
 # library dependencies
+import duckdb as ddb
 import pandas as pd
 from joblib import Parallel, delayed
 
@@ -31,7 +32,7 @@ from PairPro.train_val_wrapper import train_val_wrapper
 from PairPro.train_val_input_cleaning import columns_to_keep
 
 ##build DB
-from PairPro.preprocessing import connect_db, build_fafsa
+from PairPro.preprocessing import connect_db, build_pairpro
 from PairPro.user_blast import make_blast_df
 
 ##hmmer
@@ -43,11 +44,18 @@ import PairPro.utils
 # from PairPro.structure import download_structures, run_fatcat
 
 
+## db Paths
+TEST_DB_PATH = '/Users/humoodalanzi/pfam/l2t_50k.db'
+
 ## HMMER Paths
 HMM_PATH = './data/pfam/Pfam-A.hmm'  # ./Pfam-A.hmm
 PRESS_PATH = './data/pfam'
 HMMER_OUTPUT_DIR = './data/protein_pairs/'
+PARSE_HMMER_OUTPUT_DIR = './data/protein_pairs/parsed_hmmer_output/'
 WORKER_WAKE_UP_TIME = 25 # this is to ensure that if a worker that is about to be shut down due to previous task completetion doesn't actually start running
+
+## ML Paths
+MODEL_PATH = './data/models/'
 
 ## get environmental variables
 if 'LOGLEVEL' in os.environ:
@@ -58,14 +66,6 @@ else:
 LOGNAME = __file__
 LOGFILE = f'./logs/{os.path.basename(__file__)}.log'
 
-#Ryans Component
-"""
-Input: learn2thermDB (queuing format)
-Output: SQL db after filtering, and then each component can retrieve the data as needed.
-Params: Base environment + DuckDB
-"""
-con, _ = connect_db(dbpath)
-build_fafsa(con)
 
 #Humood/Amin Component
 """
@@ -73,38 +73,38 @@ Input: SQL db from Ryan, then retrieve only 1000 pairs
 Output: SQL db with appended Boolean from running HMMR remotely
 Params: Base environment + PyHMMER + Joblib
 """
-df = con.execute("""SELECT m_protein_seq, t_protein_seq, prot_pair_index, meso_pid, thermo_pid, meso_pdb, thermo_pdb""").df()
-# num_pids = con.execute("""SELECT COUNT(pid) FROM pairpro_proteins""").df()
+# df = con.execute("""SELECT m_protein_seq, t_protein_seq, prot_pair_index, meso_pid, thermo_pid, meso_pdb, thermo_pdb""").df()
+# # num_pids = con.execute("""SELECT COUNT(pid) FROM pairpro_proteins""").df()
 
-# # get the number of sequences
-# nseqs = len(num_pids)
-# if nseqs < 1000:
-#     logger.info(f'Number of sequences is less than 1000, so all sequences will be processed via API')
-#     # run hmmscan
-#     PairPro.hmmer.hmmerscanner()
-#     PairPro.hmmer.run_hmmerscanner()
-# else:
-# logger.info(f'Number of sequences is greater than 1000, so sequences will be processed in chunks locally')
-proteins_in_pair_pids = con.execute("SELECT pid FROM fafsa_proteins").df()
-logger.debug(f"Total number of protein in pairs: {len(proteins_in_pair_pids)} in pipeline")
+# # # get the number of sequences
+# # nseqs = len(num_pids)
+# # if nseqs < 1000:
+# #     logger.info(f'Number of sequences is less than 1000, so all sequences will be processed via API')
+# #     # run hmmscan
+# #     PairPro.hmmer.hmmerscanner()
+# #     PairPro.hmmer.run_hmmerscanner()
+# # else:
+# # logger.info(f'Number of sequences is greater than 1000, so sequences will be processed in chunks locally')
+# proteins_in_pair_pids = con.execute("SELECT pid FROM fafsa_proteins").df()
+# logger.debug(f"Total number of protein in pairs: {len(proteins_in_pair_pids)} in pipeline")
 
-# chunking the PID so the worker function queries
-protein_pair_pid_chunks = [proteins_in_pair_pids[i:i + chunk_size]
-                            for i in range(0, len(proteins_in_pair_pids), chunk_size)]
+# # chunking the PID so the worker function queries
+# protein_pair_pid_chunks = [proteins_in_pair_pids[i:i + chunk_size]
+#                             for i in range(0, len(proteins_in_pair_pids), chunk_size)]
 
-# run hmmscan
-logger.info('Running pyhmmer in parallel on all chunks')
+# # run hmmscan
+# logger.info('Running pyhmmer in parallel on all chunks')
 
-Parallel(
-    n_jobs=njobs)(
-    delayed(PairPro.hmmer.local_hmmer_wrapper)(
-        chunk_index,
-        dbpath,
-        protein_pair_pid_chunks,
-        None) for chunk_index,
-    protein_pair_pid_chunks in enumerate(protein_pair_pid_chunks))
+# Parallel(
+#     n_jobs=njobs)(
+#     delayed(PairPro.hmmer.local_hmmer_wrapper)(
+#         chunk_index,
+#         dbpath,
+#         protein_pair_pid_chunks,
+#         None) for chunk_index,
+#     protein_pair_pid_chunks in enumerate(protein_pair_pid_chunks))
 
-logger.debug(f"number of protein chunks: {len(protein_pair_pid_chunks)}")
+# logger.debug(f"number of protein chunks: {len(protein_pair_pid_chunks)}")
 
 #Structure Component
 """
@@ -122,11 +122,11 @@ Output: csv files with 6 columns (seq1, seq2, protein_match (Humood + Amin), pro
 Params: Base environment + iFeatureOmega dependencies 
 """
 #need to save model to use in next script
-model_output = train_val_wrapper(df, feature_list=[])
-con.commit()
-con.close()
+# model_output = train_val_wrapper(df, feature_list=[])
+# con.commit()
+# con.close()
 
-trained_model = model_dev(dbpath)[2]
+# trained_model = model_dev(dbpath)[2]
 
 
 if __name__ == "__main__":
@@ -145,17 +145,18 @@ if __name__ == "__main__":
 
     logger.info(f'Pressed HMM DB: {PRESS_PATH}')
 
-    dbpath = "TO DO"
+    db_path = './tmp/pairpro.db'
 
     #connect to database
-    con, _ = connect_db(dbpath)
-    build_fafsa(con)
-    logger.info('Connected to database.')
+    con, _ = connect_db(TEST_DB_PATH)
+    con = build_pairpro(con, db_path)
+    logger.info(f'Connected to database. Built pairpro table in {db_path}')
 
-    # if local hmmer
+    logger.info('Starting to run HMMER')
+
     # Set up parallel processing and parsing
-    chunk_size = int(sys.argv[1]) # Number of sequences to process in each chunk
-    njobs = int(sys.argv[2])  # Number of parallel processes to use
+    chunk_size = 6400 # Number of sequences to process in each chunk
+    njobs = 4  # Number of parallel processes to use
 
     logger.info('Parallel processing parameters obtained')
 
@@ -165,15 +166,73 @@ if __name__ == "__main__":
     except OSError as e:
         logger.error(f'Error creating directory: {e}')
 
-    logger.info(f'Created output directory: {HMMER_OUTPUT_DIR}')
+    logger.info(f'Created HMMER output directory: {HMMER_OUTPUT_DIR}')
+
+    proteins_in_pair_pids = con.execute("SELECT pid FROM pairpro.pairpro.proteins").df()
+    logger.debug(f"Total number of protein in pairs: {len(proteins_in_pair_pids)} in pipeline")
+    
+    # chunking the PID so the worker function queries
+    protein_pair_pid_chunks = [proteins_in_pair_pids[i:i + chunk_size]
+                            for i in range(0, len(proteins_in_pair_pids), chunk_size)]
+    
+    con.close()
+    
+    # run hmmscan
+    logger.info('Running pyhmmer in parallel on all chunks')
+
+    Parallel(
+        n_jobs=njobs)(
+        delayed(PairPro.hmmer.local_hmmer_wrapper)(
+            chunk_index,
+            con,
+            protein_pair_pid_chunks,
+            PRESS_PATH,
+            HMMER_OUTPUT_DIR,
+            None) for chunk_index,
+        protein_pair_pid_chunks in enumerate(protein_pair_pid_chunks))
+
+    logger.debug(f"number of protein chunks: {len(protein_pair_pid_chunks)}")
+
+    logger.info('Finished running pyhmmer in parallel on all chunks')
+    logger.info('Starting to parse HMMER output')
     
     # setup the database and get some pairs to run
-    tmpdir_database, db_path = PairPro.hmmer.create_accession_table()
+    con.execute("""
+        CREATE TABLE proteins_from_pairs AS
+        SELECT query_id AS pid, accession_id AS accession
+        FROM read_csv_auto('./data/protein_pairs/*.csv', HEADER=TRUE)
+    """)
+    con.commit()
+
+    # prepare output file
+    try:
+        os.makedirs(PARSE_HMMER_OUTPUT_DIR, exist_ok=True)
+    except OSError as e:
+        logger.error(f'Error creating directory: {e}')
 
     jaccard_threshold = 0.5
     chunk_size = 3
     
-    PairPro.hmmer.process_pairs_table(db_path, chunk_size, HMMER_OUTPUT_DIR, jaccard_threshold)
+    logger.info(f'Created parse HMMER output directory: {PARSE_HMMER_OUTPUT_DIR}. Running parse HMMER algorithm.')
+    PairPro.hmmer.process_pairs_table(db_path, chunk_size, PARSE_HMMER_OUTPUT_DIR, jaccard_threshold)
 
-    # creating model
-    trained_model = model_dev(dbpath)[2]
+    logger.info('Finished parsing HMMER output.')
+
+
+    # checking if the parsed output is appended to table
+    con.execute("""CREATE TEMP TABLE hmmer_results AS SELECT * FROM read_csv_auto('./data/parsed_hmmer_output/*.csv', HEADER=TRUE)""")
+    con.execute("""UPDATE pairpro.final SET pairpro.final.hmmer_match = hmmer_results.functional FROM pairpro.final LEFT JOIN hmmer_results ON pairpro.final.meso_pid = hmmer_results.meso_pid AND pairpro.final.thermo_pid = hmmer_results.thermo_pid""")
+    logger.info('Finished appending parsed HMMER output to table.')
+
+    # # creating model
+    # assume input is dataframe
+    # prepare output file
+    # try:
+    #     os.makedirs(MODEL_PATH, exist_ok=True)
+    # except OSError as e:
+    #     logger.error(f'Error creating directory: {e}')
+    # accuracy_score = train_val_wrapper(df)[1]
+    # model = train_val_wrapper(df)[2]
+    # logger.info(f'Accuracy score: {accuracy_score}')
+    # joblib(model, f'{MODEL_PATH}trained_model.pkl')
+    # logger.info(f'Model saved to {MODEL_PATH}trained_model.pkl')

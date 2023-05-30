@@ -18,6 +18,7 @@ dependencies:
       - httpx
       - sphinx
       - sphinx-rtd-theme
+      - rdkit
       - pyhmmer
       - pylint
       - iFeatureOmegaCLI
