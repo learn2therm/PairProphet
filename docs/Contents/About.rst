@@ -11,7 +11,7 @@ Requirements and Installation
 
 To create and activate the environment specified in `environment.yml` in our 'Github <https://github.com/learn2therm/ValidProt>_:
 
-To install the FAFSA package, use the following commands:
+To install the PairProphet package, use the following commands:
 
 ```
 conda env create --file environment.yml
@@ -19,4 +19,4 @@ conda activate validprot
 pip install .
 ```
 
-FAFSA is dependent on Python 3.11.
+PairProphet is dependent on Python 3.11.

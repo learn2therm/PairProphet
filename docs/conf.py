@@ -13,12 +13,12 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('../.'))
-sys.path.append('/ValidProt/FAFSA')
+sys.path.append('/ValidProt/PairPro')
 
 
 # -- Project information -----------------------------------------------------
 
-project = 'FAFSA'
+project = 'PairProphet'
 copyright = '2023, Logan Roberts, Humood Alanzi, Chau Vuong, Ryan Francis, Amin Mosallenejad'
 author = 'Logan Roberts, Humood Alanzi, Chau Vuong, Ryan Francis, Amin Mosallenejad'
 

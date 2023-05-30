@@ -10,9 +10,9 @@ Functions:
 
 import time
 import duckdb
+import os
 
-
-def connect_db(path: str):
+def connect_db(path: str, empty = False):
     '''
     Runs duckdb.connect() function on database path. Returns a
     duckdb.DuckDBPyConnection object and prints execution time.
@@ -31,21 +31,23 @@ def connect_db(path: str):
 
     print('Connecting to database...')
     con = duckdb.connect(path)
-
-    tables = con.execute("""SELECT TABLE_NAME
-                            FROM INFORMATION_SCHEMA.TABLES
-                            WHERE TABLE_TYPE='BASE TABLE'""").df()
-
-    if tables.shape[0] < 1:
-        raise AttributeError('Input database is empty.')
-
+    
+    if empty is False:
+        tables = con.execute("""SELECT TABLE_NAME
+                                FROM INFORMATION_SCHEMA.TABLES
+                                WHERE TABLE_TYPE='BASE TABLE'""").df()
+        if tables.shape[0] < 1:
+            raise AttributeError('Input database is empty.')
+    else:
+        tables = []
+        
     e_time = time.time()
     elapsed_time = e_time - s_time
     print(f'Connection established! Execution time: {elapsed_time} seconds')
     return con, tables
 
 
-def build_pairpro(con, min_ogt_diff: int = 20, min_16s: int = 1300):
+def build_pairpro(con, out_db_path, min_ogt_diff: int = 20, min_16s: int = 1300, parquet_path = 'temp'):
     '''
     Converts learn2therm DuckDB database into a DuckDB database for PairProphet by
     adding filtered and constructed tables. Ensure at lease 20 GB of free disk
@@ -55,6 +57,7 @@ def build_pairpro(con, min_ogt_diff: int = 20, min_16s: int = 1300):
     Args:
         con (duckdb.DuckDBPyConnection): DuckDB connection object. Links script
                                          to DuckDB SQL database.
+        out_db_path (str): Path to PairProphet output database file.
         min_ogt_diff (int): Cutoff for minimum difference in optimal growth
                             temperature between thermophile and mesophile
                             pairs. Default 20 deg C.
@@ -93,7 +96,7 @@ def build_pairpro(con, min_ogt_diff: int = 20, min_16s: int = 1300):
     print('Constructing pairpro_taxa_pairs...')
 
     # Builds PairProphet taxa pair table using only paired taxa from learn2therm
-    taxa_pairs_cmd = """CREATE OR REPLACE TABLE pairpro_taxa_pairs AS
+    taxa_pairs_cmd = """CREATE OR REPLACE TEMP TABLE pairpro_taxa_pairs AS
                         SELECT *
                         FROM taxa_pairs
                         INNER JOIN taxa_pairs_lab
@@ -109,7 +112,7 @@ def build_pairpro(con, min_ogt_diff: int = 20, min_16s: int = 1300):
     print('Constructing pairpro_taxa...')
 
     # Builds PairProphet taxa table using only paired taxa from learn2therm.
-    taxa_cmd = """CREATE OR REPLACE TABLE pairpro_taxa AS
+    taxa_cmd = """CREATE OR REPLACE TEMP TABLE pairpro_taxa AS
                   SELECT *
                   FROM taxa
                   WHERE taxid IN
@@ -127,7 +130,7 @@ def build_pairpro(con, min_ogt_diff: int = 20, min_16s: int = 1300):
     # Builds PairProphet table containing taxa pairs and their associated optimal
     # growth temperatures (ogt). Excludes 16S sequences and ogt difference
     # below cutoff values from function input.
-    ogt_pairs_cmd = f"""CREATE OR REPLACE TABLE pairpro_ogt_taxa_pairs AS
+    ogt_pairs_cmd = f"""CREATE OR REPLACE TEMP TABLE pairpro_ogt_taxa_pairs AS
                         SELECT pairpro_taxa_pairs.*,
                         taxa_m.temperature AS meso_ogt,
                         taxa_t.temperature AS thermo_ogt,
@@ -150,7 +153,7 @@ def build_pairpro(con, min_ogt_diff: int = 20, min_16s: int = 1300):
     print('Constructing pairpro_protein_pairs...')
 
     # Builds PairProphet table containing protein pairs
-    protein_pair_cmd = """CREATE OR REPLACE TABLE pairpro_protein_pairs AS
+    protein_pair_cmd = """CREATE OR REPLACE TEMP TABLE pairpro_protein_pairs AS
                           SELECT protein_pairs.*,
                           otp.meso_ogt AS m_ogt,
                           otp.thermo_ogt AS t_ogt,
@@ -169,7 +172,7 @@ def build_pairpro(con, min_ogt_diff: int = 20, min_16s: int = 1300):
 
     # Builds PairProphet table containing proteins that belong to taxa from
     # pairpro_taxa_pairs.
-    prot_filt_cmd = """CREATE OR REPLACE TABLE pairpro_proteins AS SELECT *
+    prot_filt_cmd = """CREATE OR REPLACE TEMP TABLE pairpro_proteins AS SELECT *
                        FROM proteins
                        WHERE pid IN (SELECT DISTINCT meso_pid
                                      FROM pairpro_protein_pairs)
@@ -186,7 +189,7 @@ def build_pairpro(con, min_ogt_diff: int = 20, min_16s: int = 1300):
     print('Constructing final dataset...')
 
     # Builds final PairProphet data table for downstream sampling.
-    big_table_cmd = """CREATE OR REPLACE TABLE pairpro_final AS
+    big_table_cmd = """CREATE OR REPLACE TEMP TABLE pairpro_final AS
                        SELECT pairpro_protein_pairs.*,
                        proteins_m.protein_seq AS m_protein_seq,
                        proteins_t.protein_seq AS t_protein_seq,
@@ -197,11 +200,24 @@ def build_pairpro(con, min_ogt_diff: int = 20, min_16s: int = 1300):
                        ON (pairpro_protein_pairs.thermo_pid =
                            proteins_t.pid)"""
     con.execute(big_table_cmd)
-
+    
+    print(f'Transferring data to new database {out_db_path}')
+    con.execute(f"""ATTACH '{out_db_path}' AS out_db""")
+    con.execute("""CREATE SCHEMA out_db.pairpro""")
+    con.execute("""CREATE OR REPLACE TABLE out_db.pairpro.final AS 
+                   SELECT * FROM PairProphet.pairpro_final""")    
+        con.execute("""CREATE OR REPLACE TABLE out_db.pairpro.proteins AS 
+                   SELECT * FROM PairProphet.pairpro_proteins""")
+    con.execute("""DETACH out_db""")    
+                                                        
     print('Finishing up...')
     con.commit()
     con.close()
-
+    
+    con2, _ = connect_db(out_db_path)
+    
     et_final = time.time()
     elapsed_time = et_final - e_time5
     print(f'Finished. Total execution time: {elapsed_time} seconds')
+    
+    return con2
