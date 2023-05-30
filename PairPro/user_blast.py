@@ -1,3 +1,6 @@
+"""
+To do: Raise exception for invalid inputs, try capitalization before removing rows
+"""
 from Bio import Align
 from Bio.Align import substitution_matrices
 import re
@@ -25,10 +28,40 @@ def make_blast_df(df, mode='local'):
     df.rename(columns={original_cols[0]: 'query', original_cols[1]: 'subject'},
               inplace=True)
 
+   # Remove any rows with NaN or containing non-amino acid letters
+    rows_with_nan = []
+    for index, row in df.iterrows():
+        is_nan_series = row.isnull()
+        if is_nan_series.any():
+            rows_with_nan.append(index)
+    
+    if len(rows_with_nan) != 0:
+        
+        df.drop(np.unique(rows_with_nan), inplace = True)
+        print(f'Found and skipped {len(rows_with_nan)} row(s) containing NaN.')
+        df.reset_index(drop = True, inplace = True)
+        
+    # All valid 1-letter amino acid codes.
+    amino_acids = set("CSTAGPDEQNHRKMILVWYF")
+    
+    invalid_rows = []
+    for seqs in ['query','subject']:
+    
+        for i, seq in enumerate(df[seqs]):
+            
+            if sequence_validate(seq, amino_acids) is False:
+                    invalid_rows.append(i)
+
+    if len(invalid_rows) != 0:
+        
+        df.drop(np.unique(invalid_rows), inplace = True)
+        print(f'Found and skipped {len(invalid_rows)} row(s) containing invalid amino acid codes.')
+        df.reset_index(drop = True, inplace = True)
+   
     # Generate protein ids for each unique query and subject sequence
     n_unique_1 = np.unique(df['query'])
     n_unique_2 = np.unique(df['subject'])
-
+    
     qid_dict = dict(zip(n_unique_1, range(len(n_unique_1))))
     sid_dict = dict(zip(n_unique_2, range(len(n_unique_2))))
 
@@ -66,7 +99,7 @@ def make_blast_df(df, mode='local'):
 
         alignment = aligner.align(subject, query)
         best_alignment = max(alignment, key=lambda x: x.score)
-
+        
         seq1_aligned = format(best_alignment).split('\n')[0]
         seq2_aligned = format(best_alignment).split('\n')[2]
 
@@ -143,3 +176,18 @@ def gap_compressed_percent_id(n_matches, n_gaps, n_columns, n_comp_gaps):
         n_matches / (n_columns - n_gaps + n_comp_gaps)
     """
     return n_matches / (n_columns - n_gaps + n_comp_gaps)
+
+
+def sequence_validate(seq, alph):
+    """
+    Makes sure sequence complies with alphabet.
+
+    Args:
+        seq (int): Number of matches in match columns
+        alph (int): Number of gaps in match columns
+        
+    Returns:
+        (bool): True if sequence is valid, False if not
+    """
+    extra = set(seq) - alph
+    return not extra

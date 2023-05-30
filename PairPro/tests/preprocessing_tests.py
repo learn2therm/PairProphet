@@ -35,17 +35,15 @@ def get_db_path(filename = 'fafsa_testing'):
     return db_path
 
 
-
 class TestConnection(unittest.TestCase):
     '''
     Tests for the connect_db function.
     '''
-
+    
     def test_smoke(self):
         '''
         Smoke test to ensure connection can be made to database without error
         '''
-
         db_path = get_db_path()
         connect_db(db_path)
 
@@ -54,7 +52,6 @@ class TestConnection(unittest.TestCase):
         '''
         Test to make sure an empty database triggers an AssertionError.
         '''
-
         db_path = get_db_path('fafsa_empty')
 
         with self.assertRaises(AttributeError):
@@ -65,12 +62,11 @@ class TestBuildFafsa(unittest.TestCase):
     '''
     Tests for the build_fafsa function.
     '''
-
+    
     def test_smoke(self):
         '''
         Smoke test to ensure database is assembled without error.
         '''
-
         db_path = get_db_path()
         con = connect_db(db_path)
 
@@ -80,7 +76,6 @@ class TestBuildFafsa(unittest.TestCase):
         '''
         One shot test with known FAFSA test set.
         '''
-
         db_path = get_db_path()
         con = connect_db(db_path)
 
@@ -103,7 +98,6 @@ class TestBuildFafsa(unittest.TestCase):
         '''
         Tests that genuine learn2therm input generates correct FAFSA tables.
         '''
-
         db_path = get_db_path()
         con = connect_db(db_path)
 
@@ -119,7 +113,6 @@ class TestBuildFafsa(unittest.TestCase):
         '''
         Test for improper ogt spread.
         '''
-
         db_path = get_db_path()
         con = connect_db(db_path)
 
@@ -130,7 +123,6 @@ class TestBuildFafsa(unittest.TestCase):
         '''
         Test for ValueError on 16S cutoff below 1 bp.
         '''
-
         db_path = get_db_path()
         con = connect_db(db_path)
 
