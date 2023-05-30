@@ -9,14 +9,13 @@ The local version is faster, but the API version is more accessible.
 
 TODO:
     - Add error handling/tests
-    - Add downloading of HMMs
     - Update parsing function documentation
 """
 # system dependecies
 import asyncio
 from concurrent.futures import ProcessPoolExecutor
 import json
-import logger
+import logging
 import nest_asyncio
 import os
 import requests
@@ -33,6 +32,8 @@ import pyhmmer
 
 # local dependencies
 import PairPro.utils
+
+logger = logging.getLogger(__name__)
 
 ####### API HMMER
 async def send_request(semaphore, sequence, client):
@@ -380,7 +381,7 @@ def local_hmmer_wrapper(chunk_index, dbpath, chunked_pid_inputs,
 
     Args:
         chunk_index (int): Number of sequence chunks.
-        dbpath (str): Path to the database.
+        dbpath (stf): Path to the database.
         chunked_pid_inputs (pandas.DataFrame): DataFrame containing chunked PID inputs.
         press_path (str): Path to the pressed HMM database.
         out_path (str): Path to directory where output will be saved.
@@ -526,7 +527,7 @@ def process_pairs_table(dbpath, chunk_size:int, output_directory, jaccard_thresh
             score = None
             functional = False
         
-        return {'functional?': functional, 'score': score}
+        return {'functional': functional, 'score': score}
             
 
         
@@ -547,12 +548,12 @@ def process_pairs_table(dbpath, chunk_size:int, output_directory, jaccard_thresh
 
 
             # Calculate Jaccard similarity and determine functional status using apply function
-            query_chunk[['functional?', 'score']] = query_chunk.apply(evaluation_function, axis=1, args=(jaccard_threshold,), result_type='expand')
+            query_chunk[['functional', 'score']] = query_chunk.apply(evaluation_function, axis=1, args=(jaccard_threshold,), result_type='expand')
 
 
             # Write DataFrame to CSV
             chunk_counter += 1  # Increment the chunk counter
-            query_chunk.to_csv(f'{output_directory}{chunk_counter}_output.csv', index=False, columns=['meso_pid', 'thermo_pid', 'functional?', 'score'])
+            query_chunk.to_csv(f'{output_directory}{chunk_counter}_output.csv', index=False, columns=['meso_pid', 'thermo_pid', 'functional', 'score'])
 
     except IOError as e:
         logger.warning(f"Error writing to CSV file: {e}")
