@@ -1,15 +1,7 @@
-FAFSA
-=====
-
-.. toctree::
-   :maxdepth: 4
-
-   FAFSA
-
-scripts
+PairPro
 =======
 
 .. toctree::
    :maxdepth: 4
 
-   scripts
+   PairPro

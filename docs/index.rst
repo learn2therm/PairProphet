@@ -1,11 +1,11 @@
-.. FAFSA documentation master file, created by
+.. PairPro documentation master file, created by
    sphinx-quickstart on Sun May 14 13:41:35 2023.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to FAFSA's documentation! 
+Welcome to PairPro's documentation! 
 =================================
-FAFSA is a software pipeline developed at the University of
+PairPro is a software pipeline developed at the University of
 Washington. This package implements a  “first-pass” model that 
 allows researchers to draw on existing proteome data and generate 
 a pairwise screening that will narrow down their search space and 
@@ -19,7 +19,7 @@ be executed with a single command.
    :hidden:
    :caption: Contents:
 
-   Contents/FAFSA
+   Contents/PairPro
    Contents/scripts
    Contents/About
 
@@ -28,5 +28,5 @@ be executed with a single command.
    :hidden:
    :caption: Guidelines:
 
-   Guidelines/FAFSA
+   Guidelines/PairPro
  
