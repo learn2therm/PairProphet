@@ -35,6 +35,9 @@ def train_val_wrapper(dataframe, feature_list=None):
         pass
 
     # run through model
-    classifier = rf_wrapper(df)
+    score = rf_wrapper(dataframe)[1]
+    model = rf_wrapper(dataframe)[2]
 
-    return classifier
+    return score, model 
+
+

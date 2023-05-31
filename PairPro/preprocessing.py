@@ -200,7 +200,14 @@ def build_pairpro(con, out_db_path, min_ogt_diff: int = 20, min_16s: int = 1300,
                        ON (pairpro_protein_pairs.thermo_pid =
                            proteins_t.pid)"""
     con.execute(big_table_cmd)
-    
+
+    if os.path.exists(out_db_path):
+        filename, ext = os.path.splitext(out_db_path)
+        counter = 1
+        while os.path.exists(f'{filename}_{counter}{ext}'):
+            counter += 1
+        out_db_path = f'{filename}_{counter}{ext}'
+        
     print(f'Transferring data to new database {out_db_path}')
     con.execute(f"""ATTACH '{out_db_path}' AS out_db""")
     con.execute("""CREATE SCHEMA out_db.pairpro""")

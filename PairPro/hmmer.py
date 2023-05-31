@@ -374,7 +374,7 @@ def parse_pyhmmer(all_hits, chunk_query_ids):
     return df
 
 
-def local_hmmer_wrapper(chunk_index, dbpath, chunked_pid_inputs, hmms_path,
+def local_hmmer_wrapper(chunk_index, dbpath, chunked_pid_inputs,
                         press_path, out_dir,  wakeup=None):
     """
     A wrapping function that runs and parses pyhmmer in chunks.
@@ -383,7 +383,6 @@ def local_hmmer_wrapper(chunk_index, dbpath, chunked_pid_inputs, hmms_path,
         chunk_index (int): Number of sequence chunks.
         dbpath (stf): Path to the database.
         chunked_pid_inputs (pandas.DataFrame): DataFrame containing chunked PID inputs.
-        hmms_path (str): Path to the HMM database.
         press_path (str): Path to the pressed HMM database.
         out_path (str): Path to directory where output will be saved.
         wakeup (int or None, optional): Delay in seconds before starting the execution. Default is None.
@@ -449,26 +448,7 @@ def local_hmmer_wrapper(chunk_index, dbpath, chunked_pid_inputs, hmms_path,
         index=False)
     
 # parsing
-def create_accession_table():
-    """
-    Reads multiple CSV files and creates a DuckDB table from them.
-    """
-    # Creating temporary dir
-    tmpdir = tempfile.mkdtemp(dir='./tmp', )
-    # Establishing a connection with Duck DB
-    conn = ddb.connect(tmpdir+'/proteins_from_pairs.db', read_only=False)
-    # Create the proteins_from_pairs table
-    conn.execute("""
-        CREATE TABLE proteins_from_pairs AS
-        SELECT query_id AS pid, accession_id AS accession
-        FROM read_csv_auto('./data/protein_pairs/*.csv', HEADER=TRUE)
-    """)
-    # Committing DB
-    conn.commit()
-    conn.close()
-    return tmpdir, tmpdir+'/proteins_from_pairs.db'
-
-def preprocess_accessions(meso_acession, thermo_accession):
+def preprocess_accessions(meso_accession, thermo_accession):
     """
     Preprocesses meso_accession and thermo_accession by converting them to sets.
 
@@ -480,8 +460,14 @@ def preprocess_accessions(meso_acession, thermo_accession):
         tuple: A tuple containing the preprocessed meso_accession and thermo_accession sets.
     """
     # Convert accessions to sets
-    meso_accession_set = set(meso_acession.split(';'))
-    thermo_accession_set = set(thermo_accession.split(';'))
+    if isinstance(meso_accession, str):
+        meso_accession_set = set(meso_accession.split(';'))
+    else:
+        meso_accession_set = set(str(meso_accession))
+    if isinstance(thermo_accession, str):
+        thermo_accession_set = set(thermo_accession.split(';'))
+    else:
+        thermo_accession_set = set(str(thermo_accession))
     return meso_accession_set, thermo_accession_set
 
 
@@ -506,12 +492,12 @@ def calculate_jaccard_similarity(meso_accession_set, thermo_accession_set):
     return jaccard_similarity
 
 
-def process_pairs_table(dbpath, chunk_size:int, output_directory, jaccard_threshold):
+def process_pairs_table(conn, chunk_size:int, output_directory, jaccard_threshold):
     """
     Processes the pairs table, calculates Jaccard similarity, and generates output CSV.
 
     Parameters:
-        dbpath (str): Path to the database file.
+        conn (**): Path to the database file.
         chunk_size (int): Size of each query chunk to fetch from the database.
         output_directory (str): Directory path to save the output CSV files.
         jaccard_threshold (float): Threshold value for Jaccard similarity.
@@ -519,14 +505,11 @@ def process_pairs_table(dbpath, chunk_size:int, output_directory, jaccard_thresh
     Returns:
         None
     """
-    # Establish a connection with DuckDB
-    conn = ddb.connect(dbpath, read_only=False)
-
     # Perform a join to get relevant information from the two tables
     query1 = """
-        CREATE OR REPLACE TABLE joined_pairs AS 
+        CREATE OR REPLACE TEMP TABLE joined_pairs AS 
         SELECT p.meso_pid, p.thermo_pid, pr.accession AS meso_accession, pr2.accession AS thermo_accession
-        FROM pairpro.pairpro.proteins AS p
+        FROM pairpro.pairpro.final AS p
         INNER JOIN proteins_from_pairs AS pr ON (p.meso_pid = pr.pid)
         INNER JOIN proteins_from_pairs AS pr2 ON (p.thermo_pid = pr2.pid)
     """
@@ -546,9 +529,13 @@ def process_pairs_table(dbpath, chunk_size:int, output_directory, jaccard_thresh
             functional = None
         elif meso_acc and thermo_acc:
             # Preprocess the accessions
-            meso_acc_set, thermo_acc_set = preprocess_accessions(meso_acc, thermo_acc)
-            score = calculate_jaccard_similarity(meso_acc_set, thermo_acc_set)
-            functional = score > jaccard_threshold
+            if meso_acc == '' and thermo_acc == '':
+                score = None
+                functional = None
+            else:
+                meso_acc_set, thermo_acc_set = preprocess_accessions(meso_acc, thermo_acc)
+                score = calculate_jaccard_similarity(meso_acc_set, thermo_acc_set)
+                functional = score > jaccard_threshold
         else:
             # Handle unmatched rows
             score = None
@@ -584,8 +571,6 @@ def process_pairs_table(dbpath, chunk_size:int, output_directory, jaccard_thresh
 
     except IOError as e:
         logger.warning(f"Error writing to CSV file: {e}")
-
-    conn.close()
 
 
 

@@ -12,7 +12,9 @@ Note:
 We have two wrapping functions, but 
 these can be developed as individual scripts.
 
-Runtime: 
+Runtime:
+TODO:
+    - [ ] Check HMMER parsing logic
 """
 # system dependencies
 import sys
@@ -22,7 +24,10 @@ import os
 # library dependencies
 import duckdb as ddb
 import pandas as pd
+import joblib
 from joblib import Parallel, delayed
+from sklearn.utils import resample
+from tqdm import tqdm
 
 # local dependencies
 
@@ -155,7 +160,7 @@ if __name__ == "__main__":
     logger.info('Starting to run HMMER')
 
     # Set up parallel processing and parsing
-    chunk_size = 6400 # Number of sequences to process in each chunk
+    chunk_size = 2500 # Number of sequences to process in each chunk 
     njobs = 4  # Number of parallel processes to use
 
     logger.info('Parallel processing parameters obtained')
@@ -180,23 +185,26 @@ if __name__ == "__main__":
     # run hmmscan
     logger.info('Running pyhmmer in parallel on all chunks')
 
-    Parallel(
-        n_jobs=njobs)(
-        delayed(PairPro.hmmer.local_hmmer_wrapper)(
-            chunk_index,
-            db_path,
-            protein_pair_pid_chunks,
-            PRESS_PATH,
-            PRESS_PATH,
-            HMMER_OUTPUT_DIR,
-            None) for chunk_index,
-        protein_pair_pid_chunks in enumerate(protein_pair_pid_chunks))
-
+    with tqdm(total=len(protein_pair_pid_chunks)) as pbar:
+        Parallel(
+            n_jobs=njobs)(
+            delayed(PairPro.hmmer.local_hmmer_wrapper)(
+                chunk_index,
+                db_path,
+                protein_pair_pid_chunks,
+                PRESS_PATH,
+                HMMER_OUTPUT_DIR,
+                None) for chunk_index,
+            protein_pair_pid_chunks in enumerate(protein_pair_pid_chunks))
+        pbar.update(1)
     logger.debug(f"number of protein chunks: {len(protein_pair_pid_chunks)}")
 
     logger.info('Finished running pyhmmer in parallel on all chunks')
     logger.info('Starting to parse HMMER output')
     
+    # re-open connection (ask Ryan about this)
+    con = ddb.connect(db_path)
+
     # setup the database and get some pairs to run
     con.execute("""
         CREATE TABLE proteins_from_pairs AS
@@ -215,25 +223,57 @@ if __name__ == "__main__":
     chunk_size = 3
     
     logger.info(f'Created parse HMMER output directory: {PARSE_HMMER_OUTPUT_DIR}. Running parse HMMER algorithm.')
-    PairPro.hmmer.process_pairs_table(db_path, chunk_size, PARSE_HMMER_OUTPUT_DIR, jaccard_threshold)
+    PairPro.hmmer.process_pairs_table(con, chunk_size, PARSE_HMMER_OUTPUT_DIR, jaccard_threshold)
 
     logger.info('Finished parsing HMMER output.')
 
-
     # checking if the parsed output is appended to table
-    con.execute("""CREATE TEMP TABLE hmmer_results AS SELECT * FROM read_csv_auto('./data/parsed_hmmer_output/*.csv', HEADER=TRUE)""")
-    con.execute("""UPDATE pairpro.final SET pairpro.final.hmmer_match = hmmer_results.functional FROM pairpro.final LEFT JOIN hmmer_results ON pairpro.final.meso_pid = hmmer_results.meso_pid AND pairpro.final.thermo_pid = hmmer_results.thermo_pid""")
+    con.execute("""CREATE TABLE hmmer_results AS SELECT * FROM read_csv_auto('./data/protein_pairs/parsed_hmmer_output/*.csv', HEADER=TRUE)""")
+    con.execute("""ALTER TABLE pairpro.pairpro.final ADD COLUMN hmmer_match BOOLEAN""")
+    con.execute("""UPDATE pairpro.pairpro.final AS f
+    SET hmmer_match = hmmer.functional::BOOLEAN
+    FROM hmmer_results AS hmmer
+    WHERE hmmer.meso_pid = f.meso_pid
+    AND hmmer.thermo_pid = f.thermo_pid
+    """)
     logger.info('Finished appending parsed HMMER output to table.')
 
-    # # creating model
-    # assume input is dataframe
+    df = con.execute("""SELECT bit_score, local_gap_compressed_percent_id, 
+    scaled_local_query_percent_id, scaled_local_symmetric_percent_id, 
+    query_align_len, query_align_cov, subject_align_len, subject_align_cov, 
+    LENGTH(m_protein_seq) AS m_protein_len, LENGTH(t_protein_seq) AS t_protein_len, hmmer_match FROM pairpro.pairpro.final""").df()
+
+    print(df.head())
+
+    logger.info('Beginning to preprocess data for model training')
+
+    # Separate the majority and minority classes
+    majority_class = df[df['hmmer_match'] == True]
+    minority_class = df[df['hmmer_match'] == False]
+
+    # Undersample the majority class to match the number of minority class samples
+    n_samples = len(minority_class)
+    undersampled_majority = resample(
+        majority_class,
+        n_samples=n_samples,
+        replace=False)
+
+    # Combine the undersampled majority class with the minority class
+    df = pd.concat([undersampled_majority, minority_class])
+
+    # creating model
     # prepare output file
-    # try:
-    #     os.makedirs(MODEL_PATH, exist_ok=True)
-    # except OSError as e:
-    #     logger.error(f'Error creating directory: {e}')
-    # accuracy_score = train_val_wrapper(df)[1]
-    # model = train_val_wrapper(df)[2]
-    # logger.info(f'Accuracy score: {accuracy_score}')
-    # joblib(model, f'{MODEL_PATH}trained_model.pkl')
-    # logger.info(f'Model saved to {MODEL_PATH}trained_model.pkl')
+    try:
+        os.makedirs(MODEL_PATH, exist_ok=True)
+    except OSError as e:
+        logger.error(f'Error creating directory: {e}')
+    logger.info(f'Created model directory: {MODEL_PATH}')
+
+    accuracy_score = train_val_wrapper(df)[0]
+    model = train_val_wrapper(df)[1]
+    logger.info(f'Accuracy score: {accuracy_score}')
+
+    joblib.dump(model, f'{MODEL_PATH}trained_model.pkl')
+    logger.debug(f'model training data is {df.head()}')
+    logger.info(f'Model saved to {MODEL_PATH}')
+    

@@ -16,9 +16,10 @@ import pandas as pd
 # # target from Humood
 # target = pd.read_csv('protein_match_50k.csv')
 
+
 # # # Separate the majority and minority classes
-# majority_class = target[target['protein_match'] == 'Yes']
-# minority_class = target[target['protein_match'] == 'No']
+# majority_class = df[df['hmmer_match'] == True]
+# minority_class = df[df['hmmer_match'] == False]
 
 # # # Undersample the majority class to match the number of minority class samples
 # n_samples = len(minority_class)
@@ -28,7 +29,7 @@ import pandas as pd
 #     replace=False)
 
 # # # Combine the undersampled majority class with the minority class
-# balanced_data = pd.concat([undersampled_majority, minority_class])
+# df = pd.concat([undersampled_majority, minority_class])
 
 # df = pd.merge(df, target, on=['prot_pair_index'])
 
@@ -45,9 +46,9 @@ columns_to_keep = [
     'subject_align_cov',
     'm_protein_len',
     't_protein_len',
-    'protein_match',
+    'hmmer_match',
     'norm_bit_score_m',
-    'norm_bits_score_t']
+    'norm_bit_score_t']
 
 
 def normalize_bit_scores(dataframe):

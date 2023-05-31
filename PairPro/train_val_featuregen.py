@@ -1,6 +1,8 @@
 """
 This module utilizes iFeatureOmega, a feature generation
 package for proteins and nucleic acids.
+
+NOTE: Add method to get_fasta_from_dataframe to delete output files after they are read.
 """
 
 import iFeatureOmegaCLI
@@ -45,6 +47,7 @@ def get_fasta_from_dataframe(
                     (row['t_protein_seq'])))
 
     # return output files
+    #clobber these files
     return [output_file_a, output_file_b]
 
 

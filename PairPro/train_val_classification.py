@@ -139,7 +139,7 @@ def rf_wrapper(dataframe):
     assert 'pandas.core.frame.DataFrame' in str(type(dataframe))
 
     # user inputs target feature
-    target = 'protein_match'
+    target = 'hmmer_match'
 
     # define input features
     input_features = [columns for columns in dataframe]
