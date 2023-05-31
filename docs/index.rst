@@ -20,7 +20,7 @@ be executed with a single command.
    :caption: Contents:
 
    Contents/PairPro
-   Contents/scripts
+   Contents/runclassifiers
    Contents/About
 
 .. toctree::

@@ -47,7 +47,7 @@ classifiers = [
 #     SVC(),
 ]
 
-F = open('evaluationResults.txt', 'w')
+F = open('./data/evaluationResults.txt', 'w')
 
 F.write('Evaluation Scale:'+'\n')
 F.write('0.0% <=Accuracy<= 100.0%'+'\n')
@@ -185,8 +185,8 @@ if __name__ == '__main__':
     import argparse
     p = argparse.ArgumentParser(description='Run Machine Learning Classifiers.')
 
-    p.add_argument('-filename', '--output_path', type=str, help='Specify output file path', default='evaluationResults.txt') #figure out how to save to file path
-    p.add_argument('-dataset', '--dataset', type=str, help='~/dataset.csv', default='learn2therm_classifiers.csv')
+    p.add_argument('-filename', '--output_file_path', type=str, help='Specify output file path', default='evaluationResults.txt') #figure out how to save to file path
+    p.add_argument('-dataset', '--dataset', type=str, help='~/dataset.csv', default='./data/learn2therm_classifiers.csv') #change this path
     # p.add_argument('-columns', '--columns', type=list, help='Specify feature columns', default = [
     # 'bit_score','local_gap_compressed_percent_id','scaled_local_query_percent_id','scaled_local_symmetric_percent_id','query_align_len',
     # 'query_align_cov','subject_align_len','subject_align_cov','m_protein_len', 't_protein_len', 'protein_match',
@@ -195,3 +195,5 @@ if __name__ == '__main__':
     args = p.parse_args()
 
     runClassifiers(args)
+
+    
