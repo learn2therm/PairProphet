@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import joblib
 
 
 # testing function
@@ -52,7 +53,7 @@ classifiers = [
 ]
 
 
-def evaluate_model(output_path, model, dataframe, target=[]):
+def evaluate_model(output_path, model, dataframe):
     '''
     Takes a trained model and test data and tests the model.
 
@@ -160,23 +161,16 @@ def evaluate_model(output_path, model, dataframe, target=[]):
     # merge dataframes together to report results
     df_seqs['prediction'] = preds
 
+    # for multi-class classifier problem
+    # preds_df = pd.DataFrame(preds, columns=['hmmer_pred', 'structure_pred'])
+    # df_seqs['hmmer_pred'] = preds_df['hmmer_pred'].values
+    # df_seqs['structure_pred'] = preds_df['structure_pred'].values
+    # df_seqs['hmmer_strucutre_match'] = df_seqs['hmmer_pred'] == df_seqs['structure_pred']
+    
+    # merge dataframes together to report results (1 class)
+    df_seqs['prediction'] = preds
+
     # save to csv
     df_seqs.to_csv(f'{output_path}predictions.csv')
 
     return preds, precision_score, df_seqs
-
-# if __name__ == '__main__':
-#     import argparse
-#     p = argparse.ArgumentParser(description='Choose your classification model!')
-
-#     p.add_argument('-classifier', '--classifier', type=str, help='Specify which classifier you want to use.', default=RandomForestClassifier(
-#         n_estimators=200,
-#         max_depth=None,
-#         max_samples=0.3,
-#         max_features=0.5,
-#         min_weight_fraction_leaf=0,
-#         min_samples_split=17))
-
-#     args = p.parse_args()
-
-#     evaluate_model(args, test_X, test_y)
