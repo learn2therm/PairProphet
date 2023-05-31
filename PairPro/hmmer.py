@@ -374,7 +374,7 @@ def parse_pyhmmer(all_hits, chunk_query_ids):
     return df
 
 
-def local_hmmer_wrapper(chunk_index, dbpath, chunked_pid_inputs, 
+def local_hmmer_wrapper(chunk_index, dbpath, chunked_pid_inputs, hmms_path,
                         press_path, out_dir,  wakeup=None):
     """
     A wrapping function that runs and parses pyhmmer in chunks.
@@ -383,6 +383,7 @@ def local_hmmer_wrapper(chunk_index, dbpath, chunked_pid_inputs,
         chunk_index (int): Number of sequence chunks.
         dbpath (stf): Path to the database.
         chunked_pid_inputs (pandas.DataFrame): DataFrame containing chunked PID inputs.
+        hmms_path (str): Path to the HMM database.
         press_path (str): Path to the pressed HMM database.
         out_path (str): Path to directory where output will be saved.
         wakeup (int or None, optional): Delay in seconds before starting the execution. Default is None.
@@ -417,7 +418,7 @@ def local_hmmer_wrapper(chunk_index, dbpath, chunked_pid_inputs,
 
     # Only extract protein_seqs from the list of PID inputs
     placeholders = ', '.join(['?'] * len(pids))
-    query = f"SELECT pid, protein_seq FROM proteins WHERE pid IN ({placeholders})"
+    query = f"SELECT pid, protein_seq FROM pairpro.pairpro.proteins WHERE pid IN ({placeholders})"
     query_db = conn.execute(query, list(pids)).fetchall()
 
     # close db connection
@@ -433,6 +434,7 @@ def local_hmmer_wrapper(chunk_index, dbpath, chunked_pid_inputs,
     hits = run_pyhmmer(
         seqs=sequences,
         hmms_path=press_path,
+        press_path=press_path,
         prefetch=True,
         cpu=1,
         eval_con=1e-5)
@@ -468,7 +470,14 @@ def create_accession_table():
 
 def preprocess_accessions(meso_acession, thermo_accession):
     """
-    TODO
+    Preprocesses meso_accession and thermo_accession by converting them to sets.
+
+    Args:
+        meso_accession (str): Meso accession string separated by ';'.
+        thermo_accession (str): Thermo accession string separated by ';'.
+
+    Returns:
+        tuple: A tuple containing the preprocessed meso_accession and thermo_accession sets.
     """
     # Convert accessions to sets
     meso_accession_set = set(meso_acession.split(';'))
@@ -478,7 +487,16 @@ def preprocess_accessions(meso_acession, thermo_accession):
 
 def calculate_jaccard_similarity(meso_accession_set, thermo_accession_set):
     """
-    Calculates Jaccard similarity between meso_pid and thermo_pid pairs via their accessions.
+    Calculates the Jaccard similarity between meso_pid and thermo_pid pairs based on their accessions.
+
+    Jaccard similarity is defined as the size of the intersection divided by the size of the union of two sets.
+
+    Args:
+        meso_accession_set (set): Set of meso_pid accessions.
+        thermo_accession_set (set): Set of thermo_pid accessions.
+
+    Returns:
+        float: Jaccard similarity between the two sets of accessions. Returns 0 if the union is empty.
     """
     # Calculate Jaccard similarity
     intersection = len(meso_accession_set.intersection(thermo_accession_set))
@@ -491,6 +509,15 @@ def calculate_jaccard_similarity(meso_accession_set, thermo_accession_set):
 def process_pairs_table(dbpath, chunk_size:int, output_directory, jaccard_threshold):
     """
     Processes the pairs table, calculates Jaccard similarity, and generates output CSV.
+
+    Parameters:
+        dbpath (str): Path to the database file.
+        chunk_size (int): Size of each query chunk to fetch from the database.
+        output_directory (str): Directory path to save the output CSV files.
+        jaccard_threshold (float): Threshold value for Jaccard similarity.
+
+    Returns:
+        None
     """
     # Establish a connection with DuckDB
     conn = ddb.connect(dbpath, read_only=False)
@@ -499,7 +526,7 @@ def process_pairs_table(dbpath, chunk_size:int, output_directory, jaccard_thresh
     query1 = """
         CREATE OR REPLACE TABLE joined_pairs AS 
         SELECT p.meso_pid, p.thermo_pid, pr.accession AS meso_accession, pr2.accession AS thermo_accession
-        FROM fafsa_protein_pairs AS p
+        FROM pairpro.pairpro.proteins AS p
         INNER JOIN proteins_from_pairs AS pr ON (p.meso_pid = pr.pid)
         INNER JOIN proteins_from_pairs AS pr2 ON (p.thermo_pid = pr2.pid)
     """

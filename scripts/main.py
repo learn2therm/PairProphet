@@ -49,7 +49,7 @@ TEST_DB_PATH = '/Users/humoodalanzi/pfam/l2t_50k.db'
 
 ## HMMER Paths
 HMM_PATH = './data/pfam/Pfam-A.hmm'  # ./Pfam-A.hmm
-PRESS_PATH = './data/pfam'
+PRESS_PATH = './data/pfam/pfam'
 HMMER_OUTPUT_DIR = './data/protein_pairs/'
 PARSE_HMMER_OUTPUT_DIR = './data/protein_pairs/parsed_hmmer_output/'
 WORKER_WAKE_UP_TIME = 25 # this is to ensure that if a worker that is about to be shut down due to previous task completetion doesn't actually start running
@@ -184,8 +184,9 @@ if __name__ == "__main__":
         n_jobs=njobs)(
         delayed(PairPro.hmmer.local_hmmer_wrapper)(
             chunk_index,
-            con,
+            db_path,
             protein_pair_pid_chunks,
+            PRESS_PATH,
             PRESS_PATH,
             HMMER_OUTPUT_DIR,
             None) for chunk_index,

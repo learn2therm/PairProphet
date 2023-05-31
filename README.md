@@ -3,7 +3,7 @@ Check out our project's documention via [Read The Docs](https://validprot.readth
 
 # Background
 
-The following repository is for the project code associated with the two courses: Data Science Methods for Clean Energy Research (ChemE 545) Software Engineering for Molecular Data Scientists (ChemE 546), and Molecular Data Science Capstone (ChemE 547) and at UW.
+The following repository is for the project code associated with the three courses: Data Science Methods for Clean Energy Research (ChemE 545) Software Engineering for Molecular Data Scientists (ChemE 546), and Molecular Data Science Capstone (ChemE 547) and at UW.
 
 PairProphet is a project developed by Humood Alanzi, Ryan Francis, Amin Mosallenejad, Logan Roberts, and Chau Vuong.
 
