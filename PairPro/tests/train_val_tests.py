@@ -6,15 +6,19 @@ import pandas as pd
 import numpy as np
 import os
 
-from PairProphet.train_val_classification import train_model
-from PairProphet.train_val_classification import evaluate_model
-from PairProphet.train_val_classification import rf_wrapper
+from PairPro.train_val_classification import train_model
+from PairPro.train_val_classification import evaluate_model
+from PairPro.train_val_classification import rf_wrapper
 
-from PairProphet.train_val_input_cleaning import check_input_type
-from PairProphet.train_val_input_cleaning import clean_input_columns
-from PairProphet.train_val_input_cleaning import verify_input_columns
-from PairProphet.train_val_input_cleaning import check_input_nans
-from PairProphet.train_val_input_cleaning import verify_protein_pairs
+from PairPro.train_val_input_cleaning import check_input_type
+from PairPro.train_val_input_cleaning import clean_input_columns
+from PairPro.train_val_input_cleaning import verify_input_columns
+from PairPro.train_val_input_cleaning import check_input_nans
+from PairPro.train_val_input_cleaning import verify_protein_pairs
+from PairPro.train_val_featuregen import get_fasta_from_dataframe
+from PairPro.train_val_featuregen import get_protein_descriptors
+from PairPro.train_val_featuregen import clean_new_dataframe
+from PairPro.train_val_featuregen import create_new_dataframe
 
 df = pd.read_csv('learn2therm_sample_50k.csv')
 
@@ -193,10 +197,6 @@ class TestWrapper(unittest.TestCase):
 """
 Test feature generation functions
 """
-from PairProphet.train_val_featuregen import get_fasta_from_dataframe
-from PairProphet.train_val_featuregen import get_protein_descriptors
-from PairProphet.train_val_featuregen import clean_new_dataframe
-from PairProphet.train_val_featuregen import create_new_dataframe
 
 class TestGetFastaFromDataframe(unittest.TestCase):
 
