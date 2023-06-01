@@ -31,7 +31,7 @@ import tarfile
 
 
 # local dependencies
-import PairPro.utils
+import pairpro.utils
 
 ## get environmental variables
 if 'LOGLEVEL' in os.environ:
@@ -43,7 +43,7 @@ LOGNAME = __file__
 LOGFILE = f'./logs/{os.path.basename(__file__)}.log'
 
 # get the logger in subprocesses
-logger = PairPro.utils.start_logger_if_necessary(LOGNAME, LOGFILE, LOGLEVEL, filemode='w')
+logger = pairpro.utils.start_logger_if_necessary(LOGNAME, LOGFILE, LOGLEVEL, filemode='w')
 
 # set up ftp
 FTP_ADDRESS = 'ftp.ebi.ac.uk'

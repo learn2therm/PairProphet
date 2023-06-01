@@ -32,17 +32,17 @@ from tqdm import tqdm
 # local dependencies
 
 ##machine learning
-from PairPro.evaluate_model import evaluate_model
-from PairPro.train_val_wrapper import train_val_wrapper
-from PairPro.train_val_input_cleaning import columns_to_keep
+from pairpro.evaluate_model import evaluate_model
+from pairpro.train_val_wrapper import train_val_wrapper
+from pairpro.train_val_input_cleaning import columns_to_keep
 
 ##build DB
-from PairPro.preprocessing import connect_db, build_pairpro
-from PairPro.user_blast import make_blast_df
+from pairpro.preprocessing import connect_db, build_pairpro
+from pairpro.user_blast import make_blast_df
 
 ##hmmer
-import PairPro.hmmer
-import PairPro.utils
+import pairpro.hmmer
+import pairpro.utils
 
 
 ##structure
@@ -74,7 +74,7 @@ LOGFILE = f'./logs/{os.path.basename(__file__)}.log'
 
 if __name__ == "__main__":
     # Initialize logger
-    logger = PairPro.utils.start_logger_if_necessary(LOGNAME, LOGFILE, LOGLEVEL, filemode='w')
+    logger = pairpro.utils.start_logger_if_necessary(LOGNAME, LOGFILE, LOGLEVEL, filemode='w')
     logger.info(f"Running {__file__}")
 
     # create pfam HMM directory (this was before HMM download script)
@@ -84,7 +84,7 @@ if __name__ == "__main__":
         logger.error(f'Error creating directory: {e}')
 
     # press the HMM db
-    PairPro.hmmer.hmmpress_hmms(HMM_PATH, PRESS_PATH)
+    pairpro.hmmer.hmmpress_hmms(HMM_PATH, PRESS_PATH)
 
     logger.info(f'Pressed HMM DB: {PRESS_PATH}')
 
@@ -126,7 +126,7 @@ if __name__ == "__main__":
     with tqdm(total=len(protein_pair_pid_chunks)) as pbar:
         Parallel(
             n_jobs=njobs)(
-            delayed(PairPro.hmmer.local_hmmer_wrapper)(
+            delayed(pairpro.hmmer.local_hmmer_wrapper)(
                 chunk_index,
                 db_path,
                 protein_pair_pid_chunks,
@@ -161,7 +161,7 @@ if __name__ == "__main__":
     chunk_size = 3
     
     logger.info(f'Created parse HMMER output directory: {PARSE_HMMER_OUTPUT_DIR}. Running parse HMMER algorithm.')
-    PairPro.hmmer.process_pairs_table(con, chunk_size, PARSE_HMMER_OUTPUT_DIR, jaccard_threshold)
+    pairpro.hmmer.process_pairs_table(con, chunk_size, PARSE_HMMER_OUTPUT_DIR, jaccard_threshold)
 
     logger.info('Finished parsing HMMER output.')
 

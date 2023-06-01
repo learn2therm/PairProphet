@@ -32,7 +32,7 @@ import pandas as pd
 import pyhmmer
 
 # local dependencies
-import PairPro.utils
+import pairpro.utils
 
 logger = logging.getLogger(__name__)
 

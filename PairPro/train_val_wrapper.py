@@ -2,10 +2,10 @@
 Wrapper functions for all of the machine learning component.
 """
 
-from PairPro.train_val_classification import rf_wrapper
-from PairPro.train_val_input_cleaning import input_cleaning_wrapper
-# from PairPro.train_val_input_cleaning import df
-from PairPro.train_val_featuregen import create_new_dataframe
+from pairpro.train_val_classification import rf_wrapper
+from pairpro.train_val_input_cleaning import input_cleaning_wrapper
+# from pairpro.train_val_input_cleaning import df
+from pairpro.train_val_featuregen import create_new_dataframe
 
 
 def train_val_wrapper(dataframe, feature_list=None):
