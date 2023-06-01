@@ -9,24 +9,24 @@ from joblib import Parallel, delayed
 
 # local dependencies
 ## machine learning
-from PairPro.evaluate_model import evaluate_model
-from PairPro.train_val_wrapper import train_val_wrapper
-from PairPro.train_val_input_cleaning import columns_to_keep
+from pairpro.evaluate_model import evaluate_model
+from pairpro.train_val_wrapper import train_val_wrapper
+from pairpro.train_val_input_cleaning import columns_to_keep
 
 #need to understand how to import the trained model from main
-# from PairPro.main import train_model
+# from pairpro.main import train_model
 
 ## build DB
-from PairPro.preprocessing import connect_db, build_fafsa
-from PairPro.user_blast import make_blast_df
+from pairpro.preprocessing import connect_db, build_fafsa
+from pairpro.user_blast import make_blast_df
 
 ## hmmer
-import PairPro.hmmer
-import PairPro.utils
+import pairpro.hmmer
+import pairpro.utils
 
 
 ##structure
-from PairPro.structure import download_structures, run_fatcat
+from pairpro.structure import download_structures, run_fatcat
 
 ### Paths
 ##ML Paths

@@ -1,4 +1,4 @@
-from PairPro.preprocessing import connect_db
+from pairpro.preprocessing import connect_db
 import pandas as pd
 
 def build_sample_l2t(db_in, db_out, size):
