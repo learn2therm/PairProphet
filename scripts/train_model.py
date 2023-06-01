@@ -46,7 +46,7 @@ import pairpro.utils
 
 
 ##structure
-# from PairPro.structure import download_structures, run_fatcat
+# from pairPro.structures import download_structure, run_fatcat
 
 
 ## db Paths
