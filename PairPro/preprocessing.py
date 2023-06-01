@@ -193,6 +193,8 @@ def build_pairpro(con, out_db_path, min_ogt_diff: int = 20, min_16s: int = 1300,
                        SELECT pairpro_protein_pairs.*,
                        proteins_m.protein_seq AS m_protein_seq,
                        proteins_t.protein_seq AS t_protein_seq,
+                       proteins_m.pdb_id AS meso_pdb,
+                       proteins_t.pdb_id AS thermo_pdb
                        FROM pairpro_protein_pairs
                        JOIN pairpro_proteins AS proteins_m
                        ON (pairpro_protein_pairs.meso_pid = proteins_m.pid)
@@ -223,8 +225,18 @@ def build_pairpro(con, out_db_path, min_ogt_diff: int = 20, min_16s: int = 1300,
     
     con2, _ = connect_db(out_db_path)
     
+    # Add pair IDs to final table
+    con2.execute("""CREATE TEMP TABLE pair_ids AS SELECT ROW_NUMBER() OVER(ORDER BY meso_pid, thermo_pid) AS pair_id, meso_pid, thermo_pid FROM pairpro.final""")
+    con2.execute("""ALTER TABLE pairpro.final ADD pair_id int""")
+    con2.execute("""UPDATE pairpro.final AS f
+    SET pair_id = pair_ids.pair_id::int
+    FROM pair_ids
+    WHERE pair_ids.meso_pid = f.meso_pid
+    AND pair_ids.thermo_pid = f.thermo_pid
+    """)
+    
     et_final = time.time()
     elapsed_time = et_final - e_time5
     print(f'Finished. Total execution time: {elapsed_time} seconds')
     
-    return con2
+    return con2, filename

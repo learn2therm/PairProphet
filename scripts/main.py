@@ -92,7 +92,7 @@ if __name__ == "__main__":
 
     #connect to database
     con, _ = connect_db(TEST_DB_PATH)
-    con = build_pairpro(con, db_path)
+    con, db_name = build_pairpro(con, db_path)
     logger.info(f'Connected to database. Built pairpro table in {db_path}')
 
     logger.info('Starting to run HMMER')
@@ -111,7 +111,7 @@ if __name__ == "__main__":
 
     logger.info(f'Created HMMER output directory: {HMMER_OUTPUT_DIR}')
 
-    proteins_in_pair_pids = con.execute("SELECT pid FROM pairpro.pairpro.proteins").df()
+    proteins_in_pair_pids = con.execute(f"SELECT pid FROM {db_name}.pairpro.proteins").df()
     logger.debug(f"Total number of protein in pairs: {len(proteins_in_pair_pids)} in pipeline")
     
     # chunking the PID so the worker function queries
@@ -167,8 +167,8 @@ if __name__ == "__main__":
 
     # checking if the parsed output is appended to table
     con.execute("""CREATE TABLE hmmer_results AS SELECT * FROM read_csv_auto('./data/protein_pairs/parsed_hmmer_output/*.csv', HEADER=TRUE)""")
-    con.execute("""ALTER TABLE pairpro.pairpro.final ADD COLUMN hmmer_match BOOLEAN""")
-    con.execute("""UPDATE pairpro.pairpro.final AS f
+    con.execute(f"""ALTER TABLE {db_name}.pairpro.final ADD COLUMN hmmer_match BOOLEAN""")
+    con.execute(f"""UPDATE {db_name}.pairpro.final AS f
     SET hmmer_match = hmmer.functional::BOOLEAN
     FROM hmmer_results AS hmmer
     WHERE hmmer.meso_pid = f.meso_pid
@@ -176,10 +176,10 @@ if __name__ == "__main__":
     """)
     logger.info('Finished appending parsed HMMER output to table.')
 
-    df = con.execute("""SELECT bit_score, local_gap_compressed_percent_id, 
+    df = con.execute(f"""SELECT bit_score, local_gap_compressed_percent_id, 
     scaled_local_query_percent_id, scaled_local_symmetric_percent_id, 
     query_align_len, query_align_cov, subject_align_len, subject_align_cov, 
-    LENGTH(m_protein_seq) AS m_protein_len, LENGTH(t_protein_seq) AS t_protein_len, hmmer_match FROM pairpro.pairpro.final""").df()
+    LENGTH(m_protein_seq) AS m_protein_len, LENGTH(t_protein_seq) AS t_protein_len, hmmer_match FROM {db_name}.pairpro.final""").df()
 
     print(df.head())
     print(df.shape)
