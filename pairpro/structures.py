@@ -66,7 +66,7 @@ async def download_af(row, u_column, pdb_dir):
         success = await download_aff(client, url, filename)
         return success
 
-def run_download_af_all(df, u_column, pdb_dir):
+def run_download_af_all(df, pdb_column, u_column, pdb_dir):
     """
     Runs the asynchronous downloading of AlphaFold pdb files for all rows in the given DataFrame.
 
