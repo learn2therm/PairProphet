@@ -13,14 +13,17 @@ To create and activate the environment specified in `environment.yml` in our 'Gi
 
 To install the PairProphet package, use the following commands:
 
-``
-conda env create --file environment.yml
-``
-``
-conda activate validprot
-``
-``
-pip install .
-``
+::
+
+    conda env create --file environment.yml
+
+::  
+    
+    conda activate validprot
+
+::
+
+    pip install .
+
 
 PairProphet is dependent on Python 3.11.
