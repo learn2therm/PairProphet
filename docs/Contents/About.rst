@@ -15,7 +15,9 @@ To install the PairProphet package, use the following commands:
 
 ```
 conda env create --file environment.yml
+
 conda activate validprot
+
 pip install .
 ```
 
