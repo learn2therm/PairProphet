@@ -26,6 +26,7 @@
 - mkl_fft=1.3.6=py311hdb55bb0_1
 - mkl_random=1.2.2=py311hdb55bb0_1
 - ncurses=6.4=hcec6c5f_0
+- nest-asyncio=1.5.6=pyhd8ed1ab_0
 - numexpr=2.8.4=py311h728a8a3_1
 - numpy=1.24.3=py311h728a8a3_1
 - numpy-base=1.24.3=py311h53bf9ac_1
