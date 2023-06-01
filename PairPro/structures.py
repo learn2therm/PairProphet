@@ -10,70 +10,83 @@ import subprocess
 import time
 import tempfile
 
-def download_structures(df, pdb_column, u_column, pdb_dir):
-    """
-        Download structures from PDB or AlphaFold2
+import asyncio
+import httpx
+import nest_asyncio
 
-    Args:
-        df (pandas.DataFrame): DataFrame containing PDB IDs and UniProt IDs.
-        pdb_column (str): Name of the column containing PDB IDs.
-        u_column (str): Name of the column containing UniProt IDs.
-        pdb_dir (str): Path to the directory where the structures are downloaded.
-        
-    Returns:
-        files: .pdb files downloaded from PDB or AlphaFold2 to the specified directory.
+import duckdb as db
+import numpy as np
 
-    Raises:
-        TODO: Add exceptions
-    """
-    start_time = time.time()  # Start measuring time
+async def download_aff(session, url, filename):
+    try:
+        response = await session.get(url)
+        if response.status_code == 200:
+            with open(filename, 'wb') as f:
+                f.write(response.content)
+            print(f"Downloaded file: {filename}")
+            return True
+        else:
+            print(f"Failed to download file: {filename}. Status code: {response.status_code}")
+            return False
+    except httpx.RequestError as e:
+        print(f"Error while downloading file: {filename}. Exception: {str(e)}")
+        return False
+
+async def download_af(row, u_column, pdb_dir):
+    uniprot_id = getattr(row, u_column)
+    url = f'https://alphafold.ebi.ac.uk/files/AF-{uniprot_id}-F1-model_v4.pdb'
+    filename = f'{pdb_dir}/{uniprot_id}.pdb'
+
+    async with httpx.AsyncClient() as client:
+        success = await download_aff(client, url, filename)
+        return success
+
+def run_download_af_all(df, u_column, pdb_dir):
+    nest_asyncio.apply()
+
+    async def download_af_all():
+        tasks = []
+        success_count = 0
+
+        if not os.path.exists(pdb_dir):
+            os.makedirs(pdb_dir)
+
+        for row in df.itertuples(index=False):
+            task = asyncio.create_task(download_af(row, u_column, pdb_dir))
+            tasks.append(task)
+
+        results = await asyncio.gather(*tasks)
+        success_count = sum(results)
+
+        print(f"Successfully downloaded {success_count} files out of {len(df)}")
+
+    asyncio.run(download_af_all())
+
+def download_pdb(df, pdb_column, pdb_dir):
     pdbl = PDBList()
-    if not os.path.exists(pdb_dir):
-        os.makedirs(pdb_dir)
-        
     for i, row in df.iterrows():
         pdb_id = row[pdb_column]
-        uniprot_id = row[u_column]
         if not pd.isna(pdb_id):  # check for NaN value in PDB IDs column
             pdbl.retrieve_pdb_file(pdb_id, pdir=pdb_dir, file_format='pdb')
             file_path = os.path.join(pdb_dir, f'pdb{pdb_id.lower()}.ent')
             if os.path.exists(file_path):
-                os.rename(os.path.join(file_path), os.path.join(pdb_dir, f'{pdb_id}.pdb'))
+                os.rename(file_path, os.path.join(pdb_dir, f'{pdb_id}.pdb'))
             else:
                 pass
-        elif isinstance(uniprot_id, str):  # download structure using UniProt ID
-            url = f'https://alphafold.ebi.ac.uk/files/AF-{uniprot_id}-F1-model_v4.pdb'
-            response = requests.get(url)
-            if response.ok:
-                filename = f'{pdb_dir}/{uniprot_id}.pdb'
-                with open(filename, 'wb') as f:
-                    f.write(response.content)
-                print(f"Downloaded file for {uniprot_id} to {filename}")
-            else:
-                print(f"Failed to download file for {uniprot_id}: {response.status_code} - {response.reason}")
-        else:
-            print(f"No PDB ID or UniProt ID available for index {i}")
-        end_time = time.time()  # Stop measuring time
+
+def download_structure(df, pdb_column, u_column, pdb_dir):
+    start_time = time.time()  # Start measuring time
+    if not os.path.exists(pdb_dir):
+        os.makedirs(pdb_dir)
+    download_pdb(df, pdb_column, pdb_dir)    
+    run_download_af_all(df, u_column, pdb_dir)
+    end_time = time.time()  # Stop measuring time
     execution_time = end_time - start_time
     print(f"Execution time: {execution_time} seconds")
     pass
 
 def run_fatcat(df, pdb_dir):
-    """
-        Run FATCAT on the structures in the dataframe
-
-    Args:
-        df (pandas.DataFrame): DataFrame containing PDB IDs and UniProt IDs.
-        pdb_dir (str): Path to the directory where the structures are downloaded.
-    
-    Returns:
-        df (pandas.DataFrame): DataFrame containing the p-values.
-    
-    Raises:
-        TODO: Add exceptions
-    """
     p_values = []  # List to store the extracted p-values
-    rows_to_drop = []  # List to store the indices of rows to be dropped
 
     for index, row in df.iterrows():
         if not pd.isna(row['meso_pdb']):
@@ -90,8 +103,8 @@ def run_fatcat(df, pdb_dir):
         p1_file = f'{p1}.pdb'
         p2_file = f'{p2}.pdb'
         if not os.path.exists(os.path.join(pdb_dir, p1_file)) or not os.path.exists(os.path.join(pdb_dir, p2_file)):
-            # Append the index of the row to the list of rows to be dropped
-            rows_to_drop.append(index)
+            # Assign a p-value of 2 to the row instead of dropping it
+            p_values.append(2)
             continue
 
         # Set the FATCAT command and its arguments
@@ -104,23 +117,24 @@ def run_fatcat(df, pdb_dir):
         # Find the line containing the p-value
         p_value_line = next(line for line in output.split('\n') if line.startswith("P-value"))
 
-        # Extract the p-value
+        # Extract the p-value and convert it to numeric value
         p_value = float(p_value_line.split()[1])
         
-        # Append the p-value to the list
-        p_values.append(p_value)
+        # Check if p-value is less than 0.05 and assign 0 or 1 accordingly
+        if p_value < 0.05:
+            p_values.append(0)
+        else:
+            p_values.append(1)
 
-    # Drop the rows with missing structure files from the dataframe
-    df = df.drop(rows_to_drop)
-    
     df.loc[:, 'p_value'] = p_values  # Use .loc to set the 'p_value' column
     return df
 
-if __name__ == "__main__":
-    # Read the dataframe
-    df = pd.read_csv('../data/pair_sample.csv')
-    # Download structures from PDB or AlphaFold2
-    download_structures(df, pdb_column='meso_pdb', u_column='meso_pid', pdb_dir='structures')
-    download_structures(df, pdb_column='thermo_pdb', u_column='thermo_pid', pdb_dir='structures')
-    # Run FATCAT on the structures
-    df_result = run_fatcat(df, pdb_dir='structures')
+# if __name__ == "__main__":
+#     # Read the dataframe
+#     df = pd.read_csv('../data/pair_sample.csv')
+#     df_sample = df.sample(5)
+#     # Download structures from PDB or AlphaFold2
+#     download_structure(df_sample, pdb_column='meso_pdb', u_column='meso_pid', pdb_dir='structures')
+#     download_structure(df_sample, pdb_column='thermo_pdb', u_column='thermo_pid', pdb_dir='structures')
+#     # Run FATCAT on the downloaded structures
+#     df_result = run_fatcat(df_sample, pdb_dir='structures')
