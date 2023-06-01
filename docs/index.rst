@@ -15,7 +15,7 @@ centralizing the searching process to one software pipeline that can
 be executed with a single command. 
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 5
    :hidden:
    :caption: Contents:
 
