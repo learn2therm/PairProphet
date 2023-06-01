@@ -16,6 +16,7 @@ import asyncio
 from concurrent.futures import ProcessPoolExecutor
 import json
 import logging
+import math
 import nest_asyncio
 import os
 import requests
@@ -436,7 +437,7 @@ def local_hmmer_wrapper(chunk_index, dbpath, chunked_pid_inputs,
         press_path=press_path,
         prefetch=True,
         cpu=1,
-        eval_con=1e-5)
+        eval_con=1e-10)
     
     # get the query IDs from the chunked_pid_inputs
     chunk_query_ids = chunked_pid_inputs["pid"].tolist()
@@ -448,7 +449,7 @@ def local_hmmer_wrapper(chunk_index, dbpath, chunked_pid_inputs,
         index=False)
     
 # parsing
-def preprocess_accessions(meso_accession, thermo_accession):
+def preprocess_accessions(meso_accession: str, thermo_accession: str):
     """
     Preprocesses meso_accession and thermo_accession by converting them to sets.
 
@@ -460,14 +461,14 @@ def preprocess_accessions(meso_accession, thermo_accession):
         tuple: A tuple containing the preprocessed meso_accession and thermo_accession sets.
     """
     # Convert accessions to sets
-    if isinstance(meso_accession, str):
-        meso_accession_set = set(meso_accession.split(';'))
-    else:
-        meso_accession_set = set(str(meso_accession))
-    if isinstance(thermo_accession, str):
-        thermo_accession_set = set(thermo_accession.split(';'))
-    else:
-        thermo_accession_set = set(str(thermo_accession))
+    print(meso_accession)
+    print(type(meso_accession))
+    print(thermo_accession)
+    print(type(thermo_accession))
+
+    meso_accession_set = set(str(meso_accession).split(';'))
+    thermo_accession_set = set(str(thermo_accession).split(';'))
+    
     return meso_accession_set, thermo_accession_set
 
 
@@ -524,18 +525,14 @@ def process_pairs_table(conn, chunk_size:int, output_directory, jaccard_threshol
         thermo_acc = row['thermo_accession']
 
         # parsing accessions logic
-        if meso_acc == None and thermo_acc == None:
+        if meso_acc == 'nan' and thermo_acc == 'nan':
             score = None
             functional = None
         elif meso_acc and thermo_acc:
             # Preprocess the accessions
-            if meso_acc == '' and thermo_acc == '':
-                score = None
-                functional = None
-            else:
-                meso_acc_set, thermo_acc_set = preprocess_accessions(meso_acc, thermo_acc)
-                score = calculate_jaccard_similarity(meso_acc_set, thermo_acc_set)
-                functional = score > jaccard_threshold
+            meso_acc_set, thermo_acc_set = preprocess_accessions(meso_acc, thermo_acc)
+            score = calculate_jaccard_similarity(meso_acc_set, thermo_acc_set)
+            functional = score > jaccard_threshold
         else:
             # Handle unmatched rows
             score = None
