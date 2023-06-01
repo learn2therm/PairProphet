@@ -46,11 +46,11 @@ import pairpro.utils
 
 
 ##structure
-# from pairPro.structures import download_structure, run_fatcat
+# from pairpro.structures import download_structure, run_fatcat
 
 
 ## db Paths
-TEST_DB_PATH = '/Users/humoodalanzi/pfam/l2t_50k.db'
+TEST_DB_PATH = '/Users/humoodalanzi/pfam/pairpro_50k.db'
 
 ## HMMER Paths
 HMM_PATH = './data/pfam/Pfam-A.hmm'  # ./Pfam-A.hmm

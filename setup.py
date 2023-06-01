@@ -7,12 +7,15 @@ here = pathlib.Path(__file__).parent.resolve()
 # Get the long description from the README file
 long_description = (here / "README.md").read_text(encoding="utf-8")
 
+packages = find_packages()
+print(f"Found packages {packages}")
+
 setup(
     name="pairpro", # Required  
     version="2023.6",  # Required
     long_description=long_description, 
     long_description_content_type="text/markdown", 
-    url="https://github.com/learn2therm/ValidProt",
+    url="https://github.com/learn2therm/PairProphet",
     author="Humood Alanzi, Logan Roberts, Ryan Francis, Amin Mosallanejad, Chau Vuong ", 
     author_email="halanzi@uw.edu",
     classifiers=[
@@ -30,8 +33,8 @@ setup(
         "Programming Language :: Python :: 3",
     ],
     keywords="proteins, function",
-    packages=find_packages(),
-    python_requires=">=3.10, <4",
+    packages=packages,
+    python_requires=">=3.7, <4",
     extras_require={ 
         "test": ["coverage", 'pytest'],
     },
