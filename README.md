@@ -26,7 +26,7 @@ To create and activate the environment specified in `environment.yml`
 and install the PairProphet package, do the following commands:
 ```
 conda env create --file environment.yml
-conda activate validprot
+conda activate pairpro
 pip install .
 ```
 

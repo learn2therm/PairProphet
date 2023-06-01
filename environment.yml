@@ -1,4 +1,4 @@
-name: validprot
+name: pairpro
 channels:
   - defaults
   - conda-forge
