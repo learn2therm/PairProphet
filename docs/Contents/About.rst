@@ -9,7 +9,7 @@ into a single pipeline to improve prediction quality and streamline the characte
 Requirements and Installation
 =============
 
-To create and activate the environment specified in `environment.yml` in our 'Github <https://github.com/learn2therm/ValidProt>_:
+To create and activate the environment specified in `environment.yml` in our `Github <https://github.com/learn2therm/ValidProt>`_:
 
 To install the PairProphet package, use the following commands:
 
