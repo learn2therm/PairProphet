@@ -1,12 +1,12 @@
 Scripts 
 ===========
 
-.. automodule:: main
+.. automodule:: scripts.main
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: runclassifiers
+.. automodule:: scripts.runclassifiers
    :members:
    :undoc-members:
    :show-inheritance:
