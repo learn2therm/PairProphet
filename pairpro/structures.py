@@ -88,8 +88,9 @@ def run_download_af_all(df, u_column, pdb_dir):
             os.makedirs(pdb_dir)
 
         for row in df.itertuples(index=False):
-            task = asyncio.create_task(download_af(row, u_column, pdb_dir))
-            tasks.append(task)
+            if pd.isna(getattr(row, pdb_column)):
+                task = asyncio.create_task(download_af(row, u_column, pdb_dir))
+                tasks.append(task)
 
         results = await asyncio.gather(*tasks)
         success_count = sum(results)
@@ -139,7 +140,7 @@ def download_structure(df, pdb_column, u_column, pdb_dir):
     if not os.path.exists(pdb_dir):
         os.makedirs(pdb_dir)
     download_pdb(df, pdb_column, pdb_dir)    
-    run_download_af_all(df, u_column, pdb_dir)
+    run_download_af_all(df, pdb_column, u_column, pdb_dir)
     end_time = time.time()  # Stop measuring time
     execution_time = end_time - start_time
     print(f"Execution time: {execution_time} seconds")
@@ -156,9 +157,9 @@ def run_fatcat(df, pdb_dir):
 
     Returns:
         pd.DataFrame: The updated DataFrame with the added 'p_value' column.
-        p_values: 0 if pair is structurally similar
-                  1 if pair is structurally different
-                  2 if the PDB files were not found.
+        p_values: 0 False pair
+                  1 True pair
+                  NaN if structure file does not exist
     """
     p_values = []  # List to store the extracted p-values
 
@@ -178,7 +179,7 @@ def run_fatcat(df, pdb_dir):
         p2_file = f'{p2}.pdb'
         if not os.path.exists(os.path.join(pdb_dir, p1_file)) or not os.path.exists(os.path.join(pdb_dir, p2_file)):
             # Assign a p-value of 2 to the row instead of dropping it
-            p_values.append(2)
+            p_values.append(np.nan)
             continue
 
         # Set the FATCAT command and its arguments
@@ -194,7 +195,7 @@ def run_fatcat(df, pdb_dir):
         # Extract the p-value and convert it to numeric value
         p_value = float(p_value_line.split()[1])
         
-        # Check if p-value is less than 0.05 and assign 0 or 1 accordingly
+        # Check if p-value is less than 0.05 and assign 1 or 0 accordingly
         if p_value < 0.05:
             p_values.append(0)
         else:
