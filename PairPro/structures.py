@@ -18,6 +18,20 @@ import duckdb as db
 import numpy as np
 
 async def download_aff(session, url, filename):
+    """
+    Downloads a file from the given URL using the provided session object and saves it with the specified filename.
+
+    Args:
+        session (httpx.AsyncClient): An asynchronous HTTP client session.
+        url (str): The URL from which to download the file.
+        filename (str): The name of the file to save the downloaded content.
+
+    Returns:
+        bool: True if the file was downloaded successfully, False otherwise.
+
+    Raises:
+        httpx.RequestError: If an error occurs during the HTTP request.
+    """
     try:
         response = await session.get(url)
         if response.status_code == 200:
@@ -33,6 +47,17 @@ async def download_aff(session, url, filename):
         return False
 
 async def download_af(row, u_column, pdb_dir):
+    """
+    Downloads an AlphaFold PDB file corresponding to the given row and saves it in the specified directory.
+
+    Args:
+        row (pd.Series): A row from a pandas DataFrame containing the necessary information.
+        u_column (str): The name of the column in the DataFrame containing the UniProt ID.
+        pdb_dir (str): The directory where the PDB file should be saved.
+
+    Returns:
+        bool: True if the file was downloaded successfully, False otherwise.
+    """
     uniprot_id = getattr(row, u_column)
     url = f'https://alphafold.ebi.ac.uk/files/AF-{uniprot_id}-F1-model_v4.pdb'
     filename = f'{pdb_dir}/{uniprot_id}.pdb'
@@ -42,6 +67,17 @@ async def download_af(row, u_column, pdb_dir):
         return success
 
 def run_download_af_all(df, u_column, pdb_dir):
+    """
+    Runs the asynchronous downloading of AlphaFold pdb files for all rows in the given DataFrame.
+
+    Args:
+        df (pd.DataFrame): The DataFrame containing the data for downloading PDB files.
+        u_column (str): The name of the column in the DataFrame containing the UniProt IDs.
+        pdb_dir (str): The directory where the PDB files should be saved.
+
+    Returns:
+        files: pdb files containing structural information.
+    """
     nest_asyncio.apply()
 
     async def download_af_all():
@@ -63,6 +99,18 @@ def run_download_af_all(df, u_column, pdb_dir):
     asyncio.run(download_af_all())
 
 def download_pdb(df, pdb_column, pdb_dir):
+    """
+    Downloads pdb files corresponding to the PDB IDs in the specified column of the DataFrame and saves them in the
+    specified directory.
+
+    Args:
+        df (pd.DataFrame): The DataFrame containing the data for downloading PDB files.
+        pdb_column (str): The name of the column in the DataFrame containing the PDB IDs.
+        pdb_dir (str): The directory where the PDB files should be saved.
+
+    Returns: pdb files containing structural information.
+        
+    """
     pdbl = PDBList()
     for i, row in df.iterrows():
         pdb_id = row[pdb_column]
@@ -75,6 +123,18 @@ def download_pdb(df, pdb_column, pdb_dir):
                 pass
 
 def download_structure(df, pdb_column, u_column, pdb_dir):
+    """
+    Downloads PDB files and AlphaFold models for the given DataFrame and saves them in the specified directory. This
+    function combines the functionality of `download_pdb` and `run_download_af_all`.
+
+    Args:
+        df (pd.DataFrame): The DataFrame containing the data for downloading PDB files and AlphaFold models.
+        pdb_column (str): The name of the column in the DataFrame containing the PDB IDs.
+        u_column (str): The name of the column in the DataFrame containing the UniProt IDs.
+        pdb_dir (str): The directory where the PDB files and AlphaFold models should be saved.
+    
+    Returns: pdb files containing structural information.
+    """
     start_time = time.time()  # Start measuring time
     if not os.path.exists(pdb_dir):
         os.makedirs(pdb_dir)
@@ -86,6 +146,20 @@ def download_structure(df, pdb_column, u_column, pdb_dir):
     pass
 
 def run_fatcat(df, pdb_dir):
+    """
+    Runs the FATCAT protein structure alignment tool on the PDB files in the specified directory and extracts the
+    p-values. It updates the DataFrame with the calculated p-values.
+
+    Args:
+        df (pd.DataFrame): The DataFrame containing the data for running the FATCAT tool.
+        pdb_dir (str): The directory where the PDB files are located.
+
+    Returns:
+        pd.DataFrame: The updated DataFrame with the added 'p_value' column.
+        p_values: 0 if pair is structurally similar
+                  1 if pair is structurally different
+                  2 if the PDB files were not found.
+    """
     p_values = []  # List to store the extracted p-values
 
     for index, row in df.iterrows():
