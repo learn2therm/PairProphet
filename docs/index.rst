@@ -15,18 +15,14 @@ centralizing the searching process to one software pipeline that can
 be executed with a single command. 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 4
    :hidden:
    :caption: Contents:
 
    Contents/PairPro
    Contents/runclassifiers
    Contents/About
+   Contents/Acknowledgements
+   Contents/References
 
-.. toctree::
-   :maxdepth: 2
-   :hidden:
-   :caption: Guidelines:
-
-   Guidelines/PairPro
  
