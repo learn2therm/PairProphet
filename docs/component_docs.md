@@ -177,6 +177,109 @@ This component has two options to be ran locally or using the online HMMER serve
 1. for the first option, explicitly integrate with the upstream and downstream components especially when we have a small dataset
 2. for the second approach, parse, filter, and compute metrics of interest for a large dataset
 
+## API Component Three: hmmer.py
+        **Params:** sampled sequence data from component 1
+
+        **Inputs:** protein pair amino acid sequences (API) or sequences
+
+        **Outputs:** 45 columns of the main informaition for the sequences
+
+        **Packages:** pandas, requests, urllib.parse, time, httpx, nest_asyncio, asyncio, json, concurrent.futures
+
+**Use case**:
+
+        The API code comprises the asynchronous implementation of HMMER using the online server API provided by EBI. This solution submits multiple protein sequences for HMMER analysis and processes the server's responses concurrently. It handles request failures through a retry mechanism and parallelizes response processing with a process pool executor.
+
+**Code**:
+        The code mainly includes four functions that are below.
+
+        1. send_request(): Submits a protein sequence for analysis to the HMMER server.
+
+        *Parameters*:
+                semaphore: An asyncio.Semaphore instance. This semaphore controls the number of concurrent requests made to the HMMER API.
+                sequence: A string representing the protein sequence to be analyzed.
+                client: An instance of httpx.AsyncClient. This is the HTTP client used to send the request.
+        *Return*:
+                response: The httpx.Response object received from the HMMER API.
+        *Exception Handling*:
+                Raises an httpx.HTTPStatusError if the HTTP request returned an error status code.
+                Raises an httpx.TimeoutException if the request times out.
+
+        2. process_response(): Processes the server's responses and handles request retries. This function processes the response received from the HMMER API. If a request fails, it will attempt to retry the request up to max_retries times.
+
+        *Parameters*:
+                semaphore: An asyncio.Semaphore instance. This semaphore controls the number of concurrent 
+                requests made to the HMMER API.
+                sequence: A string representing the protein sequence associated with the response.
+                response: An httpx.Response object. This is the response received from the HMMER API.
+                client: An instance of httpx.AsyncClient. This is the HTTP client used to send subsequent requests if necessary.
+                pid: An integer representing the protein ID associated with the sequence.
+                max_retries (optional): An integer specifying the maximum number of retries for failed requests. Defaults to 3.
+        *Return*:
+                A pandas DataFrame containing the search results for the protein sequence, or None if an error occurred.
+        *Exception Handling*:
+                Raises a KeyError if the expected key is not found in the response.
+                Raises a json.JSONDecodeError if JSON decoding fails.
+
+        3. hmmerscanner(): Submits multiple protein sequences for HMMER analysis and processes the server's responses concurrently.
+
+        *Parameters*:
+                df: A pandas DataFrame containing protein sequences.
+                k: An integer specifying the number of protein sequences to search.
+                max_concurrent_requests: An integer specifying the maximum number of concurrent requests 
+                to the HMMER API.
+                output_path: A string specifying the directory where the output data will be stored.
+        *Return*:
+                A pandas DataFrame containing the search results for all protein sequences.
+        *Exception Handling*:
+                Raises a ValueError if the number of sequences exceeds the limit of 1000.
+
+        4. run_hmmerscanner(): A wrapper function that sets up the event loop and initiates the asynchronous HMMER scanning process.
+
+        *Parameters*:
+                df: A pandas DataFrame containing protein sequences.
+                k: An integer specifying the number of protein sequences to search.
+                max_concurrent_requests: An integer specifying the maximum number of concurrent requests to the HMMER API.
+        *Return*:
+                A pandas DataFrame containing the search results for all protein sequences.
+        *Exception Handling*:
+                Raises a nest_asyncio.NestingError if the event loop is already running.
+                Propagates any exceptions raised by the hmmerscanner() function.
+
+        The send_request() and process_response() functions are utilized within the hmmerscanner() function, which uses asyncio tasks to manage the concurrent execution of these functions.
+
+**Important Points to Note**:
+
+        send_request(): This function submits a protein sequence for analysis to the HMMER server. The sequence is sent as a POST request. A semaphore is used to control the concurrency level of the requests, which avoids overloading the server.
+
+        process_response(): This function processes the server's response and handles retries for failed requests. It retrieves the redirect URL from the response's headers, sends a GET request to the URL, and retrieves the search results from the JSON response. In case of a read timeout, the function retries the request with exponential backoff, up to a maximum number of retries. If the response contains hits, it constructs a pandas DataFrame from the hits and returns it. Otherwise, it returns None.
+
+        hmmerscanner(): This function concurrently submits multiple protein sequences for HMMER analysis and processes the server's responses. It first checks if the number of sequences exceeds the limit of 1000, and if it does, it suggests the user to use the local function and returns an empty DataFrame. Otherwise, it creates tasks for sending requests and processing responses and gathers the results from all tasks. Finally, it constructs a DataFrame containing the search results for all protein sequences and saves it to a CSV file.
+
+        run_hmmerscanner(): This function sets up the event loop and initiates the asynchronous HMMER scanning process. It applies nest_asyncio to allow nested usage of asyncio.run() and then runs the hmmerscanner() function in the event loop.
+
+**Test**:
+
+        The testing phase will involve validating input sequence data, ensuring successful creation of input files, as well as verifying the creation of HMMER output files. We will also validate the correct chunking of sequences and the functioning of the embarrassingly parallel Python technique in the HMMER running subcomponent. The development and testing of the parsing and computation of functional pairs from HMMER outputs subcomponent are ongoing.
+        To use the asynchronous HMMER scanner, simply import the code and call the run_hmmerscanner() function with the appropriate arguments. For example:
+ 
+        """
+        df = pd.read_csv('protein_sequences.csv')
+        k = 500
+        max_concurrent_requests = 50
+        run_hmmerscanner(df, k, max_concurrent_requests)
+        This will run the HMMER scanner on the first 500 protein sequences from the input DataFrame, with a maximum of 50 concurrent requests to the HMMER server. The results will be returned as a DataFrame.
+        """
+
+**Possible Errors**:
+
+        httpx.HTTPStatusError: If the HTTP request returned a status code that denotes an error.
+        httpx.TimeoutException: If the request times out.
+        KeyError: If expected key is not found in the response.
+        json.JSONDecodeError: If JSON decoding fails.
+        ValueError: If the number of sequences exceeds the limit of 1000.
+        nest_asyncio.NestingError: If the event loop is already running.
+
 # Component 4 - Acquire structural information
 ## Software Component Four: find_structures.py
 
