@@ -13,6 +13,7 @@ import nest_asyncio
 import duckdb as db
 import numpy as np
 import concurrent.futures
+from joblib import Parallel, delayed
 
 async def download_aff(session, url, filename):
     try:
@@ -146,12 +147,47 @@ def run_fatcat_dict_2(df, pdb_dir):
     print(f"Execution time: {execution_time} seconds")
     return p_values
 
+def compare_fatcat(p1_file, p2_file, pdb_dir, pair_id):
+    cmd = ['FATCAT', '-p1', p1_file, '-p2', p2_file, '-i', pdb_dir, '-q']
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    output = result.stdout
+    p_value_line = next(line for line in output.split('\n') if line.startswith("P-value"))
+    p_value = float(p_value_line.split()[1])
+    if p_value < 0.05:
+        return {'pair_id': pair_id, 'p_value': 1}
+    else:
+        return {'pair_id': pair_id, 'p_value': 0}
+
+def process_row(row, pdb_dir):
+    if not pd.isna(row['meso_pdb']):
+        p1 = row['meso_pdb']
+    else:
+        p1 = row['meso_pid']
+    if not pd.isna(row['thermo_pdb']):
+        p2 = row['thermo_pdb']
+    else:
+        p2 = row['thermo_pid']
+    p1_file = f'{p1}.pdb'
+    p2_file = f'{p2}.pdb'
+    if not os.path.exists(os.path.join(pdb_dir, p1_file)) or not os.path.exists(os.path.join(pdb_dir, p2_file)):
+        return {'pair_id': row['pair_id'], 'p_value': np.nan}
+    return compare_fatcat(p1_file, p2_file, pdb_dir, row['pair_id'])
+
+def run_fatcat_dict_job(df, pdb_dir):
+    start_time = time.time()
+    p_values = []
+    p_values = Parallel(n_jobs=-1)(delayed(process_row)(row, pdb_dir) for _, row in df.iterrows())
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"Execution time: {execution_time} seconds")
+    return p_values
+
 if __name__ == '__main__':
-    dff = pd.read_csv('data/chau_test.csv')
+    dff = pd.read_csv('../data/chau_test.csv')
     df = dff.sample(1000)
     # Download the structures
     download_structure(df, 'meso_pdb', 'meso_pid', 'af')
     download_structure(df, 'thermo_pdb', 'thermo_pid', 'af')
 
     # Compare the structures and extract the p-values
-    p_values = run_fatcat_dict_2(df, 'af')
+    p_values = run_fatcat_dict_job(df, 'af')
