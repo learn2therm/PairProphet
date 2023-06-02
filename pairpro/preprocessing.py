@@ -1,5 +1,5 @@
 '''
-This package builds the PairProphet database from learn2therm.
+This package builds the PairProphet database from learn2thermDB.
 
 Functions:
     connect_df: Establishes connection to DuckDB database using local or
