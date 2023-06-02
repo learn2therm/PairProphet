@@ -1,7 +1,7 @@
-PairPro
+pairpro
 =======
 
 .. toctree::
    :maxdepth: 4
 
-   PairPro
+   pairpro
