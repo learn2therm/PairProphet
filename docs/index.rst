@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to PairPro's documentation! 
+Welcome to PairProphet's documentation! 
 =================================
 PairPro is a software pipeline developed at the University of
 Washington. This package implements a  “first-pass” model that 
@@ -19,7 +19,7 @@ be executed with a single command.
    :hidden:
    :caption: Contents:
 
-   Contents/PairPro
+   Contents/pairpro
    Contents/runclassifiers
    Contents/About
    Contents/Acknowledgements
