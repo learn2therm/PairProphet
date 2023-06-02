@@ -209,7 +209,11 @@ def build_pairpro(con, out_db_path, min_ogt_diff: int = 20, min_16s: int = 1300,
         while os.path.exists(f'{filename}_{counter}{ext}'):
             counter += 1
         out_db_path = f'{filename}_{counter}{ext}'
-    filename = f'{filename.split("/")[2]}_{counter}'    
+        filename = f'{filename.split("/")[2]}_{counter}' 
+    else:
+        filename = os.path.splitext(out_db_path)[0].split("/")[2]
+
+       
     print(f'Transferring data to new database {out_db_path}')
     con.execute(f"""ATTACH '{out_db_path}' AS out_db""")
     con.execute("""CREATE SCHEMA out_db.pairpro""")

@@ -50,7 +50,7 @@ import pairpro.utils
 
 
 ## db Paths
-TEST_DB_PATH = '/Users/humoodalanzi/pfam/l2t_50k.db'
+TEST_DB_PATH = '/Users/humoodalanzi/pfam/l2t_500k.db'
 
 ## HMMER Paths
 HMM_PATH = './data/pfam/Pfam-A.hmm'  # ./Pfam-A.hmm
@@ -99,8 +99,8 @@ if __name__ == "__main__":
     logger.info('Starting to run HMMER')
 
     # Set up parallel processing and parsing
-    chunk_size = 2500 # Number of sequences to process in each chunk 
-    njobs = 4  # Number of parallel processes to use
+    chunk_size = 5000 # Number of sequences to process in each chunk 
+    njobs = 6  # Number of parallel processes to use
 
     logger.info('Parallel processing parameters obtained')
 
