@@ -1,5 +1,5 @@
 # Pipeline documentation
-This document offers a comprehensive exposition of all the components as well as the subcomponents. For a high-level overview, please refer to [components](./components.md). The purpose, inputs, steps, outputs, metrics, are all described for each pipeline script in this document.
+This document offers a comprehensive exposition of all the components as well as the subcomponents. The purpose, inputs, steps, outputs, metrics, are all described for all the importable code found in pairpro decribed as components in this document. For a high-level overview of scripts, please refer to [components](../scripts/README.md). The components talked about here constitute the scripts in the scripts folder.
 
 
 # Table of contents
@@ -16,9 +16,9 @@ This document offers a comprehensive exposition of all the components as well as
 
     **Params:** 
 
-        **Inputs:** learn2therm protein pair database file
+        **Inputs:** learn2thermDB protein pair database file
 
-        **Outputs:** Augmented database file containing relevant proteins and pairs for FAFSA. Keeps original tables intact.
+        **Outputs:** Augmented database file containing relevant proteins and pairs for pairpro. Keeps original tables intact.
                      It is recommended to have a backup copy of the original database as well as 100 GB of free storage and at 
                      least 30 GB of available memory. 
 
@@ -26,7 +26,7 @@ This document offers a comprehensive exposition of all the components as well as
     Additionally, this code need only be executed once to generate all files necessary for downstream processing. Users can input
     their own similarly formatted data for classification starting in component 1. Component 0 can feed both component 1 and 
     component 2. Additionally, users have the option to export intermediate metadata on the flow of information between learn2therm
-    and FAFSA as Sankey plots.
+    and pairpro as Sankey plots.
 
     **Packages:** os, time, pandas, numpy, duckdb, plotly, kaleido
 
@@ -34,11 +34,11 @@ This document offers a comprehensive exposition of all the components as well as
 
 **Use case**: 
 
-        User has copy of learn2therm database file and generates data for FAFSA. 
+        User has copy of learn2therm database file and generates data for pairpro. 
 
 **Test**: 
 
-        Test that connection and queries to new FAFSA database are correct. Test connection to old tables as well as new
+        Test that connection and queries to new pairpro database are correct. Test connection to old tables as well as new
         within connection object.
 
 ### **Subcomponent 2**: 
@@ -52,7 +52,7 @@ This document offers a comprehensive exposition of all the components as well as
         Test that plot files are created and not empty.
 
 =======
-    **Packages:** os, sys, time, pandas, numpy, duckdb, plotly, kaleidoscope
+    **Packages:** pandas, numpy, duckdb, plotly, kaleidoscope
 
 # Component 1
 
@@ -70,10 +70,10 @@ This document offers a comprehensive exposition of all the components as well as
         **Outputs:** Pandas dataframe(s) containing data sample of specified size. We hope to include analytics as a
         separate output in the future to inform user decisions about sampling.
 
-    Component 1 formats data for the FAFSA model. The resulting dataframe is pruned to contain only features and 
+    Component 1 formats data for the pairpro model. The resulting dataframe is pruned to contain only features and 
     target data.
 
-    **Packages:** os, sys, pandas
+    **Packages:** pandas
     
 ### **Subcomponent 1**: 
 
@@ -91,7 +91,7 @@ This document offers a comprehensive exposition of all the components as well as
 
     **Params:** 
 
-        **Inputs:** Protein pair database file or pandas dataframe formatted for FAFSA. Sampling 
+        **Inputs:** Protein pair database file or pandas dataframe formatted for pairpro. Sampling 
                     parameters for training set.
 
         **Outputs:** DataFrame containing training data. Exported analytics and plots for user reference (optional, not implemented 
@@ -116,22 +116,22 @@ This document offers a comprehensive exposition of all the components as well as
 
 
 # Component 3
-## Software Component Three: compute_local_hmmer.py or HMMER_API.py
+## Software Component Three: hmmer.py
     
-    **Params:** sampled sequence data from component 2
+    **Params:** sampled sequence data from component 1
 
-    **Inputs:** protein pair amino acid sequences
+    **Inputs:** protein pair amino acid sequences (API) or their associated PID's (pyhmmer/local)
 
-    **Outputs:** for the two proteins in a pair, you've a target family based on hmmer metrics and a boolean to check if a pair are functional or not according to pfam parsing
+    **Outputs:** for the two proteins in a pair, you've a target family based on shared accession and a boolean to check if a pair are functional or not according to pfam parsing
 
-    **Metrics:**
+    **Metrics:** Not impelemented yet
 
-    **Packages:** pandas, biopython, HMMER, pfam database (database, optional), unittest
+    **Packages:** pandas, biopython, pyhmmer, httpx, nest-asyncio
 
 Component 3 aims to use the HMMER algrothim running against the pfam database on all protein pairs specified by the user. In this case, we are using the Learn2thermDB protein pairs.
 This component has two options to be ran locally or using the online HMMER server API. The two options have different subcomponents, use-cases and tests. However, for the purposes of this documentation, we will assume that the two options are the same, which is a reasonable assumption to make in this case. This component takes in the sampling data from the upstream component 2. From there, the component starts ensuring that the amino acid sequences supplied by the user are read and written in the appropriate .fasta file type for HMMER to take in. Then, it runs HMMER search against the Pfam database using the hmmscan command. Here, we aim to embarrassingly parallelize to beat the I/O disk-reading of the HMMER algrothim, and make sure that it can take as much sequences as possible. Unfortuntely, this is subject of ongoing work and has not been implemented properly yet. This component will undergo significant further development during the spring. We plan to run HMMER on the newest data sample and we will work on a function that parses the HMMER output, filters, and determines if a pair are functional or not, which will be the input for component 5.
 
-### **Subcomponent 1**: Read sequence & Run HMMER against pfam database
+### **Subcomponent 1**: Run HMMER either locally via pyhmmer or using the online HMMER server API
 
 **Use case**: 
         

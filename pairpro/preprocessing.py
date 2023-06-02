@@ -209,7 +209,7 @@ def build_pairpro(con, out_db_path, min_ogt_diff: int = 20, min_16s: int = 1300,
         while os.path.exists(f'{filename}_{counter}{ext}'):
             counter += 1
         out_db_path = f'{filename}_{counter}{ext}'
-        
+    filename = f'{filename.split("/")[2]}_{counter}'    
     print(f'Transferring data to new database {out_db_path}')
     con.execute(f"""ATTACH '{out_db_path}' AS out_db""")
     con.execute("""CREATE SCHEMA out_db.pairpro""")
@@ -226,7 +226,7 @@ def build_pairpro(con, out_db_path, min_ogt_diff: int = 20, min_16s: int = 1300,
     con2, _ = connect_db(out_db_path)
     
     # Add pair IDs to final table
-    con2.execute("""CREATE TEMP TABLE pair_ids AS SELECT ROW_NUMBER() OVER(ORDER BY meso_pid, thermo_pid) AS pair_id, meso_pid, thermo_pid FROM pairpro.final""")
+    con2.execute(f"""CREATE TEMP TABLE pair_ids AS SELECT ROW_NUMBER() OVER(ORDER BY meso_pid, thermo_pid) AS pair_id, meso_pid, thermo_pid FROM {filename}.pairpro.final""")
     con2.execute("""ALTER TABLE pairpro.final ADD pair_id int""")
     con2.execute("""UPDATE pairpro.final AS f
     SET pair_id = pair_ids.pair_id::int

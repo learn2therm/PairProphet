@@ -375,7 +375,7 @@ def parse_pyhmmer(all_hits, chunk_query_ids):
     return df
 
 
-def local_hmmer_wrapper(chunk_index, dbpath, chunked_pid_inputs,
+def local_hmmer_wrapper(chunk_index, dbpath, dbname, chunked_pid_inputs,
                         press_path, out_dir,  wakeup=None):
     """
     A wrapping function that runs and parses pyhmmer in chunks.
@@ -383,6 +383,7 @@ def local_hmmer_wrapper(chunk_index, dbpath, chunked_pid_inputs,
     Args:
         chunk_index (int): Number of sequence chunks.
         dbpath (stf): Path to the database.
+        dbname (str): Name of the database.
         chunked_pid_inputs (pandas.DataFrame): DataFrame containing chunked PID inputs.
         press_path (str): Path to the pressed HMM database.
         out_path (str): Path to directory where output will be saved.
@@ -418,7 +419,7 @@ def local_hmmer_wrapper(chunk_index, dbpath, chunked_pid_inputs,
 
     # Only extract protein_seqs from the list of PID inputs
     placeholders = ', '.join(['?'] * len(pids))
-    query = f"SELECT pid, protein_seq FROM pairpro.pairpro.proteins WHERE pid IN ({placeholders})"
+    query = f"SELECT pid, protein_seq FROM {dbname}.pairpro.proteins WHERE pid IN ({placeholders})"
     query_db = conn.execute(query, list(pids)).fetchall()
 
     # close db connection
@@ -461,10 +462,10 @@ def preprocess_accessions(meso_accession: str, thermo_accession: str):
         tuple: A tuple containing the preprocessed meso_accession and thermo_accession sets.
     """
     # Convert accessions to sets
-    print(meso_accession)
-    print(type(meso_accession))
-    print(thermo_accession)
-    print(type(thermo_accession))
+    # print(meso_accession)
+    # print(type(meso_accession))
+    # print(thermo_accession)
+    # print(type(thermo_accession))
 
     meso_accession_set = set(str(meso_accession).split(';'))
     thermo_accession_set = set(str(thermo_accession).split(';'))
@@ -493,12 +494,13 @@ def calculate_jaccard_similarity(meso_accession_set, thermo_accession_set):
     return jaccard_similarity
 
 
-def process_pairs_table(conn, chunk_size:int, output_directory, jaccard_threshold):
+def process_pairs_table(conn, dbname, chunk_size:int, output_directory, jaccard_threshold):
     """
     Processes the pairs table, calculates Jaccard similarity, and generates output CSV.
 
     Parameters:
         conn (**): Path to the database file.
+        dbname (str): Name of the database.
         chunk_size (int): Size of each query chunk to fetch from the database.
         output_directory (str): Directory path to save the output CSV files.
         jaccard_threshold (float): Threshold value for Jaccard similarity.
@@ -507,10 +509,10 @@ def process_pairs_table(conn, chunk_size:int, output_directory, jaccard_threshol
         None
     """
     # Perform a join to get relevant information from the two tables
-    query1 = """
+    query1 = f"""
         CREATE OR REPLACE TEMP TABLE joined_pairs AS 
         SELECT p.meso_pid, p.thermo_pid, pr.accession AS meso_accession, pr2.accession AS thermo_accession
-        FROM pairpro.pairpro.final AS p
+        FROM {dbname}.pairpro.final AS p
         INNER JOIN proteins_from_pairs AS pr ON (p.meso_pid = pr.pid)
         INNER JOIN proteins_from_pairs AS pr2 ON (p.thermo_pid = pr2.pid)
     """

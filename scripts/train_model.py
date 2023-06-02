@@ -50,7 +50,7 @@ import pairpro.utils
 
 
 ## db Paths
-TEST_DB_PATH = '/Users/humoodalanzi/pfam/pairpro_50k.db'
+TEST_DB_PATH = '/Users/humoodalanzi/pfam/l2t_50k.db'
 
 ## HMMER Paths
 HMM_PATH = './data/pfam/Pfam-A.hmm'  # ./Pfam-A.hmm
@@ -93,6 +93,7 @@ if __name__ == "__main__":
     #connect to database
     con, _ = connect_db(TEST_DB_PATH)
     con, db_name = build_pairpro(con, db_path)
+    db_path = f'./tmp/{db_name}.db'
     logger.info(f'Connected to database. Built pairpro table in {db_path}')
 
     logger.info('Starting to run HMMER')
@@ -129,6 +130,7 @@ if __name__ == "__main__":
             delayed(pairpro.hmmer.local_hmmer_wrapper)(
                 chunk_index,
                 db_path,
+                db_name,
                 protein_pair_pid_chunks,
                 PRESS_PATH,
                 HMMER_OUTPUT_DIR,
@@ -161,7 +163,7 @@ if __name__ == "__main__":
     chunk_size = 3
     
     logger.info(f'Created parse HMMER output directory: {PARSE_HMMER_OUTPUT_DIR}. Running parse HMMER algorithm.')
-    pairpro.hmmer.process_pairs_table(con, chunk_size, PARSE_HMMER_OUTPUT_DIR, jaccard_threshold)
+    pairpro.hmmer.process_pairs_table(con, db_name, chunk_size, PARSE_HMMER_OUTPUT_DIR, jaccard_threshold)
 
     logger.info('Finished parsing HMMER output.')
 
