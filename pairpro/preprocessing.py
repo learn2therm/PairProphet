@@ -231,8 +231,8 @@ def build_pairpro(con, out_db_path, min_ogt_diff: int = 20, min_16s: int = 1300,
     
     # Add pair IDs to final table
     con2.execute(f"""CREATE TEMP TABLE pair_ids AS SELECT ROW_NUMBER() OVER(ORDER BY meso_pid, thermo_pid) AS pair_id, meso_pid, thermo_pid FROM {filename}.pairpro.final""")
-    con2.execute("""ALTER TABLE pairpro.final ADD pair_id int""")
-    con2.execute("""UPDATE pairpro.final AS f
+    con2.execute(f"""ALTER TABLE {filename}.pairpro.final ADD pair_id int""")
+    con2.execute(f"""UPDATE {filename}.pairpro.final AS f
     SET pair_id = pair_ids.pair_id::int
     FROM pair_ids
     WHERE pair_ids.meso_pid = f.meso_pid

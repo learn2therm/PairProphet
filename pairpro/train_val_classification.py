@@ -67,6 +67,58 @@ def train_model(dataframe, columns=[], target=[]):
 
     return model, train_X, train_y, val_X, val_y
 
+def train_model_structure(dataframe, columns=[], target=[]):
+    '''
+    Takes dataframe and splits it into a training and testing set.
+    Trains a RF Classifier with data.
+
+    Args:
+        dataframe: Pandas dataframe
+        columns: list of strings, representing input features
+        target: list of strings, representing target feature(s)
+
+    Returns:
+        Sk-learn model object
+        train data (features)
+        train data (target)
+        validation data (features)
+        validation data (target)
+    '''
+    # split data
+    train, val = sklearn.model_selection.train_test_split(
+        dataframe, test_size=0.15, random_state=1)
+
+    # test input arguments
+    assert "pandas.core.frame.DataFrame" in str(type(train))
+    assert "pandas.core.frame.DataFrame" in str(type(val))
+    assert "str" in str(type(columns[0]))
+    assert "str" in str(type(target[0]))
+
+    # split into input and output feature(s)
+    train_X = train[columns].values
+    val_X = val[columns].values
+
+    train_y = train[target].values
+    val_y = val[target].values
+
+    # scale data
+    scaler = sklearn.preprocessing.StandardScaler()
+    train_X = scaler.fit_transform(train_X)
+    val_X = scaler.fit_transform(val_X)
+
+    # train model with hyperparams optimized
+    model = sklearn.ensemble.RandomForestClassifier(
+        n_estimators=200,
+        max_depth=None,
+        max_samples=0.3,
+        max_features=0.5,
+        min_weight_fraction_leaf=0,
+        min_samples_split=17)
+
+    model = model.fit(train_X, train_y)
+
+    return model, train_X, train_y, val_X, val_y
+
 
 def validate_model(model, val_X, val_y):
     '''
@@ -125,7 +177,7 @@ def plot_model(model, val_X, val_y):
     return score
 
 
-def rf_wrapper(dataframe):
+def rf_wrapper(dataframe, target):
     '''
     Takes a test classifier model and plots the confusion matrix.
 
@@ -138,19 +190,23 @@ def rf_wrapper(dataframe):
     '''
     assert 'pandas.core.frame.DataFrame' in str(type(dataframe))
 
-    # user inputs target feature
-    target = 'hmmer_match'
 
     # define input features
-    input_features = [columns for columns in dataframe]
-
-    input_features.remove(target)
+    input_features = [columns for columns in dataframe.drop(columns=target)]
 
     # train the model based off data split
-    model, _, _, val_X, val_y = train_model(
-        dataframe, columns=input_features,
-        target=target
-    )
+    if len(target) == 1:
+        # if target is one class
+        model, _, _, val_X, val_y = train_model(
+            dataframe, columns=input_features,
+            target=target
+        )
+    else:
+        # if target is two class
+        model, _, _, val_X, val_y = train_model_structure(
+            dataframe, columns=input_features,
+            target=target
+        )
 
     # test the model and return predictions
     preds, _ = validate_model(model, val_X, val_y)

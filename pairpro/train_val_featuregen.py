@@ -5,6 +5,7 @@ package for proteins and nucleic acids.
 NOTE: Add method to get_fasta_from_dataframe to delete output files after they are read.
 """
 
+import numpy as np
 import iFeatureOmegaCLI
 import pandas as pd
 # import Bio.SeqIO
@@ -28,14 +29,14 @@ def get_fasta_from_dataframe(
         Names of output fasta files (str)
 
     Returns:
-        Two fasta files with protein sequences and prot_pair_index
+        Two fasta files with protein sequences and pair_id
     '''
     # meso sequence to fasta
     with open(output_file_a, 'w') as f:
         for _, row in dataframe.iterrows():
             f.write(
                 '>{}\n{}\n'.format(
-                    (row['prot_pair_index']),
+                    (row['pair_id']),
                     row['m_protein_seq']))
 
     # thermo sequence to fasta
@@ -43,7 +44,7 @@ def get_fasta_from_dataframe(
         for _, row in dataframe.iterrows():
             f.write(
                 '>{}\n{}\n'.format(
-                    (row['prot_pair_index']),
+                    (row['pair_id']),
                     (row['t_protein_seq'])))
 
     # return output files

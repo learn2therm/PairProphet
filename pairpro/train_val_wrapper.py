@@ -8,7 +8,7 @@ from pairpro.train_val_input_cleaning import input_cleaning_wrapper
 from pairpro.train_val_featuregen import create_new_dataframe
 
 
-def train_val_wrapper(dataframe, feature_list=None):
+def train_val_wrapper(dataframe, target, feature_list=None):
     '''
     Takes dataframe and runs it through cleaning script.
     Generates features with iFeatureOmegaCLI.
@@ -35,8 +35,8 @@ def train_val_wrapper(dataframe, feature_list=None):
         pass
 
     # run through model
-    score = rf_wrapper(dataframe)[1]
-    model = rf_wrapper(dataframe)[2]
+    score = rf_wrapper(dataframe, target)[1]
+    model = rf_wrapper(dataframe, target)[2]
 
     return score, model 
 

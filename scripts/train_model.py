@@ -15,6 +15,9 @@ these can be developed as individual scripts.
 Runtime:
 TODO:
     - [x] Check HMMER parsing logic
+    -[ ] Add click or Arg parse to implement parameters to the scripts 
+        as well as the structure component
+    - [ ] make target a param as well as ifeatureomega list
 """
 # system dependencies
 import sys
@@ -32,9 +35,10 @@ from tqdm import tqdm
 # local dependencies
 
 ##machine learning
-from pairpro.evaluate_model import evaluate_model
+# from pairpro.evaluate_model import evaluate_model
+# from pairpro.train_val_featuregen import create_new_dataframe
 from pairpro.train_val_wrapper import train_val_wrapper
-from pairpro.train_val_input_cleaning import columns_to_keep
+# from pairpro.train_val_input_cleaning import columns_to_keep
 
 ##build DB
 from pairpro.preprocessing import connect_db, build_pairpro
@@ -50,7 +54,7 @@ import pairpro.utils
 
 
 ## db Paths
-TEST_DB_PATH = '/Users/humoodalanzi/pfam/l2t_500k.db'
+TEST_DB_PATH = '/Users/humoodalanzi/pfam/l2t_50k.db'
 
 ## HMMER Paths
 HMM_PATH = './data/pfam/Pfam-A.hmm'  # ./Pfam-A.hmm
@@ -99,7 +103,7 @@ if __name__ == "__main__":
     logger.info('Starting to run HMMER')
 
     # Set up parallel processing and parsing
-    chunk_size = 5000 # Number of sequences to process in each chunk 
+    chunk_size = 1500 # Number of sequences to process in each chunk 
     njobs = 6  # Number of parallel processes to use
 
     logger.info('Parallel processing parameters obtained')
@@ -178,7 +182,7 @@ if __name__ == "__main__":
     """)
     logger.info('Finished appending parsed HMMER output to table.')
 
-    df = con.execute(f"""SELECT bit_score, local_gap_compressed_percent_id, 
+    df = con.execute(f"""SELECT pair_id, bit_score, local_gap_compressed_percent_id, 
     scaled_local_query_percent_id, scaled_local_symmetric_percent_id, 
     query_align_len, query_align_cov, subject_align_len, subject_align_cov, 
     LENGTH(m_protein_seq) AS m_protein_len, LENGTH(t_protein_seq) AS t_protein_len, hmmer_match FROM {db_name}.pairpro.final""").df()
@@ -202,6 +206,9 @@ if __name__ == "__main__":
     # Combine the undersampled majority class with the minority class
     df = pd.concat([undersampled_majority, minority_class])
 
+    # specify hmmer target
+    target = 'hmmer_match'
+
     # creating model
     # prepare output file
     try:
@@ -210,11 +217,17 @@ if __name__ == "__main__":
         logger.error(f'Error creating directory: {e}')
     logger.info(f'Created model directory: {MODEL_PATH}')
 
-    accuracy_score = train_val_wrapper(df)[0]
-    model = train_val_wrapper(df)[1]
+    # you can use ifeature omega by enternig feature_list as feature
+    accuracy_score = train_val_wrapper(df, target)[0]
+    model = train_val_wrapper(df, target)[1]
     logger.info(f'Accuracy score: {accuracy_score}')
 
     joblib.dump(model, f'{MODEL_PATH}trained_model.pkl')
     logger.debug(f'model training data is {df.head()}')
     logger.info(f'Model saved to {MODEL_PATH}')
     
+    # model_dev(structure=False)
+    # if structure:
+        # train_val_wrapper(df)
+    # else:
+        # train_val_wrapper(df.drop(columns='structure_match'))
