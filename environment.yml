@@ -15,6 +15,7 @@ dependencies:
   - joblib
   - sphinx
   - pip:
+      - click
       - duckdb==0.7.1
       - httpx
       - sphinx

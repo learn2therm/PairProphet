@@ -25,6 +25,7 @@ import logging
 import os
 
 # library dependencies
+import click
 import duckdb as ddb
 import pandas as pd
 import joblib
@@ -75,22 +76,20 @@ else:
 LOGNAME = __file__
 LOGFILE = f'./logs/{os.path.basename(__file__)}.log'
 
-
-if __name__ == "__main__":
-    # Initialize logger
-    logger = pairpro.utils.start_logger_if_necessary(LOGNAME, LOGFILE, LOGLEVEL, filemode='w')
-    logger.info(f"Running {__file__}")
-
-    # create pfam HMM directory (this was before HMM download script)
-    try:
-        os.makedirs('./data/pfam', exist_ok=True)
-    except OSError as e:
-        logger.error(f'Error creating directory: {e}')
-
+@click.command()
+@click.option('--chunk_size', default=1500, help='Number of sequences to process in each chunk')
+@click.option('--njobs', default=4, help='Number of parallel processes to use for HMMER')
+@click.option('--jaccard_threshold', default=0.5, help='Jaccard threshold for filtering protein pairs')
+@click.option('--vector_size', default=2, help='Size of the vector for the dataframe chunking')
+@click.option('--feature_list', default=None, help='List of features to use for the model')
+def model_construction(chunk_size, njobs, jaccard_threshold, vector_size, feature_list):
+    """_summary_
+    """
     # press the HMM db
     pairpro.hmmer.hmmpress_hmms(HMM_PATH, PRESS_PATH)
 
     logger.info(f'Pressed HMM DB: {PRESS_PATH}')
+
 
     db_path = './tmp/pairpro.db'
 
@@ -102,19 +101,7 @@ if __name__ == "__main__":
 
     logger.info('Starting to run HMMER')
 
-    # Set up parallel processing and parsing
-    chunk_size = 1500 # Number of sequences to process in each chunk 
-    njobs = 6  # Number of parallel processes to use
-
-    logger.info('Parallel processing parameters obtained')
-
-    # prepare output file
-    try:
-        os.makedirs(HMMER_OUTPUT_DIR, exist_ok=True)
-    except OSError as e:
-        logger.error(f'Error creating directory: {e}')
-
-    logger.info(f'Created HMMER output directory: {HMMER_OUTPUT_DIR}')
+    # get all the proteins in pairs
 
     proteins_in_pair_pids = con.execute(f"SELECT pid FROM {db_name}.pairpro.proteins").df()
     logger.debug(f"Total number of protein in pairs: {len(proteins_in_pair_pids)} in pipeline")
@@ -124,7 +111,7 @@ if __name__ == "__main__":
                             for i in range(0, len(proteins_in_pair_pids), chunk_size)]
     
     con.close()
-    
+
     # run hmmscan
     logger.info('Running pyhmmer in parallel on all chunks')
 
@@ -156,18 +143,9 @@ if __name__ == "__main__":
         FROM read_csv_auto('./data/protein_pairs/*.csv', HEADER=TRUE)
     """)
     con.commit()
-
-    # prepare output file
-    try:
-        os.makedirs(PARSE_HMMER_OUTPUT_DIR, exist_ok=True)
-    except OSError as e:
-        logger.error(f'Error creating directory: {e}')
-
-    jaccard_threshold = 0.7
-    chunk_size = 3
     
     logger.info(f'Created parse HMMER output directory: {PARSE_HMMER_OUTPUT_DIR}. Running parse HMMER algorithm.')
-    pairpro.hmmer.process_pairs_table(con, db_name, chunk_size, PARSE_HMMER_OUTPUT_DIR, jaccard_threshold)
+    pairpro.hmmer.process_pairs_table(con, db_name, vector_size, PARSE_HMMER_OUTPUT_DIR, jaccard_threshold)
 
     logger.info('Finished parsing HMMER output.')
 
@@ -182,7 +160,7 @@ if __name__ == "__main__":
     """)
     logger.info('Finished appending parsed HMMER output to table.')
 
-    df = con.execute(f"""SELECT pair_id, bit_score, local_gap_compressed_percent_id, 
+    df = con.execute(f"""SELECT pair_id, m_protein_seq, t_protein_seq, bit_score, local_gap_compressed_percent_id, 
     scaled_local_query_percent_id, scaled_local_symmetric_percent_id, 
     query_align_len, query_align_cov, subject_align_len, subject_align_cov, 
     LENGTH(m_protein_seq) AS m_protein_len, LENGTH(t_protein_seq) AS t_protein_len, hmmer_match FROM {db_name}.pairpro.final""").df()
@@ -209,7 +187,45 @@ if __name__ == "__main__":
     # specify hmmer target
     target = 'hmmer_match'
 
-    # creating model
+    # you can use ifeature omega by enternig feature_list as feature
+    accuracy_score = train_val_wrapper(df, target, feature_list)[0]
+    model = train_val_wrapper(df, target, feature_list)[1]
+    logger.info(f'Accuracy score: {accuracy_score}')
+
+    joblib.dump(model, f'{MODEL_PATH}trained_model.pkl')
+    logger.debug(f'model training data is {df.head()}')
+    logger.info(f'Model saved to {MODEL_PATH}')
+
+
+if __name__ == "__main__":
+    # Initialize logger
+    logger = pairpro.utils.start_logger_if_necessary(LOGNAME, LOGFILE, LOGLEVEL, filemode='w')
+    logger.info(f"Running {__file__}")
+
+    # create pfam HMM directory (this was before HMM download script)
+    try:
+        os.makedirs('./data/pfam', exist_ok=True)
+    except OSError as e:
+        logger.error(f'Error creating directory: {e}')
+
+    
+    # prepare output file
+    try:
+        os.makedirs(HMMER_OUTPUT_DIR, exist_ok=True)
+    except OSError as e:
+        logger.error(f'Error creating directory: {e}')
+
+    logger.info(f'Created HMMER output directory: {HMMER_OUTPUT_DIR}')
+
+
+    # prepare output file
+    try:
+        os.makedirs(PARSE_HMMER_OUTPUT_DIR, exist_ok=True)
+    except OSError as e:
+        logger.error(f'Error creating directory: {e}')
+
+    
+    
     # prepare output file
     try:
         os.makedirs(MODEL_PATH, exist_ok=True)
@@ -217,14 +233,8 @@ if __name__ == "__main__":
         logger.error(f'Error creating directory: {e}')
     logger.info(f'Created model directory: {MODEL_PATH}')
 
-    # you can use ifeature omega by enternig feature_list as feature
-    accuracy_score = train_val_wrapper(df, target)[0]
-    model = train_val_wrapper(df, target)[1]
-    logger.info(f'Accuracy score: {accuracy_score}')
-
-    joblib.dump(model, f'{MODEL_PATH}trained_model.pkl')
-    logger.debug(f'model training data is {df.head()}')
-    logger.info(f'Model saved to {MODEL_PATH}')
+    # creating model
+    model_construction()
     
     # model_dev(structure=False)
     # if structure:
