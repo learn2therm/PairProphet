@@ -1,5 +1,5 @@
 # PairProphet
-Check out our project's documention via [Read The Docs](https://validprot.readthedocs.io/)!
+Check out our project's documention via [Read The Docs](https://pairprophet.readthedocs.io/)!
 
 # Background
 
