@@ -51,11 +51,11 @@ import pairpro.utils
 
 
 ##structure
-# from pairpro.structures import download_structure, run_fatcat
+import pairpro.structures
 
 
 ## db Paths
-TEST_DB_PATH = '/Users/humoodalanzi/pfam/l2t_50k.db'
+TEST_DB_PATH = 'l2t_50k.db' #l2t_50k.db
 
 ## HMMER Paths
 HMM_PATH = './data/pfam/Pfam-A.hmm'  # ./Pfam-A.hmm
@@ -63,6 +63,10 @@ PRESS_PATH = './data/pfam/pfam'
 HMMER_OUTPUT_DIR = './data/protein_pairs/'
 PARSE_HMMER_OUTPUT_DIR = './data/protein_pairs/parsed_hmmer_output/'
 WORKER_WAKE_UP_TIME = 25 # this is to ensure that if a worker that is about to be shut down due to previous task completetion doesn't actually start running
+
+## Structure Paths
+STRUCTURE_DIR = './data/structures/'
+STRUCTURE_OUTPUT_DIR = './data/protein_pairs/structures/'
 
 ## ML Paths
 MODEL_PATH = './data/models/'
@@ -77,12 +81,13 @@ LOGNAME = __file__
 LOGFILE = f'./logs/{os.path.basename(__file__)}.log'
 
 @click.command()
-@click.option('--chunk_size', default=1500, help='Number of sequences to process in each chunk')
+@click.option('--chunk_size', default=2500, help='Number of sequences to process in each chunk')
 @click.option('--njobs', default=4, help='Number of parallel processes to use for HMMER')
 @click.option('--jaccard_threshold', default=0.5, help='Jaccard threshold for filtering protein pairs')
 @click.option('--vector_size', default=2, help='Size of the vector for the dataframe chunking')
 @click.option('--feature_list', default=None, help='List of features to use for the model')
-def model_construction(chunk_size, njobs, jaccard_threshold, vector_size, feature_list):
+@click.option('--structure', default=False, help='Whether to use structure or not')
+def model_construction(chunk_size, njobs, jaccard_threshold, vector_size, structure, feature_list):
     """_summary_
     """
     # press the HMM db
@@ -160,6 +165,27 @@ def model_construction(chunk_size, njobs, jaccard_threshold, vector_size, featur
     """)
     logger.info('Finished appending parsed HMMER output to table.')
 
+    # structure component
+    if structure:
+        structure_df = con.execute(f"""SELECT pair_id, thermo_pid, thermo_pdb, meso_pid, meso_pdb FROM {db_name}.pairpro.final USING SAMPLE 100""").df()
+        logger.info(f'Downloading structures. Output directory: {STRUCTURE_DIR}')
+        pairpro.structures.download_structure(structure_df, 'meso_pdb', 'meso_pid', STRUCTURE_DIR)
+        pairpro.structures.download_structure(structure_df, 'thermo_pdb', 'thermo_pid', STRUCTURE_DIR)
+        logger.info('Finished downloading structures. Running FATCAT.')
+        pairpro.structures.run_fatcat_dict_job(structure_df, STRUCTURE_DIR, STRUCTURE_OUTPUT_DIR)
+        logger.info('Finished running FATCAT.')
+
+        con.execute("""CREATE OR REPLACE TEMP TABLE structure_results AS SELECT * FROM read_csv_auto('./data/protein_pairs/structure_output/*.csv', HEADER=TRUE)""")
+        con.execute(f"""ALTER TABLE {db_name}.pairpro.final ADD COLUMN structure_match INT""")
+        con.execute(f"""UPDATE {db_name}.pairpro.final AS f
+        SET structure_match = structure.p_value::INT
+        FROM structure_results AS structure
+        WHERE structure.pair_id = f.pair_id
+        """)
+        logger.info('Finished appending structure output to table.')
+    else:
+        logger.info('Skipping structure component.')
+
     df = con.execute(f"""SELECT pair_id, m_protein_seq, t_protein_seq, bit_score, local_gap_compressed_percent_id, 
     scaled_local_query_percent_id, scaled_local_symmetric_percent_id, 
     query_align_len, query_align_cov, subject_align_len, subject_align_cov, 
@@ -185,7 +211,11 @@ def model_construction(chunk_size, njobs, jaccard_threshold, vector_size, featur
     df = pd.concat([undersampled_majority, minority_class])
 
     # specify hmmer target
-    target = 'hmmer_match'
+    if structure:
+        target = ['hmmer_match', 'structure_match']
+    else:
+        target = 'hmmer_match'
+        df.drop(columns=['structure_match'], inplace=True) 
 
     # you can use ifeature omega by enternig feature_list as feature
     accuracy_score = train_val_wrapper(df, target, feature_list)[0]
@@ -224,6 +254,19 @@ if __name__ == "__main__":
     except OSError as e:
         logger.error(f'Error creating directory: {e}')
 
+
+    # prepare output file
+    try:
+        os.makedirs(STRUCTURE_DIR, exist_ok=True)
+    except OSError as e:
+        logger.error(f'Error creating directory: {e}')
+
+
+    # prepare output file
+    try:
+        os.makedirs(STRUCTURE_OUTPUT_DIR, exist_ok=True)
+    except OSError as e:
+        logger.error(f'Error creating directory: {e}')
     
     
     # prepare output file
@@ -235,9 +278,3 @@ if __name__ == "__main__":
 
     # creating model
     model_construction()
-    
-    # model_dev(structure=False)
-    # if structure:
-        # train_val_wrapper(df)
-    # else:
-        # train_val_wrapper(df.drop(columns='structure_match'))
