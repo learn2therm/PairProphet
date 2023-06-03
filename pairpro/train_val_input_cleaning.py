@@ -36,6 +36,7 @@ import pandas as pd
 
 # keep columns that can be used as features
 columns_to_keep = [
+    'pair_id',
     'bit_score',
     'local_gap_compressed_percent_id',
     'scaled_local_query_percent_id',
@@ -46,6 +47,8 @@ columns_to_keep = [
     'subject_align_cov',
     'm_protein_len',
     't_protein_len',
+    'm_protein_seq',
+    't_protein_seq',
     'hmmer_match',
     'norm_bit_score_m',
     'norm_bit_score_t']

@@ -1,101 +1,101 @@
-PairPro package
+pairpro package
 ===============
 
 Submodules
 ----------
 
-PairPro.dev\_tools module
+pairpro.dev\_tools module
 -------------------------
 
-.. automodule:: PairPro.dev_tools
+.. automodule:: pairpro.dev_tools
    :members:
    :undoc-members:
    :show-inheritance:
 
-PairPro.evaluate\_input\_cleaning module
+pairpro.evaluate\_input\_cleaning module
 ----------------------------------------
 
-.. automodule:: PairPro.evaluate_input_cleaning
+.. automodule:: pairpro.evaluate_input_cleaning
    :members:
    :undoc-members:
    :show-inheritance:
 
-PairPro.evaluate\_model module
+pairpro.evaluate\_model module
 ------------------------------
 
-.. automodule:: PairPro.evaluate_model
+.. automodule:: pairpro.evaluate_model
    :members:
    :undoc-members:
    :show-inheritance:
 
-PairPro.hmmer module
+pairpro.hmmer module
 --------------------
 
-.. automodule:: PairPro.hmmer
+.. automodule:: pairpro.hmmer
    :members:
    :undoc-members:
    :show-inheritance:
 
-PairPro.preprocessing module
+pairpro.preprocessing module
 ----------------------------
 
-.. automodule:: PairPro.preprocessing
+.. automodule:: pairpro.preprocessing
    :members:
    :undoc-members:
    :show-inheritance:
 
-PairPro.structures module
+pairpro.structures module
 -------------------------
 
-.. automodule:: PairPro.structures
+.. automodule:: pairpro.structures
    :members:
    :undoc-members:
    :show-inheritance:
 
-PairPro.train\_val\_classification module
+pairpro.train\_val\_classification module
 -----------------------------------------
 
-.. automodule:: PairPro.train_val_classification
+.. automodule:: pairpro.train_val_classification
    :members:
    :undoc-members:
    :show-inheritance:
 
-PairPro.train\_val\_featuregen module
+pairpro.train\_val\_featuregen module
 -------------------------------------
 
-.. automodule:: PairPro.train_val_featuregen
+.. automodule:: pairpro.train_val_featuregen
    :members:
    :undoc-members:
    :show-inheritance:
 
-PairPro.train\_val\_input\_cleaning module
+pairpro.train\_val\_input\_cleaning module
 ------------------------------------------
 
-.. automodule:: PairPro.train_val_input_cleaning
+.. automodule:: pairpro.train_val_input_cleaning
    :members:
    :undoc-members:
    :show-inheritance:
 
-PairPro.train\_val\_wrapper module
+pairpro.train\_val\_wrapper module
 ----------------------------------
 
-.. automodule:: PairPro.train_val_wrapper
+.. automodule:: pairpro.train_val_wrapper
    :members:
    :undoc-members:
    :show-inheritance:
 
-PairPro.user\_blast module
+pairpro.user\_blast module
 --------------------------
 
-.. automodule:: PairPro.user_blast
+.. automodule:: pairpro.user_blast
    :members:
    :undoc-members:
    :show-inheritance:
 
-PairPro.utils module
+pairpro.utils module
 --------------------
 
-.. automodule:: PairPro.utils
+.. automodule:: pairpro.utils
    :members:
    :undoc-members:
    :show-inheritance:
@@ -103,7 +103,7 @@ PairPro.utils module
 Module contents
 ---------------
 
-.. automodule:: PairPro
+.. automodule:: pairpro
    :members:
    :undoc-members:
    :show-inheritance:
