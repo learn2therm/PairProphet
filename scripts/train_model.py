@@ -217,6 +217,8 @@ def model_construction(chunk_size, njobs, jaccard_threshold, vector_size, struct
         target = 'hmmer_match'
         df.drop(columns=['structure_match'], inplace=True) 
 
+    print(target)
+
     # you can use ifeature omega by enternig feature_list as feature
     accuracy_score = train_val_wrapper(df, target, feature_list)[0]
     model = train_val_wrapper(df, target, feature_list)[1]

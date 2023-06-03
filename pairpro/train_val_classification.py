@@ -190,19 +190,20 @@ def rf_wrapper(dataframe, target):
     '''
     assert 'pandas.core.frame.DataFrame' in str(type(dataframe))
 
-
     # define input features
     input_features = [columns for columns in dataframe.drop(columns=target)]
 
     # train the model based off data split
     if len(target) == 1:
         # if target is one class
+        print('hmmer')
         model, _, _, val_X, val_y = train_model(
             dataframe, columns=input_features,
             target=target
         )
     else:
         # if target is two class
+        print('hmmer + structures')
         model, _, _, val_X, val_y = train_model_structure(
             dataframe, columns=input_features,
             target=target

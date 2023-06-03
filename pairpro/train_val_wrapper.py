@@ -34,8 +34,8 @@ def train_val_wrapper(dataframe, target, feature_list=None):
     else:
         pass
 
-    # drop sequence columns
-    dataframe = dataframe.drop(columns=['m_protein_seq', 't_protein_seq'])
+    #drop sequences
+    dataframe.drop(columns=['m_protein_seq', 't_protein_seq'])
     # run through model
     score = rf_wrapper(dataframe, target)[1]
     model = rf_wrapper(dataframe, target)[2]
