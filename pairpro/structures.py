@@ -1,10 +1,8 @@
 from Bio.PDB import PDBList
 import os
-import requests
 import pandas as pd
 import subprocess
 import time
-import tempfile
 
 import asyncio
 import httpx
@@ -14,6 +12,8 @@ import duckdb as db
 import numpy as np
 import csv
 from joblib import Parallel, delayed
+
+import httpx
 
 async def download_aff(session, url, filename):
     try:
@@ -35,7 +35,7 @@ async def download_af(row, u_column, pdb_dir):
     url = f'https://alphafold.ebi.ac.uk/files/AF-{uniprot_id}-F1-model_v4.pdb'
     filename = f'{pdb_dir}/{uniprot_id}.pdb'
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(verify=False) as client:  # Disable SSL certificate verification
         success = await download_aff(client, url, filename)
         return success
 
