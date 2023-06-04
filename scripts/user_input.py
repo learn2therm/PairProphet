@@ -17,7 +17,6 @@ from pairpro.train_val_input_cleaning import columns_to_keep
 # from pairpro.main import train_model
 
 ## build DB
-from pairpro.preprocessing import connect_db, build_fafsa
 from pairpro.user_blast import make_blast_df
 
 ## hmmer
@@ -26,13 +25,15 @@ import pairpro.utils
 
 
 ##structure
-from pairpro.structure import download_structures, run_fatcat
+#from pairpro.structure import download_structures, run_fatcat
 
 ### Paths
 ##ML Paths
 MODEL_PATH = './data/models/'
 
-def user_input(test_sequences, model, output_path:str):
+test_sequences = './data/50k_paired_seq.csv'
+
+def user_input(test_sequences, output_path:str, model=0):
     '''
     Function for user to interact with.
     Test sequences is a two-column csv
@@ -57,34 +58,37 @@ def user_input(test_sequences, model, output_path:str):
     df = pd.read_csv(test_sequences)
 
     ## blast df has sequences and alignment metrics, PID that is unique for each row
-    df = make_blast_df(df)
+    df, con = make_blast_df(df)
 
-    # hmmer component
-    """
-    Input: Dataframe from user blast component
-    Output: CSV (Meso_PID, Thermo_PID, Boolean)
-    """
-    user_boolean = make_target(df)
+#     # hmmer component
+#     """
+#     Input: Dataframe from user blast component
+#     Output: CSV (Meso_PID, Thermo_PID, Boolean)
+#     """
+#     user_boolean = make_target(df)
 
-    ## developing method to generate single ID
-    df = pd.merge(df, user_boolean, on=['ID'])
+#     ## developing method to generate single ID
+#     df = pd.merge(df, user_boolean, on=['ID'])
 
-    # Structure component
-    ## chau update code to return only boolean and append to the df
-    download_structures(df, pdb_column, u_column, pdb_dir)
-    df = run_fatcat(df, pdb_dir)
+#     # Structure component
+#     ## chau update code to return only boolean and append to the df
+#     download_structures(df, pdb_column, u_column, pdb_dir)
+#     df = run_fatcat(df, pdb_dir)
 
-    #at this point, df is: user_blast + hmmer boolean + chau boolean
+#     #at this point, df is: user_blast + hmmer boolean + chau boolean
 
-    # Machine Learning Component
-    """
-    Input: Dataframe that has been updated with user_blast + hmmer boolean + structure boolean
-    Output: csv files with 6 columns (seq1, seq2, protein_match (Humood + Amin), protein_match (Chau) protein_match(ML))
-    Params: Base environment + iFeatureOmega dependencies 
-    """
+#     # Machine Learning Component
+#     """
+#     Input: Dataframe that has been updated with user_blast + hmmer boolean + structure boolean
+#     Output: csv files with 6 columns (seq1, seq2, protein_match (Humood + Amin), protein_match (Chau) protein_match(ML))
+#     Params: Base environment + iFeatureOmega dependencies 
+#     """
 
-    #make evaluation into four class classifier (neither true, hmmer true, structure true, both true)
-    model = joblib.load(MODEL_PATH)
-    evaluation = evaluate_model(df, model, output_path:str)
+#     #make evaluation into four class classifier (neither true, hmmer true, structure true, both true)
+#     model = joblib.load(MODEL_PATH)
+#     evaluation = evaluate_model(df, model, output_path:str)
     
-    return evaluation
+#     return evaluation
+
+if __name__ == "__main__":
+    user_input(test_sequences, output_path = 'no')

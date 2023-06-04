@@ -5,6 +5,8 @@ from Bio import Align
 from Bio.Align import substitution_matrices
 import numpy as np
 import pandas as pd
+import re
+import duckdb
 
 
 def make_blast_df(df, mode='local'):
@@ -64,11 +66,11 @@ def make_blast_df(df, mode='local'):
     qid_dict = dict(zip(n_unique_1, range(len(n_unique_1))))
     sid_dict = dict(zip(n_unique_2, range(len(n_unique_2))))
 
-    df['qid'] = [qid_dict[i] for i in df.iloc[:, 0]]
-    df['sid'] = [sid_dict[i] for i in df.iloc[:, 1]]
+    df['query_id'] = [qid_dict[i] for i in df.iloc[:, 0]]
+    df['subject_id'] = [sid_dict[i] for i in df.iloc[:, 1]]
 
     # Use unique row index as a pair id
-    df['pid'] = df.index
+    df['pair_id'] = df.index
 
     # Metrics to be calculated
     metrics = ['local_gap_compressed_percent_id',
@@ -120,7 +122,7 @@ def make_blast_df(df, mode='local'):
         new_row = [gap_comp_pct_id, scaled_local_query_percent_id,
                    scaled_local_symmetric_percent_id, l_query,
                    query_cov, l_subject, subject_cov, best_alignment.score,
-                   row['qid'], row['sid']]
+                   row['query_id'], row['subject_id']]
         final_data.append(new_row)
 
     # Construct temporary dataframe from collected metrics
@@ -128,10 +130,15 @@ def make_blast_df(df, mode='local'):
     final_df = pd.DataFrame(final_data, columns=columns)
 
     # Merge final_df with sequences and ids from input df
-    blast_df = df.merge(final_df, left_on=['qid', 'sid'],
+    blast_df = df.merge(final_df, left_on=['query_id', 'subject_id'],
                         right_on=['query_id', 'subject_id'])
-
-    return blast_df
+    con = duckdb.connect('./data/blast_db.db')
+    cmd = """CREATE OR REPLACE TABLE protein_pairs
+             AS SELECT * FROM blast_df"""
+    con.execute(cmd)
+    
+    
+    return blast_df, con
 
 
 def get_matches_gaps(query, subject):
