@@ -55,7 +55,7 @@ import pairpro.structures
 
 
 ## db Paths
-TEST_DB_PATH = 'l2t_50k.db' #l2t_50k.db
+TEST_DB_PATH = '/Users/humoodalanzi/pfam/l2t_50k.db' #l2t_50k.db
 
 ## HMMER Paths
 HMM_PATH = './data/pfam/Pfam-A.hmm'  # ./Pfam-A.hmm
@@ -84,7 +84,7 @@ LOGFILE = f'./logs/{os.path.basename(__file__)}.log'
 @click.option('--chunk_size', default=2500, help='Number of sequences to process in each chunk')
 @click.option('--njobs', default=4, help='Number of parallel processes to use for HMMER')
 @click.option('--jaccard_threshold', default=0.5, help='Jaccard threshold for filtering protein pairs')
-@click.option('--vector_size', default=2, help='Size of the vector for the dataframe chunking')
+@click.option('--vector_size', default=1, help='Size of the vector for the dataframe chunking')
 @click.option('--feature_list', default=None, help='List of features to use for the model')
 @click.option('--structure', default=False, help='Whether to use structure or not')
 def model_construction(chunk_size, njobs, jaccard_threshold, vector_size, structure, feature_list):
@@ -183,13 +183,18 @@ def model_construction(chunk_size, njobs, jaccard_threshold, vector_size, struct
         WHERE structure.pair_id = f.pair_id
         """)
         logger.info('Finished appending structure output to table.')
+
+        df = con.execute(f"""SELECT pair_id, m_protein_seq, t_protein_seq, bit_score, local_gap_compressed_percent_id, 
+        scaled_local_query_percent_id, scaled_local_symmetric_percent_id, 
+        query_align_len, query_align_cov, subject_align_len, subject_align_cov, 
+        LENGTH(m_protein_seq) AS m_protein_len, LENGTH(t_protein_seq) AS t_protein_len, hmmer_match, structure_match FROM {db_name}.pairpro.final""").df()
+
     else:
         logger.info('Skipping structure component.')
-
-    df = con.execute(f"""SELECT pair_id, m_protein_seq, t_protein_seq, bit_score, local_gap_compressed_percent_id, 
-    scaled_local_query_percent_id, scaled_local_symmetric_percent_id, 
-    query_align_len, query_align_cov, subject_align_len, subject_align_cov, 
-    LENGTH(m_protein_seq) AS m_protein_len, LENGTH(t_protein_seq) AS t_protein_len, hmmer_match, structure_match FROM {db_name}.pairpro.final""").df()
+        df = con.execute(f"""SELECT pair_id, m_protein_seq, t_protein_seq, bit_score, local_gap_compressed_percent_id, 
+        scaled_local_query_percent_id, scaled_local_symmetric_percent_id, 
+        query_align_len, query_align_cov, subject_align_len, subject_align_cov, 
+        LENGTH(m_protein_seq) AS m_protein_len, LENGTH(t_protein_seq) AS t_protein_len, hmmer_match FROM {db_name}.pairpro.final""").df()
 
     print(df.head())
     print(df.shape)
