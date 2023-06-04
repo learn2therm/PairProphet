@@ -23,6 +23,7 @@ be executed with a single command.
    Contents/About
    Contents/Acknowledgements
    Contents/References
-   Contents/scripts
+   Contents/Code_of_Conduct
+   
 
  
