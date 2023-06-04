@@ -5,7 +5,7 @@
 
 Welcome to PairProphet's documentation! 
 =================================
-PairPro is a software pipeline developed at the University of
+PairProphet is a software pipeline developed at the University of
 Washington. This package implements a  “first-pass” model that 
 allows researchers to draw on existing proteome data and generate 
 a pairwise screening that will narrow down their search space and 
@@ -20,7 +20,6 @@ be executed with a single command.
    :caption: Contents:
 
    Contents/pairpro
-   Contents/runclassifiers
    Contents/About
    Contents/Acknowledgements
    Contents/References
