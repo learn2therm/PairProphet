@@ -27,7 +27,7 @@ References
 
 | `FatCat <https://fatcat.godziklab.org/>`_
 
-| `Biopython <https://biopython.org/ >`_
+| `Biopython <https://biopython.org/>`_
 
 | `iFeatureOmega <https://github.com/Superzchen/iFeatureOmega-CLI>`_
 
