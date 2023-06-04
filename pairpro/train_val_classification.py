@@ -190,8 +190,13 @@ def rf_wrapper(dataframe, target):
     '''
     assert 'pandas.core.frame.DataFrame' in str(type(dataframe))
 
+    print(target)
+
     # define input features
     input_features = [columns for columns in dataframe.drop(columns=target)]
+
+    print(input_features)
+
 
     # train the model based off data split
     if 'structure_match' not in target:
