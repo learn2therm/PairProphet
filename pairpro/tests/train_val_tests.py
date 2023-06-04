@@ -6,19 +6,19 @@ import pandas as pd
 import numpy as np
 import os
 
-from PairPro.train_val_classification import train_model
-from PairPro.train_val_classification import evaluate_model
-from PairPro.train_val_classification import rf_wrapper
+from pairpro.train_val_classification import train_model
+from pairpro.train_val_classification import validate_model
+from pairpro.train_val_classification import rf_wrapper
 
-from PairPro.train_val_input_cleaning import check_input_type
-from PairPro.train_val_input_cleaning import clean_input_columns
-from PairPro.train_val_input_cleaning import verify_input_columns
-from PairPro.train_val_input_cleaning import check_input_nans
-from PairPro.train_val_input_cleaning import verify_protein_pairs
-from PairPro.train_val_featuregen import get_fasta_from_dataframe
-from PairPro.train_val_featuregen import get_protein_descriptors
-from PairPro.train_val_featuregen import clean_new_dataframe
-from PairPro.train_val_featuregen import create_new_dataframe
+from pairpro.train_val_input_cleaning import check_input_type
+from pairpro.train_val_input_cleaning import clean_input_columns
+from pairpro.train_val_input_cleaning import verify_input_columns
+from pairpro.train_val_input_cleaning import check_input_nans
+from pairpro.train_val_input_cleaning import verify_protein_pairs
+from pairpro.train_val_featuregen import get_fasta_from_dataframe
+from pairpro.train_val_featuregen import get_protein_descriptors
+from pairpro.train_val_featuregen import clean_new_dataframe
+from pairpro.train_val_featuregen import create_new_dataframe
 
 df = pd.read_csv('learn2therm_sample_50k.csv')
 
@@ -142,14 +142,14 @@ class TestModelPerformance(unittest.TestCase):
         )
         # assert that input types are correct
         with self.assertRaises(AssertionError):
-            evaluate_model(model, [1, 2, 3], val_y)
+            validate_model(model, [1, 2, 3], val_y)
 
     def test_model_output(self):
         model, _, _, val_X, val_y = train_model(
             df, columns=input_features, target='protein_match'
         )
         # assert output type is correct
-        output, _ = evaluate_model(model, val_X, val_y)
+        output, _ = validate_model(model, val_X, val_y)
         self.assertIsInstance(output, np.ndarray)
 
     def test_pred_dimension(self):
@@ -157,7 +157,7 @@ class TestModelPerformance(unittest.TestCase):
             df, columns=input_features, target='protein_match')
         # want to check that the number of predictions is equal to the number
         # of test examples
-        preds, _ = evaluate_model(model, val_X, val_y)
+        preds, _ = validate_model(model, val_X, val_y)
         self.assertEqual(len(val_y), len(preds))
 
 
@@ -170,7 +170,7 @@ class TestWrapper(unittest.TestCase):
     def test_wrapper_input(self):
         # test that input data type is correct
         try:
-            rf_wrapper([1, 2, 3])
+            rf_wrapper([1, 2, 3], target=['hmmer_match'])
             self.assertTrue(False)
         except AssertionError:
             self.assertTrue(True)
@@ -181,7 +181,7 @@ class TestWrapper(unittest.TestCase):
             columns=input_features, target='protein_match'
         )
         # assert output type is correct
-        output, _ = evaluate_model(model, val_X, val_y)
+        output, _ = validate_model(model, val_X, val_y)
         self.assertIsInstance(output, np.ndarray)
 
     def test_output_dimension(self):
@@ -190,7 +190,7 @@ class TestWrapper(unittest.TestCase):
             columns=input_features, target='protein_match'
         )
         # want to check that the # of predictions is equal to # of examples
-        preds, _ = evaluate_model(model, val_X, val_y)
+        preds, _ = validate_model(model, val_X, val_y)
         self.assertEqual(len(val_y), len(preds))
 
 
