@@ -50,8 +50,10 @@ columns_to_keep = [
     'm_protein_seq',
     't_protein_seq',
     'hmmer_match',
+    'structure_match',
     'norm_bit_score_m',
-    'norm_bit_score_t']
+    'norm_bit_score_t'
+    ]
 
 
 def normalize_bit_scores(dataframe):
