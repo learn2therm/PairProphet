@@ -172,10 +172,10 @@ def model_construction(chunk_size, njobs, jaccard_threshold, vector_size, struct
         pairpro.structures.download_structure(structure_df, 'meso_pdb', 'meso_pid', STRUCTURE_DIR)
         pairpro.structures.download_structure(structure_df, 'thermo_pdb', 'thermo_pid', STRUCTURE_DIR)
         logger.info('Finished downloading structures. Running FATCAT.')
-        pairpro.structures.run_fatcat_dict_job(structure_df, STRUCTURE_DIR, STRUCTURE_OUTPUT_DIR)
+        pairpro.structures.run_fatcat_dict_job(structure_df, STRUCTURE_DIR, f'{STRUCTURE_OUTPUT_DIR}/output.csv')
         logger.info('Finished running FATCAT.')
 
-        con.execute("""CREATE OR REPLACE TEMP TABLE structure_results AS SELECT * FROM read_csv_auto('./data/protein_pairs/structure_output/*.csv', HEADER=TRUE)""")
+        con.execute("""CREATE OR REPLACE TEMP TABLE structure_results AS SELECT * FROM read_csv_auto('./data/protein_pairs/structures/*.csv', HEADER=TRUE)""")
         con.execute(f"""ALTER TABLE {db_name}.pairpro.final ADD COLUMN structure_match INT""")
         con.execute(f"""UPDATE {db_name}.pairpro.final AS f
         SET structure_match = structure.p_value::INT
@@ -189,7 +189,7 @@ def model_construction(chunk_size, njobs, jaccard_threshold, vector_size, struct
     df = con.execute(f"""SELECT pair_id, m_protein_seq, t_protein_seq, bit_score, local_gap_compressed_percent_id, 
     scaled_local_query_percent_id, scaled_local_symmetric_percent_id, 
     query_align_len, query_align_cov, subject_align_len, subject_align_cov, 
-    LENGTH(m_protein_seq) AS m_protein_len, LENGTH(t_protein_seq) AS t_protein_len, hmmer_match FROM {db_name}.pairpro.final""").df()
+    LENGTH(m_protein_seq) AS m_protein_len, LENGTH(t_protein_seq) AS t_protein_len, hmmer_match, structure_match FROM {db_name}.pairpro.final""").df()
 
     print(df.head())
     print(df.shape)
