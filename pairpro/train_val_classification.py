@@ -168,11 +168,11 @@ def plot_model(model, val_X, val_y):
     preds = model.predict(val_X)
 
     # plot confusion matrix
-    confusion_matrix = sklearn.metrics.confusion_matrix(preds, val_y)
-    cm_plot = sklearn.metrics.ConfusionMatrixDisplay(confusion_matrix)
+    # confusion_matrix = sklearn.metrics.confusion_matrix(preds, val_y)
+    # cm_plot = sklearn.metrics.ConfusionMatrixDisplay(confusion_matrix)
 
-    cm_plot.plot(cmap=plt.cm.Blues)
-    cm_plot.ax_.set_title('Confusion Matrix')
+    # cm_plot.plot(cmap=plt.cm.Blues)
+    # cm_plot.ax_.set_title('Confusion Matrix')
 
     return score
 
@@ -191,6 +191,7 @@ def rf_wrapper(dataframe, target):
     assert 'pandas.core.frame.DataFrame' in str(type(dataframe))
 
     print(target)
+    print(dataframe.columns)
 
     # define input features
     input_features = [columns for columns in dataframe.drop(columns=target)]
