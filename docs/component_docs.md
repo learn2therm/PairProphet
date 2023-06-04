@@ -288,7 +288,7 @@ This component is in developing phase this quarter as we will only ensure that t
 
 # Component 5 - Training and Validation
 
-## Software Component Five: train_val_script.py
+## Software Component Five: train_val_scripts.py
 
     **Params:** Pandas dataframe containing sampled data from our protein database from sampling component + metric of interest from HMMER/Strucutural components..
 
@@ -404,7 +404,7 @@ This component will undergo significant further development to include structura
 
 **Use case**:
 
-        Uses test dataframe to evaluate the performance of the model and return a vector of Boolean predictions. Also creates a .txt file for the user to assess performance
+        Uses test csv to evaluate the performance of the model and return a vector of Boolean predictions. Also creates a .txt file for the user to assess performance as well as a csv with results.
 
 **Code**:
 
@@ -417,34 +417,6 @@ This component will undergo significant further development to include structura
 
         Asserts that input is a pandas dataframe, output is a numpy array, and the length of the output vector is equal to the number of examples.
 
-### **Subcomponent 7**: Plot a confusion matrix of the test results.
-
-**Use case**:
-
-        User wants to visualize the results of the model testing and receive a confidence score on the prediction.
-
-**Code**:
-
-        Function takes testing dataframe along with the model trained in the previous component. Plots confusion matrix using sklearn.metrics library. Returns model score.
-
-              Input: Model, Pandas dataframe
-              Output: Numpy array, Confusion Matrix
-
-**Test**:
-
-        N/A. Looking to eventually develop a test using python image prediction module.
-
-### **Subcomponent 8**: Calculate a 'functionality' metric that is the ultimate output of component five.
-
-Our goal is to develop some functionality score between a pair of proteins that is not just based on our singular classifier model. This will factor in information from multiple softwares as opposed to just Pfam, which is the focus during the first part of the project. This will be built during spring quarter.
-
-**Use case:**
-
-        User wants a reliable and precise metric to assess how closely related their input proteins are.
-
-**Test**:
-
-        work-in-progress
 
 #### Plan Outline
 
@@ -452,9 +424,3 @@ Our goal is to develop some functionality score between a pair of proteins that 
 2. Clean the data to prepare it for model training and testing.
 3. Train and test the model, return scores, plot, and any other necessary indicator of model performance.
 4. Input new user data and return a functionality score for the input protein pair.
-
-# Component 6
-
-## Work-in-progress
-
-We do not anticpate to reach this component this Winter quarter, but the Spring quarter!
