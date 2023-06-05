@@ -226,7 +226,7 @@ The code mainly includes four functions that are below.
         ValueError: If the number of sequences exceeds the limit of 1000.
         nest_asyncio.NestingError: If the event loop is already running.
 
-### Running HMEMR locally via pyhmmer: hmmer.py
+### Running HMMER locally via pyhmmer: hmmer.py
 
 This component has two main worker functions:
 
@@ -238,53 +238,26 @@ This component has two main worker functions:
 
         Utilizes the user's avaiable resources to run HMMER locally. This is useful for users who have a large number of sequences to run HMMER on, and do not want to wait for the HMMER server to process their requests. This is also useful for users who want to run HMMER on sequences that are not available on the HMMER server.
 
-# Component 4 - Acquire structural information
+# Component 4
 
-## Software Component Four: find_structures.py
+## Software Component Four: structures.py
 
-    **Params:**
+    **Params:** Pandas Dataframe containing PDB or Uniprot IDs.
 
-    **Inputs:** DNA/RNA/protein sequence (FASTA) or Pfam IDs (domain information)
+    **Inputs:** PDB or Uniprot IDs of proteins of interest.
 
-    **Outputs:** DataFrame containing proteins that share sequence or structure similarity to query sequence. Desired parameters include e-value or bitscore and percentage similarity for example.
+    **Outputs:** csv file contaning p-values boolean (0 for False pair and 1 for True pair)
 
-    **Metrics:**
+    **Metrics:** Not applicable
 
-    **Packages:** pandas, json, pypdb
+    **Packages:** pandas, biopython, httpx, numpy
 
-Component 4 is responsible for searching the RCSB Protein Data Bank (PDB) to identify proteins that share structural or sequence similarity with the query protein. This component first searches for experimentally solved structures, and if not available, then searches for computationally generated structures. The output of this component also includes proteins with sequence similarity to the query protein, allowing for comparison with the results from Pfam (component 3).
-
-This component is in developing phase this quarter as we will only ensure that the pfam functionality works first, so there will be no collecting. Once 3D structure prediction comes in, we formally work on this.
-
-### **Subcomponent 1**: Send request and get results
+Component 4 is responsible for obtaining protein structures and running structural alignment with FATCAT. This component first searches for experimentally solved structures using PDB IDs, and if not available, then searches for computationally generated structures using Uniprot IDs. The output of this component suggests whether two proteins share structural similarity or not.
 
 **Use case**:
+        Uses the provided PDB IDs and Uniprot IDs to compare protein structures. This allows comparison of protein at a secondary and tertiary level to complement the HMMR result which evaluates protein similarity at a primary level (amino acid sequences). 
 
-        Searches using single DNA/RNA/protein sequence (FASTA) or Pfam IDs (can be one or multiple Pfam ID(s)) and gets a list of PDB IDs or a more comprehensive lists of result (includes PDB IDs, e-values, bitscores, similarity, etc.) Currently using PyPDB for this.
-
-**Test:**
-
-        Proper import of PyPDB and expected query formats.
-
-### **Subcomponent 2**: Extract desired information
-
-**Use case**:
-
-        Flatten the nested dictionary and then filter it. This involves recursively iterating through the nested dictionary to extract all key-value pairs and converting them into a single flat dictionary. Once the nested dictionary is flattened, we can then filter the resulting dictionary to keep only the desired information
-
-**Test:**
-
-        Absences of dropped parameters.
-
-### **Subcomponent 3**: Format output into DataFrame
-
-**Use case:**
-
-        Convert Python dictionary to DataFrame. Manipulate the DataFrame using pandas functions to sort, filter, or group the data.
-
-**Test:**
-
-        Expected shape and size with correct columns DataFrame.
+**Test**:
 
 # Component 5 - Training and Validation
 
