@@ -22,12 +22,12 @@ For contributions, see `here <https://github.com/learn2therm/PairProphet/blob/ma
    :hidden:
    :caption: Contents:
 
-   Contents/pairpro
    Contents/About
+   Contents/pairpro
+   Contents/Instructions
    Contents/Acknowledgements
    Contents/References
    Contents/Code_of_Conduct
-   Contents/Instructions
    
 
  
