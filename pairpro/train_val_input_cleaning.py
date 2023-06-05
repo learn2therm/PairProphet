@@ -10,30 +10,6 @@ database to demonstrate functionality.
 from sklearn.utils import resample
 import pandas as pd
 
-# # sample dataframe can be passed into wrapper for training
-# df = pd.read_csv('learn2therm_sample_50k.csv')
-
-# # target from Humood
-# target = pd.read_csv('protein_match_50k.csv')
-
-
-# # # Separate the majority and minority classes
-# majority_class = df[df['hmmer_match'] == True]
-# minority_class = df[df['hmmer_match'] == False]
-
-# # # Undersample the majority class to match the number of minority class samples
-# n_samples = len(minority_class)
-# undersampled_majority = resample(
-#     majority_class,
-#     n_samples=n_samples,
-#     replace=False)
-
-# # # Combine the undersampled majority class with the minority class
-# df = pd.concat([undersampled_majority, minority_class])
-
-# df = pd.merge(df, target, on=['prot_pair_index'])
-
-
 # keep columns that can be used as features
 columns_to_keep = [
     'pair_id',
@@ -50,7 +26,6 @@ columns_to_keep = [
     'm_protein_seq',
     't_protein_seq',
     'hmmer_match',
-    'structure_match',
     'norm_bit_score_m',
     'norm_bit_score_t'
     ]
@@ -175,7 +150,7 @@ def verify_protein_pairs(dataframe):
     return dataframe
 
 
-def input_cleaning_wrapper(dataframe):
+def input_cleaning_wrapper(dataframe, structure=False):
     '''
     Takes in a pandas dataframe and runs it through each of the cleaning
     and verification steps.
@@ -185,6 +160,10 @@ def input_cleaning_wrapper(dataframe):
     Returns:
         pandas dataframe
     '''
+    if structure:
+        columns_to_keep.append('structure_match')
+    else:
+        pass
     # normalize bit scores
     normed = normalize_bit_scores(dataframe)
 
@@ -204,5 +183,6 @@ def input_cleaning_wrapper(dataframe):
     verify_pairs = verify_protein_pairs(check_nans)
 
     print('The new shape of the dataframe is:{}'.format(verify_pairs.shape))
+
 
     return verify_pairs

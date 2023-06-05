@@ -32,7 +32,7 @@ pip install .
 
 PairProphet is dependent on Python 3.11.
 This package requires a conda environment with external dependencies of biopython and hmmer.
-For a more detailed exposition on the modular/importable code, please see [packages](./docs/package_components.md).
+For a more detailed exposition on the modular/importable code, please see [component docs](./docs/component_docs.md).
 
 
 # Workflow
@@ -58,3 +58,5 @@ Text file with confidence statistics.
 # Community Guidelines
 
 Our software is open-source. We recommend submission of feature requests and report bugs.
+Check out our [code of conduct](./docs/code_of_conduct.md) for more information.
+Then, please see our [contributing guidelines](./docs/contributing.md) for more information.

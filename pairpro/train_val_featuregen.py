@@ -75,6 +75,8 @@ def get_protein_descriptors(fasta_file: str, descriptors=[]):
         protein_descriptors.update({f'{descriptor}': protein.encodings})
 
     # make sure output is a dictionary of correct length
+    print(len(protein_descriptors))
+    print(len(descriptors))
     assert "dict" in str(type(protein_descriptors))
     assert len(protein_descriptors) == len(descriptors)
 
@@ -102,7 +104,7 @@ def clean_new_dataframe(dataframe):
     dataframe = dataframe.replace([np.inf, -np.inf], np.nan)
 
     # assert NaN's are removed
-    nan_counts = df.isna().sum()
+    nan_counts = dataframe.isna().sum()
     assert nan_counts.unique() == [0]
 
     return dataframe
@@ -120,6 +122,7 @@ def create_new_dataframe(dataframe, output_files: list, descriptors=[]):
     '''
     fasta_files = get_fasta_from_dataframe(
         dataframe, output_files[0], output_files[1])
+    print(descriptors)
 
     def compute_descriptor_ratio(fasta_files, descriptors=[]):
         '''

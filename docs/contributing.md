@@ -1,6 +1,6 @@
 # Contributing to PairProphet
 
-Thanks for taking the time to contribute to PairProphet!
+Thanks for taking the time to contribute to PairProphet! Before you get started, please read the [code of conduct](./CODE_OF_CONDUCT.md).
 For this project, when reporting a bug fix or feature request, please file an issue on GitHub. If you would like to contribute code, please fork the repository and submit a pull request. We will review the pull request and merge it if it is approved.
 
 ## Getting Started
