@@ -224,8 +224,8 @@ def model_construction(chunk_size, njobs, jaccard_threshold, vector_size, struct
     print(target)
 
     # you can use ifeature omega by enternig feature_list as feature
-    accuracy_score = train_val_wrapper(df, target, features)[0]
-    model = train_val_wrapper(df, target, features)[1]
+    accuracy_score = train_val_wrapper(df, target, structure, features)[0]
+    model = train_val_wrapper(df, target, structure, features)[1]
     logger.info(f'Accuracy score: {accuracy_score}')
 
     joblib.dump(model, f'{MODEL_PATH}trained_model.pkl')

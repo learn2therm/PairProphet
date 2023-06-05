@@ -8,7 +8,7 @@ from pairpro.train_val_input_cleaning import input_cleaning_wrapper
 from pairpro.train_val_featuregen import create_new_dataframe
 
 
-def train_val_wrapper(dataframe, target, features=False):
+def train_val_wrapper(dataframe, target, structure=False, features=False):
     '''
     Takes dataframe and runs it through cleaning script.
     Generates features with iFeatureOmegaCLI.
@@ -24,7 +24,7 @@ def train_val_wrapper(dataframe, target, features=False):
         Model score
     '''
     # clean input dataframe
-    dataframe = input_cleaning_wrapper(dataframe)
+    dataframe = input_cleaning_wrapper(dataframe, structure)
 
     if features is True:
         feature_list = ['AAC']

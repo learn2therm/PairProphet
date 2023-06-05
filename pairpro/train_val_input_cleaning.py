@@ -150,7 +150,7 @@ def verify_protein_pairs(dataframe):
     return dataframe
 
 
-def input_cleaning_wrapper(dataframe, structure=False):
+def input_cleaning_wrapper(dataframe, structure):
     '''
     Takes in a pandas dataframe and runs it through each of the cleaning
     and verification steps.
@@ -161,11 +161,14 @@ def input_cleaning_wrapper(dataframe, structure=False):
         pandas dataframe
     '''
     print(dataframe.columns)
-    
+
     if structure:
         columns_to_keep.append('structure_match')
+        print(columns_to_keep)
     else:
         pass
+
+    print(columns_to_keep)
     # normalize bit scores
     normed = normalize_bit_scores(dataframe)
 
@@ -185,6 +188,5 @@ def input_cleaning_wrapper(dataframe, structure=False):
     verify_pairs = verify_protein_pairs(check_nans)
 
     print('The new shape of the dataframe is:{}'.format(verify_pairs.shape))
-
 
     return verify_pairs
