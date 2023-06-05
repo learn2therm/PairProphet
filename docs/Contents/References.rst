@@ -20,6 +20,8 @@ References
 
 | 8) Pearson, William R. “An Introduction to Sequence Similarity (‘Homology’) Searching.” Current Protocols in Bioinformatics 42, no. 1 (June 2013). https://doi.org/10.1002/0471250953.bi0301s42.
 
+| 9) Zhanwen Li, Lukasz Jaroszewski, Mallika Iyer, Mayya Sedova and Adam Godzik. "FATCAT 2.0: towards a better understanding of the structural diversity of proteins"  Nucleic Acids Res., May 2020. gkaa443, https://doi.org/10.1093/nar/gkaa443
+
 | **Python Packages**
 **************** 
 
