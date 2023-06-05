@@ -66,7 +66,7 @@ async def send_request(semaphore, sequence, client):
     return response
 
 
-async def process_response(semaphore, sequence, response, client, pid, max_retries=3):
+async def process_response(semaphore, sequence, response, client, pair_id, max_retries=3):
     """
     Processes the response received from the HMMER API, including retrying requests that have failed.
 
@@ -75,7 +75,7 @@ async def process_response(semaphore, sequence, response, client, pid, max_retri
         sequence (str): The protein sequence associated with the response.
         response (httpx.Response): The response received from the HMMER API.
         client (httpx.AsyncClient): An HTTP client for sending subsequent requests.
-        pid (int): The protein ID associated with the sequence.
+        pair_id (int): The protein ID associated with the sequence.
         max_retries (int, optional): The maximum number of retries for failed requests. Defaults to 3.
 
     Returns:
@@ -121,8 +121,8 @@ async def process_response(semaphore, sequence, response, client, pid, max_retri
             dfff = await loop.run_in_executor(None, pd.json_normalize, hits, 'domains', ['acc', 'name', 'score', 'evalue', 'pvalue', 'desc'])
             dfff.insert(0, 'sequence', sequence)
             # Add new column here
-            dfff.insert(0, 'pid', pid)
-            dfff = dfff.set_index('pid')  # Set new column as index
+            dfff.insert(0, 'pair_id', pair_id)
+            dfff = dfff.set_index('pair_id')  # Set new column as index
             return dfff
         else:
             return None
@@ -151,7 +151,7 @@ async def hmmerscanner(df: pd.DataFrame, k: int, max_concurrent_requests: int, o
 
     sequences = df['protein_seq'][:k]
     # Get corresponding prot_pair_index values
-    indices = df['pid'][:k]
+    indices = df['pair_id'][:k]
     tasks = []
     semaphore = asyncio.Semaphore(max_concurrent_requests)
 
@@ -574,77 +574,241 @@ def process_pairs_table(conn, dbname, chunk_size:int, output_directory, jaccard_
 
 
 
-## user input
-def user_local_hmmer_wrapper(chunk_index, dbpath, dbname, chunked_pair_id_inputs,
-                        press_path, out_dir,  wakeup=None):
+################ user input
+
+
+def save_to_digital_sequences_user(dataframe: pd.DataFrame):
     """
-    A wrapping function that runs and parses pyhmmer in chunks.
+    Save protein sequences from a DataFrame to a digital sequence block.
 
     Args:
-        chunk_index (int): Number of sequence chunks.
-        dbpath (stf): Path to the database.
-        dbname (str): Name of the database.
-        chunked_pair_id_inputs (pandas.DataFrame): DataFrame containing chunked PID inputs.
-        press_path (str): Path to the pressed HMM database.
-        out_path (str): Path to directory where output will be saved.
-        wakeup (int or None, optional): Delay in seconds before starting the execution. Default is None.
+        dataframe (pd.DataFrame): DataFrame containing pair_id (Protein pair IDs) and sequences.
 
     Returns:
-        None
+        pyhmmer.easel.DigitalSequenceBlock: A digital sequence block containing the converted sequences.
+    """
+    # Create empty list
+    query_seqlist = []
+    subject_seqlist = []
+
+    # Establish pyhmmer alphabet
+    amino_acids = pyhmmer.easel.Alphabet.amino()
+
+    # Convert proteins in dataframe to suitable format
+    for _, row in dataframe.iterrows():
+        pair_id = bytes(row['pair_id'], encoding='utf-8')
+        seq_str = row['query']
+        sequences = pyhmmer.easel.TextSequence(name=pair_id, sequence= seq_str)
+        sequences = sequences.digitize(amino_acids)
+        query_seqlist.append(sequences)
+    
+    # Convert proteins in dataframe to suitable format
+    for _, row in dataframe.iterrows():
+        pair_id = bytes(row['pair_id'], encoding='utf-8')
+        seq_str = row['subject']
+        sequences = pyhmmer.easel.TextSequence(name=pair_id, sequence= seq_str)
+        sequences = sequences.digitize(amino_acids)
+        subject_seqlist.append(sequences)
+
+    # Convert so SequenceBlocks
+    query_seqblock = pyhmmer.easel.DigitalSequenceBlock(amino_acids, query_seqlist)
+    subject_seqblock = pyhmmer.easel.DigitalSequenceBlock(amino_acids, subject_seqlist)
+
+    return query_seqblock, subject_seqblock
+
+
+
+def parse_pyhmmer_user(all_hits, chunk_pair_ids, API=False):
+    """
+    Parses the TopHit pyhmmer objects, extracting query and accession IDs, and saves them to a DataFrame.
+
+    Args:
+        all_hits (list): A list of TopHit objects from pyhmmer.
+        chunk_pair_ids (list): A list of query IDs from the chunk.
+
+    Returns:
+        pandas.DataFrame: A DataFrame containing the pair and accession IDs.
 
     Notes:
-        This function performs the following steps:
-        1. Queries the database to get sequences only from chunked_pair_id_inputs.
-        2. Converts the query result to a DataFrame.
-        3. Converts string sequences to pyhmmer digital blocks.
-        4. Runs HMMER via pyhmmer with the provided sequences.
-        5. Parses the pyhmmer output and saves it to a CSV file.
-
-        The parsed pyhmmer output is saved in the directory specified by OUTPUT_DIR,
-        with each chunk having its own separate output file named '{chunk_index}_output.csv'.
-
-        If the wakeup parameter is specified, the function will wait for the specified
-        number of seconds before starting the execution.
+        This function iterates over each protein hit in the provided list of TopHit objects and extracts the query and accession IDs.
+        The resulting query and accession IDs are then saved to a DataFrame.
+        Any pair IDs that are missing from the parsed hits will be added to the DataFrame with a placeholder value indicating no accession information.
     """
-    # we want to wait for execution to see if this worker is actually being used
-    # or if it is in the process of being killed
-    if wakeup is not None:
-        time.sleep(wakeup)
-    
-    # query the database to get sequences only from chunked_pair_id_inputs
-    conn = ddb.connect(dbpath, read_only=True)
-    
-    # get the unique pair_id from the chunked_pair_id_inputs
-    pair_id = set(chunked_pair_id_inputs["pair_id"])
+    if API is not False:
+        # initialize an empty dictionary to store the data
+        parsed_hits = {}
 
-    # Only extract protein_seqs from the list of PID inputs
-    placeholders = ', '.join(['?'] * len(pair_id))
-    query = f"SELECT pid, protein_seq FROM {dbname}.pairpro.proteins WHERE pid IN ({placeholders})"
-    query_db = conn.execute(query, list(pair_id)).fetchall()
+        # iterate over each protein hit
+        for top_hits in all_hits:
+            for hit in top_hits:
+                # extract the query and accession IDs and decode the query ID
+                query_id = hit.hits.query_name.decode('utf-8')
+                accession_id = hit.accession.decode('utf-8')
 
-    # close db connection
-    conn.close()
+                # if the query_id already exists in the dictionary, append the accession_id
+                # to the existing value
+                if query_id in parsed_hits:
+                    parsed_hits[query_id].append(accession_id)
+                # otherwise, create a new key-value pair in the dictionary
+                else:
+                    parsed_hits[query_id] = [accession_id]
 
-    # convert the query db to a dataframe
-    result_df = pd.DataFrame(query_db, columns=['pid', 'protein_seq'])
+        # find the query IDs that are missing from the parsed hits
+        missing_query_ids = set(chunk_pair_ids) - set(parsed_hits.keys())
 
+        # add the missing query IDs with a placeholder value to indicate no accession information
+        for missing_query_id in missing_query_ids:
+            parsed_hits[missing_query_id] = [""]
+
+        # create the DataFrame from the dictionary
+        df = pd.DataFrame(parsed_hits.items(), columns=["pair_id", "accession_id"])
+
+        # convert list of accession IDs to string
+        df["accession_id"] = df["accession_id"].apply(lambda x: ";".join(x) if x else "")
+    else:
+        all_hits[['pair_id', 'acc']]
+
+    return df
+
+
+
+def user_local_hmmer_wrapper(chunk_index, press_path, sequences, out_dir):
+    """
+    TODO
+    """
     # convert string sequences to pyhmmer digital blocks
-    sequences = save_to_digital_sequences(result_df)
+    query_seqblock, subject_seqblock = save_to_digital_sequences_user(sequences)
 
     # run HMMER via pyhmmer
-    hits = run_pyhmmer(
-        seqs=sequences,
+    query_hits = run_pyhmmer(
+        seqs=query_seqblock,
         hmms_path=press_path,
         press_path=press_path,
         prefetch=True,
         cpu=1,
         eval_con=1e-10)
     
-    # get the query IDs from the chunked_pair_id_inputs
-    chunk_query_ids = chunked_pair_id_inputs["pair_id"].tolist()
+    # run HMMER via pyhmmer
+    subject_hits = run_pyhmmer(
+        seqs=subject_seqblock,
+        hmms_path=press_path,
+        press_path=press_path,
+        prefetch=True,
+        cpu=1,
+        eval_con=1e-10)
+    
+    # get the query IDs from the chunked_pid_inputs
+    missing_pair_ids = sequences["pair_id"].tolist()
 
     # Parse pyhmmer output and save to CSV file
-    accessions_parsed = parse_pyhmmer(all_hits=hits, chunk_query_ids=chunk_query_ids)
+    accessions_parsed_query = parse_pyhmmer_user(all_hits=query_hits, chunk_pair_ids=missing_pair_ids)
+    accessions_parsed_subject = parse_pyhmmer_user(all_hits=subject_hits, chunk_pair_ids=missing_pair_ids)
+    accessions_parsed = pd.merge(accessions_parsed_query, accessions_parsed_subject, on="pair_id", how="outer")
     accessions_parsed.to_csv(
         f'{out_dir}/{chunk_index}_output.csv',
         index=False)
+    
+
+def preprocess_accessions_user(query_accession: str, subject_accession: str):
+    """
+    Preprocesses query_accession and subject_accession by converting them to sets.
+
+    Args:
+        query_accession (str): Meso accession string separated by ';'.
+        subject_accession (str): Thermo accession string separated by ';'.
+
+    Returns:
+        tuple: A tuple containing the preprocessed query_accession and subject_accession sets.
+    """
+    # Convert accessions to sets
+    # print(query_accession)
+    # print(type(query_accession))
+    # print(subject_accession)
+    # print(type(subject_accession))
+
+    query_accession_set = set(str(query_accession).split(';'))
+    subject_accession_set = set(str(subject_accession).split(';'))
+    
+    return query_accession_set, subject_accession_set
+
+
+def calculate_jaccard_similarity_user(query_accession_set, subject_accession_set):
+    """
+    Calculates the Jaccard similarity between meso_pid and thermo_pid pairs based on their accessions.
+
+    Jaccard similarity is defined as the size of the intersection divided by the size of the union of two sets.
+
+    Args:
+        query_accession_set (set): Set of meso_pid accessions.
+        subject_accession_set (set): Set of thermo_pid accessions.
+
+    Returns:
+        float: Jaccard similarity between the two sets of accessions. Returns 0 if the union is empty.
+    """
+    # Calculate Jaccard similarity
+    intersection = len(query_accession_set.intersection(subject_accession_set))
+    union = len(query_accession_set.union(subject_accession_set))
+    jaccard_similarity = intersection / union if union > 0 else 0
+
+    return jaccard_similarity
+
+
+def process_pair_user(conn, vector_size, jaccard_threshold, output_directory):
+    """TODO
+    """
+    # Create a connection to the database
+    conn.execute("CREATE OR REPLACE TEMP TABLE protein_from_user AS SELECT * FROM read_csv_auto('.data/user/hmmer_out/*.csv', HEADER=TRUE)")
+
+
+    # Define the evaluation function for the apply function
+    def evaluation_function(row, jaccard_threshold):
+        """TODO
+        """
+        # Get the accessions
+        query_acc = row['query_accession']
+        subject_acc = row['subject_accession']
+
+        # parsing accessions logic
+        if query_acc == 'nan' and subject_acc == 'nan':
+            score = None
+            functional = None
+        elif query_acc and subject_acc:
+            # Preprocess the accessions
+            query_acc_set, subject_acc_set = preprocess_accessions(query_acc, subject_acc)
+            score = calculate_jaccard_similarity(query_acc_set, subject_acc_set)
+            functional = score > jaccard_threshold
+        else:
+            # Handle unmatched rows
+            score = None
+            functional = False
+        
+        return {'functional': functional, 'score': score}
+            
+
+        
+    # Generate output CSV file
+    try:
+        # Execute the query
+        query = conn.execute("SELECT * FROM protein_from_user")
+        data_remaining = True
+        chunk_counter = 0  # Initialize the chunk counter
+        while data_remaining:
+            # Fetch the query result in chunks
+            query_chunk = query.fetch_df_chunk(vector_size)
+
+            # Check if there is data remaining
+            if query_chunk.empty:
+                data_remaining = False
+                break
+
+
+            # Calculate Jaccard similarity and determine functional status using apply function
+            query_chunk[['functional', 'score']] = query_chunk.apply(evaluation_function, axis=1, args=(jaccard_threshold,), result_type='expand')
+
+
+            # Write DataFrame to CSV
+            chunk_counter += 1  # Increment the chunk counter
+            query_chunk.to_csv(f'{output_directory}{chunk_counter}_output.csv', index=False, columns=['meso_pid', 'thermo_pid', 'functional', 'score'])
+
+    except IOError as e:
+        logger.warning(f"Error writing to CSV file: {e}")

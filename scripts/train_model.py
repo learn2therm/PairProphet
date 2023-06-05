@@ -83,7 +83,7 @@ LOGFILE = f'./logs/{os.path.basename(__file__)}.log'
 @click.command()
 @click.option('--chunk_size', default=2500, help='Number of sequences to process in each chunk')
 @click.option('--njobs', default=4, help='Number of parallel processes to use for HMMER')
-@click.option('--jaccard_threshold', default=0.5, help='Jaccard threshold for filtering protein pairs')
+@click.option('--jaccard_threshold', default=0.7, help='Jaccard threshold for filtering protein pairs')
 @click.option('--vector_size', default=1, help='Size of the vector for the dataframe chunking')
 @click.option('--features', default=False, help='List of features to use for the model')
 @click.option('--structure', default=False, help='Whether to use structure or not')

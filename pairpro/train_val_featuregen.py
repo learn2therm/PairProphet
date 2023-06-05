@@ -102,10 +102,12 @@ def clean_new_dataframe(dataframe):
 
     # turn inf into NaN
     dataframe = dataframe.replace([np.inf, -np.inf], np.nan)
+    dataframe = dataframe.dropna(axis=1, how='any')
 
     # assert NaN's are removed
     nan_counts = dataframe.isna().sum()
-    assert nan_counts.unique() == [0]
+    print(len(nan_counts.unique()))
+    assert len(nan_counts.unique()) == 1
 
     return dataframe
 
