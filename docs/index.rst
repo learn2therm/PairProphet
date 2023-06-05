@@ -14,7 +14,7 @@ to train a model based on alignment metrics from multiple programs,
 centralizing the searching process to one software pipeline that can 
 be executed with a single command.
 
-For more information, please visit our `Github <https://github.com/learn2therm/PairProphet>>`_.
+For more information, please visit our `Github <https://github.com/learn2therm/PairProphet>`_.
 For contributions, see `here <https://github.com/learn2therm/PairProphet/blob/main/docs/contributing.md>`_.
 
 .. toctree::
