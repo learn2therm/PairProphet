@@ -197,14 +197,12 @@ def rf_wrapper(dataframe, target):
     # train the model based off data split
     if 'structure_match' not in target:
         # if target is one class
-        print('hmmer')
         model, _, _, val_X, val_y = train_model(
             dataframe, columns=input_features,
             target=target
         )
     else:
         # if target is two class
-        print('hmmer + structures')
         model, _, _, val_X, val_y = train_model_structure(
             dataframe, columns=input_features,
             target=target
@@ -216,4 +214,4 @@ def rf_wrapper(dataframe, target):
     # plot the results of the model
     score = plot_model(model, val_X, val_y)
 
-    return preds, score, model
+    return score, model

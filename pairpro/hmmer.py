@@ -128,12 +128,13 @@ async def process_response(semaphore, sequence, response, client, pair_id, max_r
             return None
 
 
-async def hmmerscanner(df: pd.DataFrame, k: int, max_concurrent_requests: int, output_path: str):
+async def hmmerscanner(df: pd.DataFrame, which:str, k: int, max_concurrent_requests: int, output_path: str):
     """
     Scans multiple protein sequences using the HMMER API, asynchronously submitting and processing each request.
 
     Args:
         df (pd.DataFrame): A DataFrame containing protein sequences.
+        which (str): The column name of the protein sequences.
         k (int): The number of protein sequences to search.
         max_concurrent_requests (int): The maximum number of concurrent requests to the HMMER API.
         output_path (str): The output directory where the data will be stored.
@@ -149,7 +150,7 @@ async def hmmerscanner(df: pd.DataFrame, k: int, max_concurrent_requests: int, o
         print("Use local function for the number of sequences more than 1000.")
         return pd.DataFrame()
 
-    sequences = df['protein_seq'][:k]
+    sequences = df[which][:k]
     # Get corresponding prot_pair_index values
     indices = df['pair_id'][:k]
     tasks = []
@@ -178,16 +179,17 @@ async def hmmerscanner(df: pd.DataFrame, k: int, max_concurrent_requests: int, o
     results_df = pd.concat(
         [result[list(common_columns)] for result in results if result is not None])
     # write result to csv
-    results_df.to_csv(f'{output_path}API_output.csv')
+    results_df.to_csv(f'{output_path}_f{which}API_output.csv')
     return results_df
 
 
-def run_hmmerscanner(df: pd.DataFrame, k: int, max_concurrent_requests: int):
+def run_hmmerscanner(df: pd.DataFrame, which:str, k: int, max_concurrent_requests: int):
     """
     Runs the asynchronous HMMER scanning operation in a new event loop.
 
     Args:
         df (pd.DataFrame): A DataFrame containing protein sequences.
+        which (str): The column name of the protein sequences.
         k (int): The number of protein sequences to search.
         max_concurrent_requests (int): The maximum number of concurrent requests to the HMMER API.
 
@@ -201,7 +203,7 @@ def run_hmmerscanner(df: pd.DataFrame, k: int, max_concurrent_requests: int):
 
     # Set up the event loop and call the hmmerscanner function
     nest_asyncio.apply()
-    return asyncio.run(hmmerscanner(df, k, max_concurrent_requests))
+    return asyncio.run(hmmerscanner(df, which, k, max_concurrent_requests))
 
 
 ####### Local HMMER

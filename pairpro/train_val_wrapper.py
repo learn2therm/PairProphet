@@ -27,7 +27,7 @@ def train_val_wrapper(dataframe, target, structure=False, features=False):
 
     if features is True:
         feature_list = [
-            'AAC'
+            'AAC', 'CTDC'
         ]
         # generate features from amino acid sequence
         dataframe = create_new_dataframe(dataframe, ['sequences_a.fasta',
@@ -44,7 +44,6 @@ def train_val_wrapper(dataframe, target, structure=False, features=False):
             'pair_id'],
         inplace=True)
     # run through model
-    score = rf_wrapper(dataframe, target)[1]
-    model = rf_wrapper(dataframe, target)[2]
+    score, model = rf_wrapper(dataframe, target)
 
     return score, model
