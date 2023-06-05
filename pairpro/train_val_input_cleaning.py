@@ -160,6 +160,8 @@ def input_cleaning_wrapper(dataframe, structure=False):
     Returns:
         pandas dataframe
     '''
+    print(dataframe.columns)
+    
     if structure:
         columns_to_keep.append('structure_match')
     else:
