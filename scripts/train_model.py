@@ -85,9 +85,9 @@ LOGFILE = f'./logs/{os.path.basename(__file__)}.log'
 @click.option('--njobs', default=4, help='Number of parallel processes to use for HMMER')
 @click.option('--jaccard_threshold', default=0.5, help='Jaccard threshold for filtering protein pairs')
 @click.option('--vector_size', default=1, help='Size of the vector for the dataframe chunking')
-@click.option('--feature_list', default=None, help='List of features to use for the model')
+@click.option('--features', default=False, help='List of features to use for the model')
 @click.option('--structure', default=False, help='Whether to use structure or not')
-def model_construction(chunk_size, njobs, jaccard_threshold, vector_size, structure, feature_list):
+def model_construction(chunk_size, njobs, jaccard_threshold, vector_size, structure, features):
     """_summary_
     """
     # press the HMM db
@@ -220,13 +220,12 @@ def model_construction(chunk_size, njobs, jaccard_threshold, vector_size, struct
         target = ['hmmer_match', 'structure_match']
     else:
         target = 'hmmer_match'
-        df.drop(columns=['structure_match'], inplace=True) 
 
     print(target)
 
     # you can use ifeature omega by enternig feature_list as feature
-    accuracy_score = train_val_wrapper(df, target, feature_list)[0]
-    model = train_val_wrapper(df, target, feature_list)[1]
+    accuracy_score = train_val_wrapper(df, target, features)[0]
+    model = train_val_wrapper(df, target, features)[1]
     logger.info(f'Accuracy score: {accuracy_score}')
 
     joblib.dump(model, f'{MODEL_PATH}trained_model.pkl')

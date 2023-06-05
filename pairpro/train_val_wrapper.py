@@ -8,7 +8,7 @@ from pairpro.train_val_input_cleaning import input_cleaning_wrapper
 from pairpro.train_val_featuregen import create_new_dataframe
 
 
-def train_val_wrapper(dataframe, target, feature_list=None):
+def train_val_wrapper(dataframe, target, features=False):
     '''
     Takes dataframe and runs it through cleaning script.
     Generates features with iFeatureOmegaCLI.
@@ -26,7 +26,8 @@ def train_val_wrapper(dataframe, target, feature_list=None):
     # clean input dataframe
     dataframe = input_cleaning_wrapper(dataframe)
 
-    if feature_list is not None:
+    if features is True:
+        feature_list = ['AAC']
         # generate features from amino acid sequence
         dataframe = create_new_dataframe(dataframe, ['sequences_a.fasta', 
                                     'sequeneces_b.fasta'], 
