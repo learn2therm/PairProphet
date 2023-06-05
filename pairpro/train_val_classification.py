@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import sklearn.preprocessing
 import sklearn.model_selection
 import sklearn.neighbors
-import sklearn.ensemble
+import sklearn.ensemble 
 import sklearn.feature_selection
 import sklearn.metrics
 
@@ -66,6 +66,7 @@ def train_model(dataframe, columns=[], target=[]):
     model = model.fit(train_X, train_y.ravel())
 
     return model, train_X, train_y, val_X, val_y
+
 
 def train_model_structure(dataframe, columns=[], target=[]):
     '''
@@ -190,13 +191,8 @@ def rf_wrapper(dataframe, target):
     '''
     assert 'pandas.core.frame.DataFrame' in str(type(dataframe))
 
-    print(f"Target: {target}.")
-    print(dataframe.columns)
-
     # define input features
     input_features = [columns for columns in dataframe.drop(columns=target)]
-
-    print(f"Features are: {input_features}.")
 
     # train the model based off data split
     if 'structure_match' not in target:

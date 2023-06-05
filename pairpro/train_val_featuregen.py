@@ -32,7 +32,7 @@ def get_fasta_from_dataframe(
         Two fasta files with protein sequences and pair_id
     '''
     # meso sequence to fasta
-    with open(output_file_a, 'w') as f:
+    with open(f'./tmp/{output_file_a}', 'w') as f:
         for _, row in dataframe.iterrows():
             f.write(
                 '>{}\n{}\n'.format(
@@ -40,7 +40,7 @@ def get_fasta_from_dataframe(
                     row['m_protein_seq']))
 
     # thermo sequence to fasta
-    with open(output_file_b, 'w') as f:
+    with open(f'./tmp/{output_file_b}', 'w') as f:
         for _, row in dataframe.iterrows():
             f.write(
                 '>{}\n{}\n'.format(
@@ -48,7 +48,6 @@ def get_fasta_from_dataframe(
                     (row['t_protein_seq'])))
 
     # return output files
-    #clobber these files
     return [output_file_a, output_file_b]
 
 
@@ -75,8 +74,6 @@ def get_protein_descriptors(fasta_file: str, descriptors=[]):
         protein_descriptors.update({f'{descriptor}': protein.encodings})
 
     # make sure output is a dictionary of correct length
-    print(len(protein_descriptors))
-    print(len(descriptors))
     assert "dict" in str(type(protein_descriptors))
     assert len(protein_descriptors) == len(descriptors)
 
@@ -106,7 +103,6 @@ def clean_new_dataframe(dataframe):
 
     # assert NaN's are removed
     nan_counts = dataframe.isna().sum()
-    print(len(nan_counts.unique()))
     assert len(nan_counts.unique()) == 1
 
     return dataframe
@@ -124,7 +120,6 @@ def create_new_dataframe(dataframe, output_files: list, descriptors=[]):
     '''
     fasta_files = get_fasta_from_dataframe(
         dataframe, output_files[0], output_files[1])
-    print(descriptors)
 
     def compute_descriptor_ratio(fasta_files, descriptors=[]):
         '''

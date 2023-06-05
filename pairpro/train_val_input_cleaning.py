@@ -28,7 +28,7 @@ columns_to_keep = [
     'hmmer_match',
     'norm_bit_score_m',
     'norm_bit_score_t'
-    ]
+]
 
 
 def normalize_bit_scores(dataframe):
@@ -48,9 +48,6 @@ def normalize_bit_scores(dataframe):
         dataframe['t_protein_len']
 
     return dataframe
-
-# need function that merges in protein_match
-# need function that gets rid of Unnamed:0 and Jaccard_Score
 
 
 def check_input_type(dataframe):
@@ -160,15 +157,11 @@ def input_cleaning_wrapper(dataframe, structure):
     Returns:
         pandas dataframe
     '''
-    print(dataframe.columns)
-
     if structure:
         columns_to_keep.append('structure_match')
-        print(columns_to_keep)
     else:
         pass
 
-    print(columns_to_keep)
     # normalize bit scores
     normed = normalize_bit_scores(dataframe)
 
