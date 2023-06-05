@@ -169,9 +169,9 @@ def compare_fatcat(p1_file, p2_file, pdb_dir, pair_id):
 
     # Check if p-value is less than 0.05 and assign 1 or 0 accordingly
     if p_value < 0.05:
-        return {'pair_id': pair_id, 'p_value': 1}
+        return {'pair_id': pair_id, 'p_value': True}
     else:
-        return {'pair_id': pair_id, 'p_value': 0}
+        return {'pair_id': pair_id, 'p_value': False}
 
 def process_row(row, pdb_dir):
     """
