@@ -38,7 +38,7 @@ extensions = [
     'sphinx.ext.autosectionlabel'
 ]
 
-autodoc_mock_imports = ['pandas', 'numpy', 'matplotlib', 'sklearn', 'joblib', 'iFeatureOmegaCLI', 'Bio', 'nest_asyncio', 'duckdb']
+autodoc_mock_imports = ['pandas', 'numpy', 'matplotlib', 'sklearn', 'joblib', 'iFeatureOmegaCLI', 'Bio', 'nest_asyncio', 'duckdb', 'httpx']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
