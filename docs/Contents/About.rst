@@ -19,7 +19,7 @@ To install the PairProphet package, use the following commands:
 
 ::  
     
-    conda activate validprot
+    conda activate pairpro
 
 ::
 
