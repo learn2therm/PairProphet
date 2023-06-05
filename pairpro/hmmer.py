@@ -574,8 +574,77 @@ def process_pairs_table(conn, dbname, chunk_size:int, output_directory, jaccard_
 
 
 
+## user input
+def user_local_hmmer_wrapper(chunk_index, dbpath, dbname, chunked_pair_id_inputs,
+                        press_path, out_dir,  wakeup=None):
+    """
+    A wrapping function that runs and parses pyhmmer in chunks.
 
+    Args:
+        chunk_index (int): Number of sequence chunks.
+        dbpath (stf): Path to the database.
+        dbname (str): Name of the database.
+        chunked_pair_id_inputs (pandas.DataFrame): DataFrame containing chunked PID inputs.
+        press_path (str): Path to the pressed HMM database.
+        out_path (str): Path to directory where output will be saved.
+        wakeup (int or None, optional): Delay in seconds before starting the execution. Default is None.
 
+    Returns:
+        None
 
+    Notes:
+        This function performs the following steps:
+        1. Queries the database to get sequences only from chunked_pair_id_inputs.
+        2. Converts the query result to a DataFrame.
+        3. Converts string sequences to pyhmmer digital blocks.
+        4. Runs HMMER via pyhmmer with the provided sequences.
+        5. Parses the pyhmmer output and saves it to a CSV file.
 
+        The parsed pyhmmer output is saved in the directory specified by OUTPUT_DIR,
+        with each chunk having its own separate output file named '{chunk_index}_output.csv'.
 
+        If the wakeup parameter is specified, the function will wait for the specified
+        number of seconds before starting the execution.
+    """
+    # we want to wait for execution to see if this worker is actually being used
+    # or if it is in the process of being killed
+    if wakeup is not None:
+        time.sleep(wakeup)
+    
+    # query the database to get sequences only from chunked_pair_id_inputs
+    conn = ddb.connect(dbpath, read_only=True)
+    
+    # get the unique pair_id from the chunked_pair_id_inputs
+    pair_id = set(chunked_pair_id_inputs["pair_id"])
+
+    # Only extract protein_seqs from the list of PID inputs
+    placeholders = ', '.join(['?'] * len(pair_id))
+    query = f"SELECT pid, protein_seq FROM {dbname}.pairpro.proteins WHERE pid IN ({placeholders})"
+    query_db = conn.execute(query, list(pair_id)).fetchall()
+
+    # close db connection
+    conn.close()
+
+    # convert the query db to a dataframe
+    result_df = pd.DataFrame(query_db, columns=['pid', 'protein_seq'])
+
+    # convert string sequences to pyhmmer digital blocks
+    sequences = save_to_digital_sequences(result_df)
+
+    # run HMMER via pyhmmer
+    hits = run_pyhmmer(
+        seqs=sequences,
+        hmms_path=press_path,
+        press_path=press_path,
+        prefetch=True,
+        cpu=1,
+        eval_con=1e-10)
+    
+    # get the query IDs from the chunked_pair_id_inputs
+    chunk_query_ids = chunked_pair_id_inputs["pair_id"].tolist()
+
+    # Parse pyhmmer output and save to CSV file
+    accessions_parsed = parse_pyhmmer(all_hits=hits, chunk_query_ids=chunk_query_ids)
+    accessions_parsed.to_csv(
+        f'{out_dir}/{chunk_index}_output.csv',
+        index=False)
