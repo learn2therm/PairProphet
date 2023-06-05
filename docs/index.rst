@@ -23,8 +23,8 @@ For contributions, see `here <https://github.com/learn2therm/PairProphet/blob/ma
    :caption: Contents:
 
    Contents/About
-   Contents/pairpro
    Contents/Instructions
+   Contents/pairpro
    Contents/Acknowledgements
    Contents/References
    Contents/Code_of_Conduct
