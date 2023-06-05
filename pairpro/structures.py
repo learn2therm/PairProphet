@@ -1,6 +1,6 @@
 """
 This module takes in a pandas dataframe containing Uniprot IDs and PDB IDs, download the pdb files and run FATCAT for structural alignment purpose.
-Returns a Boolean for structure similarity (O is False pair and 1 is True pair) or NaN if no structures were found for proteins.
+Returns a Boolean for structure similarity. If no structures were found for proteins, that pair is dropped in the output file.
 """
 from Bio.PDB import PDBList
 import os
@@ -167,7 +167,7 @@ def compare_fatcat(p1_file, p2_file, pdb_dir, pair_id):
     # Extract the p-value and convert it to a numeric value
     p_value = float(p_value_line.split()[1])
 
-    # Check if p-value is less than 0.05 and assign 1 or 0 accordingly
+    # Check if p-value is less than 0.05 and assign True or False
     if p_value < 0.05:
         return {'pair_id': pair_id, 'p_value': True}
     else:
@@ -199,7 +199,7 @@ def process_row(row, pdb_dir):
     p2_file = f'{p2}.pdb'
     if not os.path.exists(os.path.join(pdb_dir, p1_file)) or not os.path.exists(os.path.join(pdb_dir, p2_file)):
         # Assign NaN as the p-value instead of dropping the row
-        return {'pair_id': row['pair_id'], 'p_value': np.nan}
+        return None
 
     return compare_fatcat(p1_file, p2_file, pdb_dir, row['pair_id'])
 
@@ -219,6 +219,10 @@ def run_fatcat_dict_job(df, pdb_dir, file):
 
     # Parallelize the execution of the function using joblib
     p_values = Parallel(n_jobs=-1)(delayed(process_row)(row, pdb_dir) for _, row in df.iterrows())
+
+    # Filter out None values
+    p_values = [p_value for p_value in p_values if p_value is not None]
+
     with open(file, 'w') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=['pair_id', 'p_value'])
         writer.writeheader()
@@ -228,7 +232,7 @@ def run_fatcat_dict_job(df, pdb_dir, file):
 # Uncomment the following lines to run the code as a script
 # if __name__ == '__main__':
 #     dff = pd.read_csv('../data/chau_test.csv')
-#     df = dff.sample(3)
+#     df = dff.sample(5)
 #     # Download the structures
 #     download_structure(df, 'meso_pdb', 'meso_pid', 'af')
 #     download_structure(df, 'thermo_pdb', 'thermo_pid', 'af')
