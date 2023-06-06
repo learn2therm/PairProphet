@@ -52,7 +52,7 @@ classifiers = [
     #     SVC(),
 ]
 
-def evaluate_model(output_path, model, target: list, dataframe):
+def evaluate_model(model, target: list, dataframe):
     '''
     Takes a trained model and test data and tests the model.
     Runs a single or multi-class Classifier depending on input.
@@ -87,6 +87,7 @@ def evaluate_model(output_path, model, target: list, dataframe):
         F.write('-1.0 <=MCC<= 1.0' + '\n')
         F.write('_______________________________________' + '\n')
 
+        #need to figure out what seq 1 and seq2 are called
         results_df = dataframe[['m_protein_seq', 't_protein_seq']]
 
         dataframe = dataframe.drop(columns=['m_protein_seq', 't_protein_seq'])
@@ -111,7 +112,7 @@ def evaluate_model(output_path, model, target: list, dataframe):
 
         # Calculate ROC Curve and Area the Curve
         proba_y = model.predict_proba(test_X)[:, 1]
-        FPR, TPR, _ = roc_curve(test_y, proba_y, pos_label=1)
+        FPR, TPR, _ = roc_curve(test_y, proba_y, pos_label=True)
         roc_auc = auc(FPR, TPR)
 
         # calculate scoring metrics
@@ -121,9 +122,9 @@ def evaluate_model(output_path, model, target: list, dataframe):
                 y_true=test_y,
                 y_score=proba_y,
                 pos_label=1)
-        F1_Score = f1_score(y_true=test_y, y_pred=preds, pos_label=1)
+        F1_Score = f1_score(y_true=test_y, y_pred=preds, pos_label=True)
         MCC = matthews_corrcoef(y_true=test_y, y_pred=preds)
-        Recall = recall_score(y_true=test_y, y_pred=preds, pos_label=1)
+        Recall = recall_score(y_true=test_y, y_pred=preds, pos_label=True)
         AUC = roc_auc
 
         # confusion_matrix = sklearn.metrics.confusion_matrix(
@@ -146,7 +147,7 @@ def evaluate_model(output_path, model, target: list, dataframe):
         results_df['prediction'] = preds
 
         # save to csv
-        results_df.to_csv('predictions.csv')
+        results_df.to_csv('./data/predictions.csv')
 
     else:
          # initialize empty eval results file
@@ -191,10 +192,10 @@ def evaluate_model(output_path, model, target: list, dataframe):
                 y_pred=preds,
                 y_true=test_y,
                 average=None,
-                pos_label=1
+                pos_label=True
                 )
-        F1_Score = f1_score(y_true=test_y, y_pred=preds, pos_label=1, average=None)
-        Recall = recall_score(y_true=test_y, y_pred=preds, pos_label=1, average=None)
+        F1_Score = f1_score(y_true=test_y, y_pred=preds, pos_label=True, average=None)
+        Recall = recall_score(y_true=test_y, y_pred=preds, pos_label=True, average=None)
 
         print(accuracy)
         print(Precision)
@@ -219,6 +220,6 @@ def evaluate_model(output_path, model, target: list, dataframe):
         results_df['hmmer_structure_match'] = results_df['hmmer_prediction'] == results_df['structure_prediction']
 
         # save to csv
-        results_df.to_csv('predictions.csv')
+        results_df.to_csv('./data/predictions.csv')
 
     return preds, results_df
