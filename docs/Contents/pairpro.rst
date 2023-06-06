@@ -1,7 +1,7 @@
 PairProphet package
 ===============
 
-.. image:: ../PairProphet/docs/capstone_project/Final-pres-figs.png
+.. image:: https://github.com/learn2therm/PairProphet/blob/main/docs/capstone_project/Final-pres-figs.png
   :width: 400
 
 
