@@ -71,9 +71,9 @@ def evaluate_model(model, target: list, dataframe):
     from sklearn.metrics import accuracy_score, \
     confusion_matrix, \
     roc_auc_score,\
-    average_precision_score,\
+    average_precision_score, precision_score,\
     auc,\
-    roc_curve, f1_score, recall_score, matthews_corrcoef, auc
+    roc_curve, f1_score, recall_score, matthews_corrcoef
     
     if 'structure_match' not in target:
         # initialize empty eval results file
@@ -88,9 +88,9 @@ def evaluate_model(model, target: list, dataframe):
         F.write('_______________________________________' + '\n')
 
         #need to figure out what seq 1 and seq2 are called
-        results_df = dataframe[['m_protein_seq', 't_protein_seq']]
+        results_df = dataframe[['query', 'subject']]
 
-        dataframe = dataframe.drop(columns=['m_protein_seq', 't_protein_seq'])
+        dataframe = dataframe.drop(columns=['query', 'subject'])
 
         features = [columns for columns in dataframe.drop(columns=target)]
 
@@ -147,7 +147,7 @@ def evaluate_model(model, target: list, dataframe):
         results_df['prediction'] = preds
 
         # save to csv
-        results_df.to_csv('./data/predictions.csv')
+        results_df.to_csv('./data/user_predictions.csv')
 
     else:
          # initialize empty eval results file
@@ -161,9 +161,9 @@ def evaluate_model(model, target: list, dataframe):
         F.write('-1.0 <=MCC<= 1.0' + '\n')
         F.write('_______________________________________' + '\n')
 
-        results_df = dataframe[['m_protein_seq', 't_protein_seq']]
+        results_df = dataframe[['query', 'subject']]
 
-        dataframe = dataframe.drop(columns=['m_protein_seq', 't_protein_seq'])
+        dataframe = dataframe.drop(columns=['query', 'subject'])
 
         features = [columns for columns in dataframe.drop(columns=target)]
 
@@ -220,6 +220,6 @@ def evaluate_model(model, target: list, dataframe):
         results_df['hmmer_structure_match'] = results_df['hmmer_prediction'] == results_df['structure_prediction']
 
         # save to csv
-        results_df.to_csv('./data/predictions.csv')
+        results_df.to_csv('./data/user_predictions.csv')
 
     return preds, results_df

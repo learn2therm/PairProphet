@@ -15,9 +15,9 @@ these can be developed as individual scripts.
 Runtime:
 TODO:
     - [x] Check HMMER parsing logic
-    -[ ] Add click or Arg parse to implement parameters to the scripts 
+    -[x] Add click or Arg parse to implement parameters to the scripts 
         as well as the structure component
-    - [ ] make target a param as well as ifeatureomega list
+    - [x] make target a param as well as ifeatureomega list
 """
 # system dependencies
 import sys

@@ -10,15 +10,15 @@ import logging
 import os
 
 # library dependencies
+import click
 import pandas as pd
+import numpy as np
 import joblib
 from joblib import delayed, Parallel
 
 # local dependencies
 ## machine learning
-from pairpro.evaluate_model import evaluate_model
-from pairpro.train_val_wrapper import train_val_wrapper
-from pairpro.train_val_input_cleaning import columns_to_keep
+from pairpro.evaluate_model_wrapper import evaluate_model_wrapper
 
 #need to understand how to import the trained model from main
 # from pairpro.main import train_model
@@ -40,8 +40,8 @@ MODEL_PATH = './data/models/'
 
 ## HMMER Paths
 PRESS_PATH = './data/pfam/pfam'
-HMMER_OUT_DIR = './data/user/hmmer_out'
-PARSED_HMMER_OUT_DIR = './data/user/parsed_hmmer_out'
+HMMER_OUT_DIR = './data/user/hmmer_out/'
+PARSED_HMMER_OUT_DIR = './data/user/parsed_hmmer_out/'
 
 test_sequences = './data/50k_paired_seq.csv'
 
@@ -56,15 +56,16 @@ LOGNAME = __file__
 LOGFILE = f'./logs/{os.path.basename(__file__)}.log'
 
 
-
-def user_input(test_sequences, output_path:str, model=0):
+@click.command()
+@click.option('--structure', default=False, help='Boolean; Run structure component')
+@click.option('--features', default=False, help='Boolean; Run feature generation component')
+def user_input(test_sequences, structure, features):
     '''
     Function for user to interact with.
     Test sequences is a two-column csv
 
     Args:
-        csv file (list of sequences)
-        pairing and PDBids and UniprotIDs are optional
+        TODO
         
 
     Returns:
@@ -87,8 +88,22 @@ def user_input(test_sequences, output_path:str, model=0):
 
     if df< 1000:
         logger.info('Running HMMER via the API as there are less than a 1000 sequences.')
-        pairpro.hmmer.hmmerscanner(df, 20, 20, HMMER_OUT_DIR)
-        pairpro.hmmer.run_hmmerscanner()
+        # subject_search = pairpro.hmmer.hmmerscanner(df, 'subject', 20, 20, HMMER_OUT_DIR)
+        # query_search = pairpro.hmmer.hmmerscanner(df, 'query', 20, 20, HMMER_OUT_DIR)
+        subject_scan = pairpro.hmmer.run_hmmerscanner(df, 'subject', 20, 20, HMMER_OUT_DIR)
+        query_scan = pairpro.hmmer.run_hmmerscanner(df, 'query', 20, 20, HMMER_OUT_DIR)
+        jaccard_threshold = 0.5
+        # Get file pairs and calculate similarity for each pair
+        file_pairs = pairpro.hmmer.get_file_pairs(HMMER_OUT_DIR)
+        logger.info(f"Processing {len(file_pairs)} file pairs in {HMMER_OUT_DIR}")
+        results = {}
+        for file1, file2 in file_pairs:
+            logger.info(f"Processing {file1} and {file2}")
+            output_file = f"{PARSED_HMMER_OUT_DIR}functional_API_output.csv"
+            similarity_scores = pairpro.hmmer.calculate_similarity_API(file1, file2, jaccard_threshold)
+            pairpro.hmmer.write_function_output_API(similarity_scores, output_file)
+            results[(file1, file2)] = output_file
+        logger.info('Finished running HMMER via the API.')
     else:
         logger.info('Running HMMER locally as there are more than a 1000 sequences.')
         chunk_size = 1000
@@ -117,37 +132,24 @@ def user_input(test_sequences, output_path:str, model=0):
         """)
         logger.info('Finished appending parsed HMMER output to table.')
         
-
-
-#     # hmmer component
-#     """
-#     Input: Dataframe from user blast component
-#     Output: CSV (Meso_PID, Thermo_PID, Boolean)
-#     """
-#     user_boolean = make_target(df)
-
-#     ## developing method to generate single ID
-#     df = pd.merge(df, user_boolean, on=['ID'])
-
-#     # Structure component
-#     ## chau update code to return only boolean and append to the df
-#     download_structures(df, pdb_column, u_column, pdb_dir)
-#     df = run_fatcat(df, pdb_dir)
-
-#     #at this point, df is: user_blast + hmmer boolean + chau boolean
-
-#     # Machine Learning Component
-#     """
-#     Input: Dataframe that has been updated with user_blast + hmmer boolean + structure boolean
-#     Output: csv files with 6 columns (seq1, seq2, protein_match (Humood + Amin), protein_match (Chau) protein_match(ML))
-#     Params: Base environment + iFeatureOmega dependencies 
-#     """
-
-#     #make evaluation into four class classifier (neither true, hmmer true, structure true, both true)
-#     model = joblib.load(MODEL_PATH)
-#     evaluation = evaluate_model(df, model, output_path:str)
+    df = con.execute("""SELECT query, subject, bit_score, local_gap_compressed_percent_id, 
+    scaled_local_query_percent_id, scaled_local_symmetric_percent_id, 
+    query_align_len, query_align_cov, subject_align_len, subject_align_cov, 
+    LENGTH(query) AS query_len, LENGTH(subject) AS subject_len, hmmer_match""").df()
     
-#     return evaluation
+    # ML component
+    if structure:
+        target = ['hmmer_match', 'structure_match']
+    else:
+        target = 'hmmer_match'
+
+    # load model
+    model = joblib.load(MODEL_PATH)
+
+    # run model
+    evaluate_model_wrapper(model, df, target, structure, features)
+    
+    logger.info('Finished running user input script.')
 
 if __name__ == "__main__":
     logger = pairpro.utils.start_logger_if_necessary(LOGNAME, LOGFILE, LOGLEVEL, filemode='w')
@@ -167,5 +169,7 @@ if __name__ == "__main__":
         os.makedirs(PARSED_HMMER_OUT_DIR, exist_ok=True)
     except OSError as e:
         logger.error(f'Error creating directory: {e}')
+    logger.info(f'Created parsed HMMER output directory: {PARSED_HMMER_OUT_DIR}')
 
-    user_input(test_sequences, output_path = 'no')
+    logger.info('Running user input script.')
+    user_input()

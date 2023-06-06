@@ -183,7 +183,7 @@ async def hmmerscanner(df: pd.DataFrame, which:str, k: int, max_concurrent_reque
     results_df = pd.concat(
         [result[list(common_columns)] for result in results if result is not None])
     # write result to csv
-    results_df.to_csv(f'{output_path}_f{which}_API_output.csv')
+    results_df.to_csv(f'{output_path}{which}_API_output.csv')
     return results_df
 
 
@@ -701,7 +701,7 @@ def user_local_hmmer_wrapper(chunk_index, press_path, sequences, out_dir):
         press_path=press_path,
         prefetch=True,
         cpu=1,
-        eval_con=1e-10)
+        eval_con=1e-12)
     
     # get the query IDs from the chunked_pid_inputs
     missing_pair_ids = sequences["pair_id"].tolist()
@@ -920,17 +920,14 @@ def get_file_pairs(directory_path):
         """
         A quick silly function to get pairs
         """
-        subject_files = glob.glob(f"{directory_path}/subject_API_output*.csv")
-        thermo_files = glob.glob(f"{directory_path}/thermo_result_*.csv")
+        subject_files = glob.glob(f"{directory_path}/subject_API_output.csv")
+        query_files = glob.glob(f"{directory_path}/query_API_output.csv")
         print(subject_files)
         subject_files.sort()
-        thermo_files.sort()
+        query_files.sort()
         file_pairs = []
-        for subject_file, thermo_file in zip(subject_files, thermo_files):
-            meso_chunk_index = int(subject_file.split("_")[-1].split(".")[0])
-            thermo_chunk_index = int(thermo_file.split("_")[-1].split(".")[0])
-            if meso_chunk_index == thermo_chunk_index:
-                file_pairs.append((subject_file, thermo_file))
+        for subject_file, query_file in zip(subject_files, query_files):
+                file_pairs.append((subject_file, query_file))
         return file_pairs
 
 
