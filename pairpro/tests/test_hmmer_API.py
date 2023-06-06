@@ -1,14 +1,15 @@
 """
-Test unit for testing the function in the notebook by whole code and by using the real and fake output.
+Test unit for testing the function in the notebook by whole code and by 
+using the real and fake output.
 The packages you need to run this script are:
 - pandas
 - unittest
-- API
+- hmmer
 """
 
 import pandas as pd
 import unittest
-from HMMER_API import hmmerscanner
+from hmmer import run_hmmerscanner
 
 
 class HmmerScannerTest(unittest.TestCase):
@@ -25,11 +26,17 @@ class HmmerScannerTest(unittest.TestCase):
         DataFrame contains the expected columns. If an assertion fails,
         an error message is printed to indicate which assertion failed.
         """
-        # Read the input data and print here
-        df = pd.read_csv("/Users/amin/ValidProt/FAFSA/learn2therm_sample_50k.csv")
+        
+        # Input data
+        data = {
+            'protein_seq': ['MAESGTSRRADHLVPVPGPDAEPPAVADELLRAVGRGDEQAFGRLYDLLAPRVYGLIRRVLRDPALAEEVTQEVLVEVWRRAARFDPAQGSANAWVFTIAHRRAVDRVRAEQKAADRTVRAGAAALDSPYDSVADEVSGRLERRQVRHCLDALTGLQREVVTLAYYQGHSYPQVAELLKTPLGTVKTRMRDGLIRLRDCLGVEATA'],
+            'pid': [48641291]
+        }
+
+        df = pd.DataFrame(data)
 
         # run the hmmerscanner function on the sample DataFrame
-        results_df = hmmerscanner(df, 1)
+        results_df = hmmerscanner(df, 1, 20)
 
         # assertion 1: check if the output DataFrame is not empty
         try:
@@ -100,45 +107,3 @@ class HmmerScannerTest(unittest.TestCase):
             print("assertion 10 passed")
         except AssertionError:
             print("assertion 10 failed, because the HMMER server may have a problem")
-
-    def test_fakeData_hmmerscanner(self):
-        """
-        In `test_fakeData_hmmerscanner`, a fake DataFrame is created, and assertions are made to
-        check if it has the expected columns. If an assertion fails, an error message is printed.
-        It is with fake data for testing the code when we get the error because of the server problem.
-        """
-        # create a fake DataFrame
-        results_dff = pd.DataFrame({
-            'sequence': ['AAAAAA', 'AAAAAA', 'BBBBBB'],
-            'hmm_acc': ['PF00001', 'PF00002', 'PF00001'],
-            'hmm_desc': ['Test domain 1', 'Test domain 2', 'Test domain 1'],
-            'hmm_from': [1, 10, 20],
-            'hmm_to': [50, 60, 70],
-            'hmm_cov': [0.5, 0.6, 0.7],
-            'hmm_score': [50.0, 60.0, 70.0],
-            'hmm_evalue': [1e-6, 1e-7, 1e-8],
-            'hmm_pvalue': [1e-8, 1e-9, 1e-10],
-            'acc': ['ABC123', 'DEF456', 'GHI789'],
-            'name': ['Protein 1', 'Protein 2', 'Protein 3'],
-            'score': [100, 200, 300],
-            'evalue': [1e-10, 1e-11, 1e-12],
-            'pvalue': [1e-12, 1e-13, 1e-14],
-            'desc': ['Protein description 1', 'Protein description 2', 'Protein description 3']
-        })
-
-        # assertion 1: check if the output is a DataFrame
-        try:
-            assert isinstance(results_dff, pd.DataFrame)
-            print("assertion 1 passed")
-        except AssertionError:
-            print("assertion 1 failed")
-
-        # assertion 2: check if the output DataFrame has the expected columns
-        try:
-            expected_columns = ['sequence', 'hmm_acc', 'hmm_desc', 'hmm_from', 'hmm_to', 'hmm_cov', 'hmm_score',
-                                'hmm_evalue', 'hmm_pvalue', 'acc', 'name', 'score', 'evalue', 'pvalue', 'desc']
-            assert set(results_dff.columns) == set(
-                expected_columns), "Unexpected columns in output DataFrame"
-            print("assertion 2 passed")
-        except AssertionError:
-            print("assertion 2 failed")
