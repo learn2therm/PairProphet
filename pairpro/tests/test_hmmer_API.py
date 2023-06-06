@@ -9,7 +9,7 @@ The packages you need to run this script are:
 
 import pandas as pd
 import unittest
-from hmmer import run_hmmerscanner
+from pairpro.hmmer import run_hmmerscanner
 
 
 class HmmerScannerTest(unittest.TestCase):
