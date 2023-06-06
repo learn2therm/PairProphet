@@ -109,15 +109,14 @@ def download_pdb(df, pdb_column, pdb_dir):
     Returns: pdb files containing structural information.
     """
     pdbl = PDBList()
-    for i, row in df.iterrows():
-        pdb_id = row[pdb_column]
-        if not pd.isna(pdb_id):  # check for NaN value in PDB IDs column
-            pdbl.retrieve_pdb_file(pdb_id, pdir=pdb_dir, file_format='pdb')
-            file_path = os.path.join(pdb_dir, f'pdb{pdb_id.lower()}.ent')
-            if os.path.exists(file_path):
-                os.rename(file_path, os.path.join(pdb_dir, f'{pdb_id}.pdb'))
-            else:
-                pass
+    pdbs = df[pdb_column].dropna().unique()
+    for p in pdbs:
+        pdbl.retrieve_pdb_file(p, pdir=pdb_dir, file_format='pdb')
+        file_path = os.path.join(pdb_dir, f'pdb{p.lower()}.ent')
+        if os.path.exists(file_path):
+            os.rename(file_path, os.path.join(pdb_dir, f'{p}.pdb'))
+        else:
+            pass
 
 def download_structure(df, pdb_column, u_column, pdb_dir):
     """
