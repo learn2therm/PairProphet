@@ -5,6 +5,12 @@
 
 Welcome to PairProphet's documentation! 
 =================================
+
+.. image:: https://readthedocs.org/projects/pairprophet/badge/?version=latest
+    :target: https://pairprophet.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
+
+
 PairProphet is a software pipeline developed at the University of
 Washington. This package implements a  “first-pass” model that 
 allows researchers to draw on existing proteome data and generate 
@@ -18,7 +24,7 @@ For more information, please visit our `Github <https://github.com/learn2therm/P
 For contributions, see `here <https://github.com/learn2therm/PairProphet/blob/main/docs/contributing.md>`_.
 
 
-.. image:: ../docs/capstone_project/Logo.png
+.. image:: ././docs/capstone_project/Logo.png
     :width: 400
 
 .. toctree::
