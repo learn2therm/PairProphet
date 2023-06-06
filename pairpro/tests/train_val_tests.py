@@ -2,6 +2,7 @@
 Unit tests for input cleaning and ML modules.
 """
 import unittest
+import duckdb as ddb
 import pandas as pd
 import numpy as np
 import os
@@ -20,11 +21,13 @@ from pairpro.train_val_featuregen import get_protein_descriptors
 from pairpro.train_val_featuregen import clean_new_dataframe
 from pairpro.train_val_featuregen import create_new_dataframe
 
-df = pd.read_csv('learn2therm_sample_50k.csv')
 
-# create new Boolean column for protein functionality match
-df['protein_match'] = df['t_protein_desc'] == df['m_protein_desc']
+# conn = ddb.connect('pairpro/tests/l2t_mini_pdb.db', read_only=True)
 
+# df = con.execute(f"""SELECT pair_id, m_protein_seq, t_protein_seq, bit_score, local_gap_compressed_percent_id, 
+#         scaled_local_query_percent_id, scaled_local_symmetric_percent_id, 
+#         query_align_len, query_align_cov, subject_align_len, subject_align_cov, 
+#         LENGTH(m_protein_seq) AS m_protein_len, LENGTH(t_protein_seq) AS t_protein_len, FROM """).df()
 
 # unit tests for input cleaning
 
@@ -33,6 +36,10 @@ class TestInputType(unittest.TestCase):
     Tests that input data is a pandas dataframe
     """
 
+    def setUp(self):
+        self.conn = ddb.connect('pairpro/tests/l2t_mini_pdb.db', read_only=True)
+        return
+
     def test_input_type(self):
         try:
             check_input_type([4, 3])
@@ -40,6 +47,8 @@ class TestInputType(unittest.TestCase):
         except AssertionError:
             self.assertTrue(True)
 
+    def tearDown(self):
+        return super().tearDown()
 
 class TestInputCleaning(unittest.TestCase):
     """
