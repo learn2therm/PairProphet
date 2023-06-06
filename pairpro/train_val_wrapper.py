@@ -27,8 +27,8 @@ def train_val_wrapper(dataframe, target, structure=False, features=False):
 
     if features is True:
         feature_list = [
-            'AAC', 'CTDC'
-        ]
+            'AAC', 'GAAC', 'DistancePair','CTDC', 'CTDT', 'CTDD', 'CTriad', 'GDPC type 1', 'GDPC type 2','CKSAAGP type 1', 'CKSAAGP type 2',
+              'PseKRAAC type 2', 'PseKRAAC type 3A','PseKRAAC type 7', 'PseKRAAC type 9', 'Geary','APAAC', 'QSOrder']
         # generate features from amino acid sequence
         dataframe = create_new_dataframe(dataframe, ['sequences_a.fasta',
                                                      'sequeneces_b.fasta'],
