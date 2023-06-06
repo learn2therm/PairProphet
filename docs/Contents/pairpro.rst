@@ -1,11 +1,6 @@
 PairProphet package
 ===============
 
-.. image:: https://github.com/learn2therm/PairProphet/blob/main/docs/capstone_project/Final-pres-figs.png
-  :width: 400
-
-
-
 | The following submodules contain source code for developing our machine learning model.
 | For a detailed description of the pipeline, see `here <https://github.com/learn2therm/PairProphet/blob/main/docs/component_docs.md>`_.
 
