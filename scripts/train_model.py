@@ -187,7 +187,7 @@ def model_construction(chunk_size, njobs, jaccard_threshold, vector_size, struct
         df = con.execute(f"""SELECT pair_id, m_protein_seq, t_protein_seq, bit_score, local_gap_compressed_percent_id, 
         scaled_local_query_percent_id, scaled_local_symmetric_percent_id, 
         query_align_len, query_align_cov, subject_align_len, subject_align_cov, 
-        LENGTH(m_protein_seq) AS m_protein_len, LENGTH(t_protein_seq) AS t_protein_len, hmmer_match, structure_match FROM {db_name}.pairpro.final""").df()
+        LENGTH(m_protein_seq) AS m_protein_len, LENGTH(t_protein_seq) AS t_protein_len, hmmer_match, structure_match FROM {db_name}.pairpro.final WHERE structure_match IS NOT NULL""").df()
 
     else:
         logger.info('Skipping structure component.')
