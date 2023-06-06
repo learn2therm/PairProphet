@@ -26,7 +26,8 @@ For contributions, see `here <https://github.com/learn2therm/PairProphet/blob/ma
 
 .. image:: ../docs/capstone_project/Logo.png
     :width: 400
-      
+    :align: center
+
 .. toctree::
    :maxdepth: 7
    :hidden:
