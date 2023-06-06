@@ -103,10 +103,3 @@ pairpro.utils module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
-
-.. automodule:: pairpro
-   :members:
-   :undoc-members:
-   :show-inheritance:
