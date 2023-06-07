@@ -20,11 +20,10 @@ columns_to_keep = [
     'query_len',
     'subject_len',
     'hmmer_match',
-    'norm_bit_score_m',
-    'norm_bits_score_t',
+    'norm_bit_score_query',
+    'norm_bit_score_subject',
     'query',
-    'subject',
-    'pair_id'
+    'subject'
     ]
 
 
@@ -39,10 +38,10 @@ def normalize_bit_scores(dataframe):
     Returns:
         pandas dataframe
     '''
-    dataframe['norm_bit_score_m'] = dataframe['bit_score'] / \
-        dataframe['m_protein_len']
-    dataframe['norm_bit_score_t'] = dataframe['bit_score'] / \
-        dataframe['t_protein_len']
+    dataframe['norm_bit_score_query'] = dataframe['bit_score'] / \
+        dataframe['query_len']
+    dataframe['norm_bit_score_subject'] = dataframe['bit_score'] / \
+        dataframe['subject_len']
 
     return dataframe
 
