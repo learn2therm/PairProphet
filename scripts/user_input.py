@@ -13,6 +13,7 @@ import os
 import click
 import pandas as pd
 import numpy as np
+import sklearn
 import joblib
 from joblib import delayed, Parallel
 
@@ -32,11 +33,11 @@ import pairpro.utils
 
 
 #structure
-from pairpro.structures import download_structure, run_fatcat
+# from pairpro.structures import download_structure, run_fatcat
 
 ### Paths
 ##ML Paths
-MODEL_PATH = './data/models/'
+MODEL_PATH = './data/models/trained_model.pkl'
 
 ## HMMER Paths
 PRESS_PATH = './data/pfam/pfam'
@@ -57,6 +58,7 @@ LOGFILE = f'./logs/{os.path.basename(__file__)}.log'
 
 
 @click.command()
+@click.option('--test_sequences', default='./data/50k_paired_seq.csv', help='Path to csv with test sequences')
 @click.option('--structure', default=False, help='Boolean; Run structure component')
 @click.option('--features', default=False, help='Boolean; Run feature generation component')
 def user_input(test_sequences, structure, features):
@@ -86,7 +88,7 @@ def user_input(test_sequences, structure, features):
     ## blast df has sequences and alignment metrics, PID that is unique for each row
     df, con = make_blast_df(df)
 
-    if df< 1000:
+    if len(df) < 1000:
         logger.info('Running HMMER via the API as there are less than a 1000 sequences.')
         # subject_search = pairpro.hmmer.hmmerscanner(df, 'subject', 20, 20, HMMER_OUT_DIR)
         # query_search = pairpro.hmmer.hmmerscanner(df, 'query', 20, 20, HMMER_OUT_DIR)
@@ -94,7 +96,7 @@ def user_input(test_sequences, structure, features):
         query_scan = pairpro.hmmer.run_hmmerscanner(df, 'query', 20, 20, HMMER_OUT_DIR)
         jaccard_threshold = 0.5
         # Get file pairs and calculate similarity for each pair
-        file_pairs = pairpro.hmmer.get_file_pairs(HMMER_OUT_DIR)
+        file_pairs = pairpro.hmmer.get_file_pairs_API(HMMER_OUT_DIR)
         logger.info(f"Processing {len(file_pairs)} file pairs in {HMMER_OUT_DIR}")
         results = {}
         for file1, file2 in file_pairs:
@@ -106,36 +108,57 @@ def user_input(test_sequences, structure, features):
         logger.info('Finished running HMMER via the API.')
     else:
         logger.info('Running HMMER locally as there are more than a 1000 sequences.')
-        chunk_size = 1000
+        logger.debug(f"Running HMMER locally with {len(df)} sequences.")
+        chunk_size = 5000
         njobs = 4
         protein_chunks = [df[i:i + chunk_size] for i in range(0, len(df), chunk_size)]
         logger.info(f'Running HMMER locally with {njobs} CPUs.')
-        Parallel(n_jobs=njobs)(delayed(pairpro.hmmer.user_local_hmmer_wrapper(
+        
+        Parallel(
+            n_jobs=njobs)(
+            delayed(pairpro.hmmer.user_local_hmmer_wrapper_query)(
             chunk_index,
             PRESS_PATH,
             protein_chunks,
             HMMER_OUT_DIR) for chunk_index, 
-            protein_chunks in enumerate(protein_chunks)))
-        logger.info('Finished running HMMER locally.')
+            protein_chunks in enumerate(protein_chunks))
+        
+        Parallel(
+            n_jobs=njobs)(
+            delayed(pairpro.hmmer.user_local_hmmer_wrapper_subject)(
+            chunk_index,
+            PRESS_PATH,
+            protein_chunks,
+            HMMER_OUT_DIR) for chunk_index,
+            protein_chunks in enumerate(protein_chunks))
+        
+        file_pairs = pairpro.hmmer.get_file_pairs_user(HMMER_OUT_DIR)
+        logger.info(f"Processing {len(file_pairs)} file pairs in {HMMER_OUT_DIR}")
         jaccard_threshold = 0.5
-        vector_size = 2
-        logger.info('Parsing HMMER output.')
-        pairpro.hmmer.process_pair_user(con, vector_size, jaccard_threshold, PARSED_HMMER_OUT_DIR)
+        results = {}
+        for file1, file2 in file_pairs:
+            logger.info(f"Processing {file1} and {file2}")
+            file_chunk_index = int(file1.split("_")[-1].split(".")[0])
+            output_file = f"{PARSED_HMMER_OUT_DIR}{file_chunk_index}_functional_output.csv"
+            similarity_scores = pairpro.hmmer.calculate_similarity_user(file1, file2, jaccard_threshold)
+            pairpro.hmmer.write_function_output_API(similarity_scores, output_file)
+            results[(file1, file2)] = output_file
+        logger.info('Finished running HMMER locally.')
 
         # checking if the parsed output is appended to table
-        con.execute("""CREATE TABLE hmmer_results AS SELECT * FROM read_csv_auto('/data/user/parsed_hmmer_out/*.csv', HEADER=TRUE)""")
-        con.execute(f"""ALTER TABLE proteins_pairs ADD COLUMN hmmer_match BOOLEAN""")
-        con.execute(f"""UPDATE proteins_pairs AS f
+        con.execute("""CREATE TABLE hmmer_results AS SELECT * FROM read_csv_auto('./data/user/parsed_hmmer_out/*.csv', HEADER=TRUE)""")
+        con.execute(f"""ALTER TABLE protein_pairs ADD COLUMN hmmer_match BOOLEAN""")
+        con.execute(f"""UPDATE protein_pairs AS f
         SET hmmer_match = hmmer.functional::BOOLEAN
         FROM hmmer_results AS hmmer
-        WHERE hmmer.pair_id = f.pair_id
+        WHERE hmmer.file1 = f.pair_id
         """)
         logger.info('Finished appending parsed HMMER output to table.')
         
     df = con.execute("""SELECT query, subject, bit_score, local_gap_compressed_percent_id, 
     scaled_local_query_percent_id, scaled_local_symmetric_percent_id, 
     query_align_len, query_align_cov, subject_align_len, subject_align_cov, 
-    LENGTH(query) AS query_len, LENGTH(subject) AS subject_len, hmmer_match""").df()
+    LENGTH(query) AS query_len, LENGTH(subject) AS subject_len, hmmer_match FROM protein_pairs""").df()
     
     # ML component
     if structure:
