@@ -3,7 +3,7 @@ Wrapper functions evaluating model with user data.
 """
 
 from pairpro.evaluate_model import evaluate_model
-from pairpro.train_val_input_cleaning import input_cleaning_wrapper
+from pairpro.evaluate_input_cleaning import input_cleaning_wrapper
 from pairpro.train_val_featuregen import create_new_dataframe
 
 
@@ -46,7 +46,7 @@ def evaluate_model_wrapper(model, dataframe, target,
         columns=[
             'query',
             'subject',
-            'pair_id'],
+            ],
         inplace=True)
 
     # run through model
