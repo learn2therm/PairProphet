@@ -44,8 +44,7 @@ def evaluate_model_wrapper(model, dataframe, target,
     # drop sequences
     dataframe.drop(
         columns=[
-            'query',
-            'subject',
+            'pair_id',
             ],
         inplace=True)
 
