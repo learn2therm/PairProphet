@@ -4,7 +4,7 @@ Wrapper functions evaluating model with user data.
 
 from pairpro.evaluate_model import evaluate_model
 from pairpro.evaluate_input_cleaning import input_cleaning_wrapper
-from pairpro.train_val_featuregen import create_new_dataframe
+from pairpro.eval_featuregen import create_new_dataframe
 
 
 def evaluate_model_wrapper(model, dataframe, target,
@@ -40,13 +40,6 @@ def evaluate_model_wrapper(model, dataframe, target,
                                          descriptors=[feature for feature in feature_list])
     else:
         pass
-
-    # drop sequences
-    dataframe.drop(
-        columns=[
-            'pair_id',
-            ],
-        inplace=True)
 
     # run through model
     evaluate_model(model, target, dataframe)

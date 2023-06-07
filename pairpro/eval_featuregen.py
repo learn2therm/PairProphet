@@ -105,6 +105,13 @@ def clean_new_dataframe(dataframe):
     nan_counts = dataframe.isna().sum()
     assert len(nan_counts.unique()) == 1
 
+    # drop sequences
+    dataframe.drop(
+        columns=[
+            'pair_id',
+            ],
+        inplace=True)
+
     return dataframe
 
 
