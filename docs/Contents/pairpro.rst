@@ -1,7 +1,7 @@
 PairProphet package
 ===============
 
-.. image:: ../../docs/capstone_project/Final-pres-figs.png
+.. image:: ../../docs/capstone_project/Final-pres-figs-v2.png
     :width: 600
 
 | The following submodules contain source code for developing our machine learning model.
