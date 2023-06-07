@@ -10,6 +10,26 @@ Welcome to PairProphet's documentation!
     :target: https://pairprophet.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
+.. image:: https://img.shields.io/badge/Maintained%3F-yes-green.svg
+    :target: https://pairprophet.readthedocs.io/en/latest/?badge=latest
+    :alt: Maintained
+
+.. image:: https://img.shields.io/badge/Made%20with-Python-1f425f.svg
+    :target: https://pairprophet.readthedocs.io/en/latest/?badge=latest
+    :alt: made-with-python
+
+.. image:: https://img.shields.io/badge/Made%20with-Sphinx-1f425f.svg
+    :target: https://pairprophet.readthedocs.io/en/latest/?badge=latest
+    :alt: made-with-sphinx
+
+.. image:: https://img.shields.io/github/license/Naereen/StrapDown.js.svg
+    :target: https://pairprophet.readthedocs.io/en/latest/?badge=latest
+    :alt: MIT license
+
+.. image:: https://img.shields.io/github/release/Naereen/StrapDown.js.svg
+    :target: https://pairprophet.readthedocs.io/en/latest/?badge=latest
+    :alt: release
+
 
 PairProphet is a software pipeline developed at the University of
 Washington. This package implements a  “first-pass” model that 
