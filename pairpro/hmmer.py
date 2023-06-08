@@ -1,5 +1,5 @@
 """
-The following are various importable code for running HMMER 
+The following are various importable code for running HMMER
 either locally via pyhmmer or via Interpro's API
 
 The local version runs in parrallel using joblib.
@@ -40,7 +40,9 @@ import pairpro.utils
 
 logger = logging.getLogger(__name__)
 
-####### API HMMER
+# API HMMER
+
+
 async def send_request(semaphore, sequence, client):
     """
     Asynchronously sends a POST request to the HMMER API, submitting a protein sequence for analysis.
@@ -83,7 +85,7 @@ async def process_response(semaphore, sequence, response, client, pair_id, max_r
         max_retries (int, optional): The maximum number of retries for failed requests. Defaults to 3.
 
     Returns:
-        pd.DataFrame or None: A DataFrame containing the search results for the protein sequence, 
+        pd.DataFrame or None: A DataFrame containing the search results for the protein sequence,
         or None if an error occurred.
 
     Raises:
@@ -132,7 +134,7 @@ async def process_response(semaphore, sequence, response, client, pair_id, max_r
             return None
 
 
-async def hmmerscanner(df: pd.DataFrame, which:str, k: int, max_concurrent_requests: int, output_path: str):
+async def hmmerscanner(df: pd.DataFrame, which: str, k: int, max_concurrent_requests: int, output_path: str):
     """
     Scans multiple protein sequences using the HMMER API, asynchronously submitting and processing each request.
 
@@ -145,7 +147,7 @@ async def hmmerscanner(df: pd.DataFrame, which:str, k: int, max_concurrent_reque
 
     Returns:
         pd.DataFrame: A DataFrame containing the search results for all protein sequences.
-        
+
     Raises:
         ValueError: If the number of sequences exceeds the limit of 1000.
     """
@@ -172,7 +174,8 @@ async def hmmerscanner(df: pd.DataFrame, which:str, k: int, max_concurrent_reque
             responses = await asyncio.gather(*tasks)
 
             tasks = []
-            for (seq, idx), response in zip(zip(sequences, indices), responses):  # Include the index here
+            for (seq, idx), response in zip(
+                    zip(sequences, indices), responses):  # Include the index here
                 task = asyncio.create_task(process_response(
                     semaphore, seq, response, client, idx))  # idx is the prot
                 tasks.append(task)
@@ -180,14 +183,18 @@ async def hmmerscanner(df: pd.DataFrame, which:str, k: int, max_concurrent_reque
             results = await asyncio.gather(*tasks)
     common_columns = set.intersection(
         *(set(df.columns) for df in results if df is not None))
-    results_df = pd.concat(
-        [result[list(common_columns)] for result in results if result is not None])
+    results_df = pd.concat([result[list(common_columns)]
+                            for result in results if result is not None])
     # write result to csv
     results_df.to_csv(f'{output_path}{which}_API_output.csv')
     return results_df
 
 
-def run_hmmerscanner(df: pd.DataFrame, which:str, k: int, max_concurrent_requests: int):
+def run_hmmerscanner(
+        df: pd.DataFrame,
+        which: str,
+        k: int,
+        max_concurrent_requests: int):
     """
     Runs the asynchronous HMMER scanning operation in a new event loop.
 
@@ -210,7 +217,7 @@ def run_hmmerscanner(df: pd.DataFrame, which:str, k: int, max_concurrent_request
     return asyncio.run(hmmerscanner(df, which, k, max_concurrent_requests))
 
 
-####### Local HMMER
+# Local HMMER
 
 def hmmpress_hmms(hmms_path, pfam_data_folder):
     """
@@ -270,10 +277,10 @@ def save_to_digital_sequences(dataframe: pd.DataFrame):
     for _, row in dataframe.iterrows():
         pid = bytes(row['pid'], encoding='utf-8')
         seq_str = row['protein_seq']
-        sequences = pyhmmer.easel.TextSequence(name=pid, sequence= seq_str)
+        sequences = pyhmmer.easel.TextSequence(name=pid, sequence=seq_str)
         sequences = sequences.digitize(amino_acids)
         seqlist.append(sequences)
-    
+
     # Convert so SequenceBlocks
     seqblock = pyhmmer.easel.DigitalSequenceBlock(amino_acids, seqlist)
 
@@ -313,7 +320,6 @@ def run_pyhmmer(
     # ensure output_file has .domtblout extension
     if output_file is not None and not output_file.endswith('.domtblout'):
         output_file = f"{os.path.splitext(output_file)[0]}.domtblout"
-
 
     # HMM profile modes
     if prefetch:
@@ -368,21 +374,27 @@ def parse_pyhmmer(all_hits, chunk_query_ids):
     # find the query IDs that are missing from the parsed hits
     missing_query_ids = set(chunk_query_ids) - set(parsed_hits.keys())
 
-    # add the missing query IDs with a placeholder value to indicate no accession information
+    # add the missing query IDs with a placeholder value to indicate no
+    # accession information
     for missing_query_id in missing_query_ids:
         parsed_hits[missing_query_id] = [""]
 
     # create the DataFrame from the dictionary
-    df = pd.DataFrame(parsed_hits.items(), columns=["query_id", "accession_id"])
+    df = pd.DataFrame(
+        parsed_hits.items(),
+        columns=[
+            "query_id",
+            "accession_id"])
 
     # convert list of accession IDs to string
-    df["accession_id"] = df["accession_id"].apply(lambda x: ";".join(x) if x else "")
+    df["accession_id"] = df["accession_id"].apply(
+        lambda x: ";".join(x) if x else "")
 
     return df
 
 
 def local_hmmer_wrapper(chunk_index, dbpath, dbname, chunked_pid_inputs,
-                        press_path, out_dir,  wakeup=None):
+                        press_path, out_dir, wakeup=None):
     """
     A wrapping function that runs and parses pyhmmer in chunks.
 
@@ -416,10 +428,10 @@ def local_hmmer_wrapper(chunk_index, dbpath, dbname, chunked_pid_inputs,
     # or if it is in the process of being killed
     if wakeup is not None:
         time.sleep(wakeup)
-    
+
     # query the database to get sequences only from chunked_pid_inputs
     conn = ddb.connect(dbpath, read_only=True)
-    
+
     # get the unique pids from the chunked_pid_inputs
     pids = set(chunked_pid_inputs["pid"])
 
@@ -445,17 +457,20 @@ def local_hmmer_wrapper(chunk_index, dbpath, dbname, chunked_pid_inputs,
         prefetch=True,
         cpu=1,
         eval_con=1e-12)
-    
+
     # get the query IDs from the chunked_pid_inputs
     chunk_query_ids = chunked_pid_inputs["pid"].tolist()
 
     # Parse pyhmmer output and save to CSV file
-    accessions_parsed = parse_pyhmmer(all_hits=hits, chunk_query_ids=chunk_query_ids)
+    accessions_parsed = parse_pyhmmer(
+        all_hits=hits, chunk_query_ids=chunk_query_ids)
     accessions_parsed.to_csv(
         f'{out_dir}/{chunk_index}_output.csv',
         index=False)
-    
+
 # parsing
+
+
 def preprocess_accessions(meso_accession: str, thermo_accession: str):
     """
     Preprocesses meso_accession and thermo_accession by converting them to sets.
@@ -475,7 +490,7 @@ def preprocess_accessions(meso_accession: str, thermo_accession: str):
 
     meso_accession_set = set(str(meso_accession).split(';'))
     thermo_accession_set = set(str(thermo_accession).split(';'))
-    
+
     return meso_accession_set, thermo_accession_set
 
 
@@ -500,7 +515,12 @@ def calculate_jaccard_similarity(meso_accession_set, thermo_accession_set):
     return jaccard_similarity
 
 
-def process_pairs_table(conn, dbname, chunk_size:int, output_directory, jaccard_threshold):
+def process_pairs_table(
+        conn,
+        dbname,
+        chunk_size: int,
+        output_directory,
+        jaccard_threshold):
     """
     Processes the pairs table, calculates Jaccard similarity, and generates output CSV.
 
@@ -516,7 +536,7 @@ def process_pairs_table(conn, dbname, chunk_size:int, output_directory, jaccard_
     """
     # Perform a join to get relevant information from the two tables
     query1 = f"""
-        CREATE OR REPLACE TEMP TABLE joined_pairs AS 
+        CREATE OR REPLACE TEMP TABLE joined_pairs AS
         SELECT p.meso_pid, p.thermo_pid, pr.accession AS meso_accession, pr2.accession AS thermo_accession
         FROM {dbname}.pairpro.final AS p
         INNER JOIN proteins_from_pairs AS pr ON (p.meso_pid = pr.pid)
@@ -538,18 +558,17 @@ def process_pairs_table(conn, dbname, chunk_size:int, output_directory, jaccard_
             functional = None
         elif meso_acc and thermo_acc:
             # Preprocess the accessions
-            meso_acc_set, thermo_acc_set = preprocess_accessions(meso_acc, thermo_acc)
+            meso_acc_set, thermo_acc_set = preprocess_accessions(
+                meso_acc, thermo_acc)
             score = calculate_jaccard_similarity(meso_acc_set, thermo_acc_set)
             functional = score > jaccard_threshold
         else:
             # Handle unmatched rows
             score = None
             functional = False
-        
-        return {'functional': functional, 'score': score}
-            
 
-        
+        return {'functional': functional, 'score': score}
+
     # Generate output CSV file
     try:
         # Execute the query
@@ -565,22 +584,102 @@ def process_pairs_table(conn, dbname, chunk_size:int, output_directory, jaccard_
                 data_remaining = False
                 break
 
-
-            # Calculate Jaccard similarity and determine functional status using apply function
-            query_chunk[['functional', 'score']] = query_chunk.apply(evaluation_function, axis=1, args=(jaccard_threshold,), result_type='expand')
-
+            # Calculate Jaccard similarity and determine functional status
+            # using apply function
+            query_chunk[['functional', 'score']] = query_chunk.apply(
+                evaluation_function, axis=1, args=(jaccard_threshold,), result_type='expand')
 
             # Write DataFrame to CSV
             chunk_counter += 1  # Increment the chunk counter
-            query_chunk.to_csv(f'{output_directory}{chunk_counter}_output.csv', index=False, columns=['meso_pid', 'thermo_pid', 'functional', 'score'])
+            query_chunk.to_csv(
+                f'{output_directory}{chunk_counter}_output.csv',
+                index=False,
+                columns=[
+                    'meso_pid',
+                    'thermo_pid',
+                    'functional',
+                    'score'])
 
     except IOError as e:
         logger.warning(f"Error writing to CSV file: {e}")
 
 
+def local_hmmer_wrapper_example(chunk_index, dbpath, chunked_pid_inputs,
+                                press_path, out_dir, wakeup=None):
+    """
+    A wrapping function that runs and parses pyhmmer in chunks.
+
+    Args:
+        chunk_index (int): Number of sequence chunks.
+        dbpath (stf): Path to the database.
+        chunked_pid_inputs (pandas.DataFrame): DataFrame containing chunked PID inputs.
+        press_path (str): Path to the pressed HMM database.
+        out_path (str): Path to directory where output will be saved.
+        wakeup (int or None, optional): Delay in seconds before starting the execution. Default is None.
+
+    Returns:
+        None
+
+    Notes:
+        This function performs the following steps:
+        1. Queries the database to get sequences only from chunked_pid_inputs.
+        2. Converts the query result to a DataFrame.
+        3. Converts string sequences to pyhmmer digital blocks.
+        4. Runs HMMER via pyhmmer with the provided sequences.
+        5. Parses the pyhmmer output and saves it to a CSV file.
+
+        The parsed pyhmmer output is saved in the directory specified by OUTPUT_DIR,
+        with each chunk having its own separate output file named '{chunk_index}_output.csv'.
+
+        If the wakeup parameter is specified, the function will wait for the specified
+        number of seconds before starting the execution.
+    """
+    # we want to wait for execution to see if this worker is actually being used
+    # or if it is in the process of being killed
+    if wakeup is not None:
+        time.sleep(wakeup)
+
+    # query the database to get sequences only from chunked_pid_inputs
+    conn = ddb.connect(dbpath, read_only=True)
+
+    # get the unique pids from the chunked_pid_inputs
+    pids = set(chunked_pid_inputs["pid"])
+
+    # Only extract protein_seqs from the list of PID inputs
+    placeholders = ', '.join(['?'] * len(pids))
+    query = f"SELECT pid, protein_seq FROM pairpro.proteins WHERE pid IN ({placeholders})"
+    query_db = conn.execute(query, list(pids)).fetchall()
+
+    # close db connection
+    conn.close()
+
+    # convert the query db to a dataframe
+    result_df = pd.DataFrame(query_db, columns=['pid', 'protein_seq'])
+
+    # convert string sequences to pyhmmer digital blocks
+    sequences = save_to_digital_sequences(result_df)
+
+    # run HMMER via pyhmmer
+    hits = run_pyhmmer(
+        seqs=sequences,
+        hmms_path=press_path,
+        press_path=press_path,
+        prefetch=True,
+        cpu=1,
+        eval_con=1e-12)
+
+    # get the query IDs from the chunked_pid_inputs
+    chunk_query_ids = chunked_pid_inputs["pid"].tolist()
+
+    # Parse pyhmmer output and save to CSV file
+    accessions_parsed = parse_pyhmmer(
+        all_hits=hits, chunk_query_ids=chunk_query_ids)
+    accessions_parsed.to_csv(
+        f'{out_dir}/{chunk_index}_output.csv',
+        index=False)
 
 
-################ user input
+# user input
 
 
 def save_to_digital_sequences_user_query(dataframe: pd.DataFrame):
@@ -603,12 +702,13 @@ def save_to_digital_sequences_user_query(dataframe: pd.DataFrame):
     for _, row in dataframe.iterrows():
         pair_id = bytes(str(row['pair_id']), encoding='utf-8')
         seq_str = row['query']
-        sequences = pyhmmer.easel.TextSequence(name=pair_id, sequence= seq_str)
+        sequences = pyhmmer.easel.TextSequence(name=pair_id, sequence=seq_str)
         sequences = sequences.digitize(amino_acids)
         query_seqlist.append(sequences)
 
     # Convert so SequenceBlocks
-    query_seqblock = pyhmmer.easel.DigitalSequenceBlock(amino_acids, query_seqlist)
+    query_seqblock = pyhmmer.easel.DigitalSequenceBlock(
+        amino_acids, query_seqlist)
 
     return query_seqblock
 
@@ -633,12 +733,13 @@ def save_to_digital_sequences_user_subject(dataframe: pd.DataFrame):
     for _, row in dataframe.iterrows():
         pair_id = bytes(str(row['pair_id']), encoding='utf-8')
         seq_str = row['subject']
-        sequences = pyhmmer.easel.TextSequence(name=pair_id, sequence= seq_str)
+        sequences = pyhmmer.easel.TextSequence(name=pair_id, sequence=seq_str)
         sequences = sequences.digitize(amino_acids)
         subject_seqlist.append(sequences)
 
     # Convert so SequenceBlocks
-    subject_seqblock = pyhmmer.easel.DigitalSequenceBlock(amino_acids, subject_seqlist)
+    subject_seqblock = pyhmmer.easel.DigitalSequenceBlock(
+        amino_acids, subject_seqlist)
 
     return subject_seqblock
 
@@ -680,7 +781,8 @@ def parse_pyhmmer_user(all_hits, chunk_pair_ids):
     # find the query IDs that are missing from the parsed hits
     missing_query_ids = set(chunk_pair_ids) - set(parsed_hits.keys())
 
-    # add the missing query IDs with a placeholder value to indicate no accession information
+    # add the missing query IDs with a placeholder value to indicate no
+    # accession information
     for missing_query_id in missing_query_ids:
         parsed_hits[missing_query_id] = [""]
 
@@ -688,13 +790,17 @@ def parse_pyhmmer_user(all_hits, chunk_pair_ids):
     df = pd.DataFrame(parsed_hits.items(), columns=["pair_id", "accession_id"])
 
     # convert list of accession IDs to string
-    df["accession_id"] = df["accession_id"].apply(lambda x: ";".join(x) if x else "")
+    df["accession_id"] = df["accession_id"].apply(
+        lambda x: ";".join(x) if x else "")
 
     return df
 
 
-
-def user_local_hmmer_wrapper_query(chunk_index, press_path, sequences, out_dir):
+def user_local_hmmer_wrapper_query(
+        chunk_index,
+        press_path,
+        sequences,
+        out_dir):
     """
     TODO
     """
@@ -709,19 +815,23 @@ def user_local_hmmer_wrapper_query(chunk_index, press_path, sequences, out_dir):
         prefetch=True,
         cpu=1,
         eval_con=1e-5)
-    
-    
+
     # get the query IDs from the chunked_pid_inputs
     missing_pair_ids = sequences["pair_id"].tolist()
 
     # Parse pyhmmer output and save to CSV file
-    accessions_parsed_query = parse_pyhmmer_user(all_hits=query_hits, chunk_pair_ids=missing_pair_ids)
+    accessions_parsed_query = parse_pyhmmer_user(
+        all_hits=query_hits, chunk_pair_ids=missing_pair_ids)
     accessions_parsed_query.to_csv(
-            f"{out_dir}query_result_{chunk_index}.csv",
-            index=False)
-    
+        f"{out_dir}query_result_{chunk_index}.csv",
+        index=False)
 
-def user_local_hmmer_wrapper_subject(chunk_index, press_path, sequences, out_dir):
+
+def user_local_hmmer_wrapper_subject(
+        chunk_index,
+        press_path,
+        sequences,
+        out_dir):
     """
     TODO
     """
@@ -736,119 +846,15 @@ def user_local_hmmer_wrapper_subject(chunk_index, press_path, sequences, out_dir
         prefetch=True,
         cpu=1,
         eval_con=1e-5)
-    
-     # get the query IDs from the chunked_pid_inputs
+
+    # get the query IDs from the chunked_pid_inputs
     missing_pair_ids = sequences["pair_id"].tolist()
-    
-    accessions_parsed_subject = parse_pyhmmer_user(all_hits=subject_hits, chunk_pair_ids=missing_pair_ids)
+
+    accessions_parsed_subject = parse_pyhmmer_user(
+        all_hits=subject_hits, chunk_pair_ids=missing_pair_ids)
     accessions_parsed_subject.to_csv(
-            f"{out_dir}subject_result_{chunk_index}.csv",
-            index=False)
-
-
-# def preprocess_accessions_user(query_accession: str, subject_accession: str):
-#     """
-#     Preprocesses query_accession and subject_accession by converting them to sets.
-
-#     Args:
-#         query_accession (str): Meso accession string separated by ';'.
-#         subject_accession (str): Thermo accession string separated by ';'.
-
-#     Returns:
-#         tuple: A tuple containing the preprocessed query_accession and subject_accession sets.
-#     """
-#     # Convert accessions to sets
-#     # print(query_accession)
-#     # print(type(query_accession))
-#     # print(subject_accession)
-#     # print(type(subject_accession))
-
-#     query_accession_set = set(str(query_accession).split(';'))
-#     subject_accession_set = set(str(subject_accession).split(';'))
-    
-#     return query_accession_set, subject_accession_set
-
-
-# def calculate_jaccard_similarity_user(query_accession_set, subject_accession_set):
-#     """
-#     Calculates the Jaccard similarity between meso_pid and thermo_pid pairs based on their accessions.
-
-#     Jaccard similarity is defined as the size of the intersection divided by the size of the union of two sets.
-
-#     Args:
-#         query_accession_set (set): Set of meso_pid accessions.
-#         subject_accession_set (set): Set of thermo_pid accessions.
-
-#     Returns:
-#         float: Jaccard similarity between the two sets of accessions. Returns 0 if the union is empty.
-#     """
-#     # Calculate Jaccard similarity
-#     intersection = len(query_accession_set.intersection(subject_accession_set))
-#     union = len(query_accession_set.union(subject_accession_set))
-#     jaccard_similarity = intersection / union if union > 0 else 0
-
-#     return jaccard_similarity
-
-
-# def process_pair_user(conn, vector_size, jaccard_threshold, output_directory):
-#     """TODO
-#     """
-#     # Create a connection to the database
-#     conn.execute("CREATE OR REPLACE TEMP TABLE protein_from_user AS SELECT * FROM read_csv_auto('.data/user/hmmer_out/*.csv', HEADER=TRUE)")
-
-
-#     # Define the evaluation function for the apply function
-#     def evaluation_function(row, jaccard_threshold):
-#         """TODO
-#         """
-#         # Get the accessions
-#         query_acc = row['query_accession']
-#         subject_acc = row['subject_accession']
-
-#         # parsing accessions logic
-#         if query_acc == 'nan' and subject_acc == 'nan':
-#             score = None
-#             functional = None
-#         elif query_acc and subject_acc:
-#             # Preprocess the accessions
-#             query_acc_set, subject_acc_set = preprocess_accessions(query_acc, subject_acc)
-#             score = calculate_jaccard_similarity(query_acc_set, subject_acc_set)
-#             functional = score > jaccard_threshold
-#         else:
-#             # Handle unmatched rows
-#             score = None
-#             functional = False
-        
-#         return {'functional': functional, 'score': score}
-            
-
-        
-#     # Generate output CSV file
-#     try:
-#         # Execute the query
-#         query = conn.execute("SELECT * FROM protein_from_user")
-#         data_remaining = True
-#         chunk_counter = 0  # Initialize the chunk counter
-#         while data_remaining:
-#             # Fetch the query result in chunks
-#             query_chunk = query.fetch_df_chunk(vector_size)
-
-#             # Check if there is data remaining
-#             if query_chunk.empty:
-#                 data_remaining = False
-#                 break
-
-
-#             # Calculate Jaccard similarity and determine functional status using apply function
-#             query_chunk[['functional', 'score']] = query_chunk.apply(evaluation_function, axis=1, args=(jaccard_threshold,), result_type='expand')
-
-
-#             # Write DataFrame to CSV
-#             chunk_counter += 1  # Increment the chunk counter
-#             query_chunk.to_csv(f'{output_directory}{chunk_counter}_output.csv', index=False, columns=['pair_id', 'pair_id', 'functional', 'score'])
-
-#     except IOError as e:
-#         logger.warning(f"Error writing to CSV file: {e}")
+        f"{out_dir}subject_result_{chunk_index}.csv",
+        index=False)
 
 
 #### API parsing #####
@@ -877,7 +883,6 @@ def parse_function_csv_API(file_path: str) -> Dict[str, List[str]]:
     return protein_dict
 
 
-
 def find_jaccard_similarity_API(set1: set, set2: set) -> float:
     """
     Calculates the Jaccard similarity score between two sets.
@@ -890,40 +895,45 @@ def find_jaccard_similarity_API(set1: set, set2: set) -> float:
         return intersection / union
 
 
-def calculate_similarity_API(file1: str, file2: str, threshold: float) -> Dict[str, Tuple[str, float]]:
+def calculate_similarity_API(
+        file1: str, file2: str, threshold: float) -> Dict[str, Tuple[str, float]]:
     """
     Calculates the Jaccard similarity score between each protein in file1 and file2,
     and returns a dictionary with query IDs as keys and a tuple indicating whether
     the score threshold was met and the Jaccard similarity score.
     """
-    # Read the CSV files and create dictionaries with query IDs and accession IDs
+    # Read the CSV files and create dictionaries with query IDs and accession
+    # IDs
     dict1 = parse_function_csv_API(file1)
     dict2 = parse_function_csv_API(file2)
-    
+
     # Create a dictionary to store the Jaccard similarity scores
     scores = defaultdict(float)
-    
-    # Calculate the Jaccard similarity score between each protein in file1 and file2
+
+    # Calculate the Jaccard similarity score between each protein in file1 and
+    # file2
     for query1, accs1 in dict1.items():
         for query2, accs2 in dict2.items():
             if query1 == query2:
                 score = find_jaccard_similarity_API(set(accs1), set(accs2))
                 scores[(query1, query2)] = score
-    
+
     # Create a dictionary to store the functional tuple values
     functional = {}
-    
-     # Set the functional tuple value based on the Jaccard similarity score threshold
+
+    # Set the functional tuple value based on the Jaccard similarity score
+    # threshold
     for (query1, query2), score in scores.items():
         if score >= threshold:
             functional[(query1, query2)] = (True, score)
         else:
             functional[(query1, query2)] = (False, score)
-    
+
     return functional
 
 
-def write_function_output_API(output_dict: Dict[str, Tuple[str, float]], output_file: str):
+def write_function_output_API(
+        output_dict: Dict[str, Tuple[str, float]], output_file: str):
     """
     Writes a dictionary of protein pair IDs and functional tuple values to a CSV file.
 
@@ -937,7 +947,7 @@ def write_function_output_API(output_dict: Dict[str, Tuple[str, float]], output_
         fieldnames = ['file1', 'file2', 'functional', 'jaccard Score']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
-        
+
         for pair_id, (functional, score) in output_dict.items():
             writer.writerow({
                 'file1': pair_id[0],
@@ -958,10 +968,8 @@ def get_file_pairs_API(directory_path):
     query_files.sort()
     file_pairs = []
     for subject_file, query_file in zip(subject_files, query_files):
-            file_pairs.append((subject_file, query_file))
+        file_pairs.append((subject_file, query_file))
     return file_pairs
-
-
 
 
 def parse_function_csv_user(file_path: str) -> Dict[str, List[str]]:
@@ -984,36 +992,40 @@ def parse_function_csv_user(file_path: str) -> Dict[str, List[str]]:
     return protein_dict
 
 
-def calculate_similarity_user(file1: str, file2: str, threshold: float) -> Dict[str, Tuple[str, float]]:
+def calculate_similarity_user(
+        file1: str, file2: str, threshold: float) -> Dict[str, Tuple[str, float]]:
     """
     Calculates the Jaccard similarity score between each protein in file1 and file2,
     and returns a dictionary with query IDs as keys and a tuple indicating whether
     the score threshold was met and the Jaccard similarity score.
     """
-    # Read the CSV files and create dictionaries with query IDs and accession IDs
+    # Read the CSV files and create dictionaries with query IDs and accession
+    # IDs
     dict1 = parse_function_csv_user(file1)
     dict2 = parse_function_csv_user(file2)
-    
+
     # Create a dictionary to store the Jaccard similarity scores
     scores = defaultdict(float)
-    
-    # Calculate the Jaccard similarity score between each protein in file1 and file2
+
+    # Calculate the Jaccard similarity score between each protein in file1 and
+    # file2
     for query1, accs1 in dict1.items():
         for query2, accs2 in dict2.items():
             if query1 == query2:
                 score = find_jaccard_similarity_API(set(accs1), set(accs2))
                 scores[(query1, query2)] = score
-    
+
     # Create a dictionary to store the functional tuple values
     functional = {}
-    
-     # Set the functional tuple value based on the Jaccard similarity score threshold
+
+    # Set the functional tuple value based on the Jaccard similarity score
+    # threshold
     for (query1, query2), score in scores.items():
         if score >= threshold:
             functional[(query1, query2)] = (True, score)
         else:
             functional[(query1, query2)] = (False, score)
-    
+
     return functional
 
 

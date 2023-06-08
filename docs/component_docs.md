@@ -238,6 +238,11 @@ This component has two main worker functions:
 
         Utilizes the user's avaiable resources to run HMMER locally. This is useful for users who have a large number of sequences to run HMMER on, and do not want to wait for the HMMER server to process their requests. This is also useful for users who want to run HMMER on sequences that are not available on the HMMER server.
 
+**Test**:
+
+        There are currently no unit tests for this component. However, the component has been tested on a small number of sequences, and the results have been verified to be correct.
+        Moreover, this component heavily uses the excellent pyhmmer library, which has been tested extensively. The pyhmmer library is optimized python binder for the HMMER software, and it is better than the HMMER software itself in terms of speed and memory usage.
+
 # Component 4
 
 ## Software Component Four: structures.py
@@ -393,7 +398,4 @@ This component will undergo significant further development to include structura
 
 #### Plan Outline
 
-1. Get data from component 3. This should already be in a pandas dataframe (data prep is included in C3).
-2. Clean the data to prepare it for model training and testing.
-3. Train and test the model, return scores, plot, and any other necessary indicator of model performance.
-4. Input new user data and return a functionality score for the input protein pair.
+Please see the [project plan](../TODO.md) for a detailed future plans for the project.

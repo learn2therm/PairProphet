@@ -13,11 +13,7 @@ We have two wrapping functions, but
 these can be developed as individual scripts.
 
 Runtime:
-TODO:
-    - [x] Check HMMER parsing logic
-    -[x] Add click or Arg parse to implement parameters to the scripts 
-        as well as the structure component
-    - [x] make target a param as well as ifeatureomega list
+This script will take a long time to run.
 """
 # system dependencies
 import sys

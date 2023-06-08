@@ -2,7 +2,11 @@
 This script is for user to interact with the pretrained model.
 
 TODO:
-- [ ] Add click functionality
+- [X] Add click functionality
+- [ ] Once structure component is ready, add structure component to the script
+    - note: structure component has been given issues with Hyak, therefore, we did not include it in this iteration of the script.
+            However, we run the structure component locally in a windows machine and it works, but it takes a long time to run.
+- [ ] Add feature generation component to the script
 """
 
 import sys
