@@ -1,6 +1,6 @@
 # This directory shows examples of executable .py scripts in Jupyter notebooks.
 
-Notebooks demonstrate import of functions within [FAFSA](../FAFSA/) pipeline.
+Notebooks demonstrate import of functions within [PairProphet](../pairpro/).
 
 Includes:
 
