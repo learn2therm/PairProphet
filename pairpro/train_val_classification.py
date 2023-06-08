@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import sklearn.preprocessing
 import sklearn.model_selection
 import sklearn.neighbors
-import sklearn.ensemble 
+import sklearn.ensemble
 import sklearn.feature_selection
 import sklearn.metrics
 

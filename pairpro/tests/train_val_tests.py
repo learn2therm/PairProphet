@@ -27,6 +27,7 @@ df = pd.read_csv("sample_df.csv")
 
 # unit tests for input cleaning
 
+
 class TestInputType(unittest.TestCase):
     """
     Tests that input data is a pandas dataframe
@@ -38,6 +39,7 @@ class TestInputType(unittest.TestCase):
             self.assertTrue(False)
         except AssertionError:
             self.assertTrue(True)
+
 
 class TestInputCleaning(unittest.TestCase):
     """
@@ -97,7 +99,7 @@ input_features = [
     'subject_align_len',
     'subject_align_cov',
     'bit_score',
-    ]
+]
 
 target = 'hmmer_match'
 
@@ -195,6 +197,7 @@ class TestWrapper(unittest.TestCase):
 Test feature generation functions
 """
 
+
 class TestGetFastaFromDataframe(unittest.TestCase):
 
     def test_get_fasta_from_dataframe(self):
@@ -211,7 +214,8 @@ class TestGetFastaFromDataframe(unittest.TestCase):
 
         try:
             # Call the function
-            fasta_files = get_fasta_from_dataframe(dataframe, output_file_a, output_file_b)
+            fasta_files = get_fasta_from_dataframe(
+                dataframe, output_file_a, output_file_b)
 
             # Assert the existence of output files
             self.assertTrue(os.path.exists(output_file_a))
@@ -238,4 +242,3 @@ class TestGetFastaFromDataframe(unittest.TestCase):
                 os.remove(output_file_a)
             if os.path.exists(output_file_b):
                 os.remove(output_file_b)
-

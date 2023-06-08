@@ -52,6 +52,7 @@ classifiers = [
     #     SVC(),
 ]
 
+
 def evaluate_model(model, target: list, dataframe):
     '''
     Takes a trained model and test data and tests the model.
@@ -69,12 +70,12 @@ def evaluate_model(model, target: list, dataframe):
         results (csv)
     '''
     from sklearn.metrics import accuracy_score, \
-    confusion_matrix, \
-    roc_auc_score,\
-    average_precision_score, precision_score,\
-    auc,\
-    roc_curve, f1_score, recall_score, matthews_corrcoef
-    
+        confusion_matrix, \
+        roc_auc_score,\
+        average_precision_score, precision_score,\
+        auc,\
+        roc_curve, f1_score, recall_score, matthews_corrcoef
+
     if 'structure_match' not in target:
         # initialize empty eval results file
         F = open('evaluationResults.txt', 'w')
@@ -87,7 +88,7 @@ def evaluate_model(model, target: list, dataframe):
         F.write('-1.0 <=MCC<= 1.0' + '\n')
         F.write('_______________________________________' + '\n')
 
-        #need to figure out what seq 1 and seq2 are called
+        # need to figure out what seq 1 and seq2 are called
         results_df = dataframe[['query', 'subject']]
 
         dataframe = dataframe.drop(columns=['query', 'subject'])
@@ -117,11 +118,11 @@ def evaluate_model(model, target: list, dataframe):
 
         # calculate scoring metrics
         # include option to return these scores
-        accuracy = 100*(accuracy_score(y_pred=preds, y_true=test_y))
+        accuracy = 100 * (accuracy_score(y_pred=preds, y_true=test_y))
         avg_precision = average_precision_score(
-                y_true=test_y,
-                y_score=proba_y,
-                pos_label=1)
+            y_true=test_y,
+            y_score=proba_y,
+            pos_label=1)
         F1_Score = f1_score(y_true=test_y, y_pred=preds, pos_label=True)
         MCC = matthews_corrcoef(y_true=test_y, y_pred=preds)
         Recall = recall_score(y_true=test_y, y_pred=preds, pos_label=True)
@@ -135,7 +136,7 @@ def evaluate_model(model, target: list, dataframe):
         F.write('AUC: {0:.4f}\n'.format(AUC))
         F.write(
             'auPR: {0:.4f}\n'.format(avg_precision)
-            )  # average_Precision
+        )  # average_Precision
         F.write('F1_Score: {0:.4f}\n'.format(F1_Score))
         F.write('MCC: {0:.4f}\n'.format(MCC))
 
@@ -150,7 +151,7 @@ def evaluate_model(model, target: list, dataframe):
         results_df.to_csv('./data/user_predictions.csv')
 
     else:
-         # initialize empty eval results file
+        # initialize empty eval results file
         F = open('evaluationResults.txt', 'w')
 
         F.write('Evaluation Scale:' + '\n')
@@ -187,21 +188,29 @@ def evaluate_model(model, target: list, dataframe):
         assert len(hmmer_preds) == len(structure_preds)
 
         # calculate scoring metrics
-        accuracy = 100*accuracy_score(y_pred=preds, y_true=test_y)
+        accuracy = 100 * accuracy_score(y_pred=preds, y_true=test_y)
         Precision = precision_score(
-                y_pred=preds,
-                y_true=test_y,
-                average=None,
-                pos_label=True
-                )
-        F1_Score = f1_score(y_true=test_y, y_pred=preds, pos_label=True, average=None)
-        Recall = recall_score(y_true=test_y, y_pred=preds, pos_label=True, average=None)
+            y_pred=preds,
+            y_true=test_y,
+            average=None,
+            pos_label=True
+        )
+        F1_Score = f1_score(
+            y_true=test_y,
+            y_pred=preds,
+            pos_label=True,
+            average=None)
+        Recall = recall_score(
+            y_true=test_y,
+            y_pred=preds,
+            pos_label=True,
+            average=None)
 
         print(accuracy)
         print(Precision)
         print(F1_Score)
         print(Recall)
-    
+
         # confusion_matrix = sklearn.metrics.confusion_matrix(
         #     y_pred=preds, y_true=test_y)
         # sklearn.metrics.ConfusionMatrixDisplay(confusion_matrix).plot()

@@ -3,10 +3,10 @@
 
 Sources
 -------
-[1] R. D. Finn et al., “The Pfam protein families database: towards a more sustainable future,” 
+[1] R. D. Finn et al., “The Pfam protein families database: towards a more sustainable future,”
 Nucleic Acids Research, vol. 44, no. D1, pp. D279–D285, Jan. 2016, doi: 10.1093/nar/gkv1344.
 
-[2] T. Paysan-Lafosse et al., “InterPro in 2022,” 
+[2] T. Paysan-Lafosse et al., “InterPro in 2022,”
 Nucleic Acids Research, vol. 51, no. D1, pp. D418–D427, Jan. 2023, doi: 10.1093/nar/gkac993.
 
 
@@ -33,7 +33,7 @@ import tarfile
 # local dependencies
 import pairpro.utils
 
-## get environmental variables
+# get environmental variables
 if 'LOGLEVEL' in os.environ:
     LOGLEVEL = os.environ['LOGLEVEL']
     LOGLEVEL = getattr(logging, LOGLEVEL)
@@ -43,11 +43,13 @@ LOGNAME = __file__
 LOGFILE = f'./logs/{os.path.basename(__file__)}.log'
 
 # get the logger in subprocesses
-logger = pairpro.utils.start_logger_if_necessary(LOGNAME, LOGFILE, LOGLEVEL, filemode='w')
+logger = pairpro.utils.start_logger_if_necessary(
+    LOGNAME, LOGFILE, LOGLEVEL, filemode='w')
 
 # set up ftp
 FTP_ADDRESS = 'ftp.ebi.ac.uk'
 FTP_DIR = '/pub/databases/Pfam/current_release/'
+
 
 def download_ftp_file(server, remote_file, local_file):
     ftp = FTP(server)
@@ -59,6 +61,7 @@ def download_ftp_file(server, remote_file, local_file):
 
     ftp.quit()
 
+
 if __name__ == "__main__":
     try:
         os.makedirs('./data/pfam', exist_ok=True)
@@ -67,7 +70,7 @@ if __name__ == "__main__":
 
     logger.info(f'Created directory: ./data/pfam')
 
-    # download the raw data into temporary files 
+    # download the raw data into temporary files
     local_dir = './data/pfam/Pfam-A.hmm.gz'
     remote_file = '/pub/databases/Pfam/current_release/Pfam-A.hmm.gz'
 

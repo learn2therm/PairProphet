@@ -24,7 +24,7 @@ columns_to_keep = [
     'norm_bit_score_subject',
     'query',
     'subject'
-    ]
+]
 
 
 def normalize_bit_scores(dataframe):
@@ -179,4 +179,3 @@ def input_cleaning_wrapper(dataframe, structure):
     print('The new shape of the dataframe is:{}'.format(verify_pairs.shape))
 
     return verify_pairs
-

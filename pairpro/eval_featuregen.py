@@ -109,7 +109,7 @@ def clean_new_dataframe(dataframe):
     dataframe.drop(
         columns=[
             'pair_id',
-            ],
+        ],
         inplace=True)
 
     return dataframe
