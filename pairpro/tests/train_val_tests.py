@@ -22,12 +22,8 @@ from pairpro.train_val_featuregen import clean_new_dataframe
 from pairpro.train_val_featuregen import create_new_dataframe
 
 
-# conn = ddb.connect('pairpro/tests/l2t_mini_pdb.db', read_only=True)
-
-# df = con.execute(f"""SELECT pair_id, m_protein_seq, t_protein_seq, bit_score, local_gap_compressed_percent_id, 
-#         scaled_local_query_percent_id, scaled_local_symmetric_percent_id, 
-#         query_align_len, query_align_cov, subject_align_len, subject_align_cov, 
-#         LENGTH(m_protein_seq) AS m_protein_len, LENGTH(t_protein_seq) AS t_protein_len, FROM """).df()
+# load testing dataframe
+df = pd.read_csv("sample_df.csv")
 
 # unit tests for input cleaning
 
@@ -36,19 +32,12 @@ class TestInputType(unittest.TestCase):
     Tests that input data is a pandas dataframe
     """
 
-    def setUp(self):
-        self.conn = ddb.connect('pairpro/tests/l2t_mini_pdb.db', read_only=True)
-        return
-
     def test_input_type(self):
         try:
             check_input_type([4, 3])
             self.assertTrue(False)
         except AssertionError:
             self.assertTrue(True)
-
-    def tearDown(self):
-        return super().tearDown()
 
 class TestInputCleaning(unittest.TestCase):
     """
@@ -84,14 +73,14 @@ class TestForNans(unittest.TestCase):
 
 class TestProteinPairs(unittest.TestCase):
     """
-    Makes sure that there is a mesophillic and thermophyllic sequence for
+    Makes sure that there is a mesophillic and thermophillic sequence for
     each row.
     """
 
     def test_protein_pair(self):
         try:
             verify_protein_pairs(
-                df.drop(columns=(['m_protein_len', 't_protein_len'])))
+                df.drop(columns=(['m_protein_seq', 't_protein_seq'])))
             self.assertTrue(False)
         except AssertionError:
             self.assertTrue(True)
@@ -108,10 +97,9 @@ input_features = [
     'subject_align_len',
     'subject_align_cov',
     'bit_score',
-    'm_protein_len',
-    't_protein_len']
+    ]
 
-target = 'protein_match'
+target = 'hmmer_match'
 
 
 class TestModelTraining(unittest.TestCase):
@@ -147,7 +135,7 @@ class TestModelPerformance(unittest.TestCase):
 
     def test_asserts(self):
         model, _, _, val_X, val_y = train_model(
-            df, columns=input_features, target='protein_match'
+            df, columns=input_features, target='hmmer_match'
         )
         # assert that input types are correct
         with self.assertRaises(AssertionError):
@@ -155,7 +143,7 @@ class TestModelPerformance(unittest.TestCase):
 
     def test_model_output(self):
         model, _, _, val_X, val_y = train_model(
-            df, columns=input_features, target='protein_match'
+            df, columns=input_features, target='hmmer_match'
         )
         # assert output type is correct
         output, _ = validate_model(model, val_X, val_y)
@@ -163,7 +151,7 @@ class TestModelPerformance(unittest.TestCase):
 
     def test_pred_dimension(self):
         model, _, _, val_X, val_y = train_model(
-            df, columns=input_features, target='protein_match')
+            df, columns=input_features, target='hmmer_match')
         # want to check that the number of predictions is equal to the number
         # of test examples
         preds, _ = validate_model(model, val_X, val_y)
@@ -187,7 +175,7 @@ class TestWrapper(unittest.TestCase):
     def test_wrapper_output(self):
         model, _, _, val_X, val_y = train_model(
             df,
-            columns=input_features, target='protein_match'
+            columns=input_features, target='hmmer_match'
         )
         # assert output type is correct
         output, _ = validate_model(model, val_X, val_y)
@@ -196,7 +184,7 @@ class TestWrapper(unittest.TestCase):
     def test_output_dimension(self):
         model, _, _, val_X, val_y = train_model(
             df,
-            columns=input_features, target='protein_match'
+            columns=input_features, target='hmmer_match'
         )
         # want to check that the # of predictions is equal to # of examples
         preds, _ = validate_model(model, val_X, val_y)
@@ -212,7 +200,7 @@ class TestGetFastaFromDataframe(unittest.TestCase):
     def test_get_fasta_from_dataframe(self):
         # Example input dataframe
         dataframe = pd.DataFrame({
-            'prot_pair_index': [1, 2, 3],
+            'pair_id': [1, 2, 3],
             'm_protein_seq': ['MESOSEQ1', 'MESOSEQ2', 'MESOSEQ3'],
             't_protein_seq': ['THERMOSEQ1', 'THERMOSEQ2', 'THERMOSEQ3']
         })
