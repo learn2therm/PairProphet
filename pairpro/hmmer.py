@@ -181,8 +181,8 @@ async def hmmerscanner(df: pd.DataFrame, which: str, k: int, max_concurrent_requ
                 tasks.append(task)
 
             results = await asyncio.gather(*tasks)
-    common_columns = set.intersection(
-        *(set(df.columns) for df in results if df is not None))
+    common_columns = list(set.intersection(
+        *(set(df.columns) for df in results if df is not None)))
     results_df = pd.concat([result[list(common_columns)]
                             for result in results if result is not None])
     # write result to csv
