@@ -172,9 +172,9 @@ def model_construction(chunk_size, njobs, jaccard_threshold, vector_size, struct
         logger.info('Finished running FATCAT.')
 
         con.execute("""CREATE OR REPLACE TEMP TABLE structure_results AS SELECT * FROM read_csv_auto('./data/protein_pairs/structures/*.csv', HEADER=TRUE)""")
-        con.execute(f"""ALTER TABLE {db_name}.pairpro.final ADD COLUMN structure_match INT""")
+        con.execute(f"""ALTER TABLE {db_name}.pairpro.final ADD COLUMN structure_match BOOLEAN""")
         con.execute(f"""UPDATE {db_name}.pairpro.final AS f
-        SET structure_match = structure.p_value::INT
+        SET structure_match = structure.p_value::BOOLEAN
         FROM structure_results AS structure
         WHERE structure.pair_id = f.pair_id
         """)
