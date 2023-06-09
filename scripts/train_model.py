@@ -180,7 +180,7 @@ def model_construction(chunk_size, njobs, jaccard_threshold,
     # structure component
     if structure:
         structure_df = con.execute(
-            f"""SELECT pair_id, thermo_pid, thermo_pdb, meso_pid, meso_pdb FROM {db_name}.pairpro.final USING SAMPLE 100""").df()
+            f"""SELECT pair_id, thermo_pid, thermo_pdb, meso_pid, meso_pdb FROM {db_name}.pairpro.final""").df()
         logger.info(
             f'Downloading structures. Output directory: {STRUCTURE_DIR}')
         pairpro.structures.download_structure(

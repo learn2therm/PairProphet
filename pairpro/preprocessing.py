@@ -12,7 +12,8 @@ import time
 import duckdb
 import os
 
-def connect_db(path: str, empty = False):
+
+def connect_db(path: str, empty=False):
     '''
     Runs duckdb.connect() function on database path. Returns a
     duckdb.DuckDBPyConnection object and prints execution time.
@@ -31,7 +32,7 @@ def connect_db(path: str, empty = False):
 
     print('Connecting to database...')
     con = duckdb.connect(path)
-    
+
     if empty is False:
         tables = con.execute("""SELECT TABLE_NAME
                                 FROM INFORMATION_SCHEMA.TABLES
@@ -40,19 +41,20 @@ def connect_db(path: str, empty = False):
             raise AttributeError('Input database is empty.')
     else:
         tables = []
-        
+
     e_time = time.time()
     elapsed_time = e_time - s_time
     print(f'Connection established! Execution time: {elapsed_time} seconds')
     return con, tables
 
 
-def build_pairpro(con, out_db_path, min_ogt_diff: int = 20, min_16s: int = 1300, parquet_path = 'temp'):
+def build_pairpro(con, out_db_path, min_ogt_diff: int = 20,
+                  min_16s: int = 1300, parquet_path='temp'):
     '''
-    Converts learn2therm DuckDB database into a DuckDB database for PairProphet by
-    adding filtered and constructed tables. Ensure at lease 20 GB of free disk
-    space and 30 GB of system memory are available before running on the full
-    database.
+    Converts learn2therm DuckDB database into a DuckDB database for PairProphet
+    by adding filtered and constructed tables. Ensure at lease 20 GB of free
+    disk space and 30 GB of system memory are available before running on the
+    full database.
 
     Args:
         con (duckdb.DuckDBPyConnection): DuckDB connection object. Links script
@@ -95,7 +97,7 @@ def build_pairpro(con, out_db_path, min_ogt_diff: int = 20, min_16s: int = 1300,
     s_time = time.time()
     print('Constructing pairpro_taxa_pairs...')
 
-    # Builds PairProphet taxa pair table using only paired taxa from learn2therm
+    # Builds PairProphet taxa pair table using paired taxa from learn2therm
     taxa_pairs_cmd = """CREATE OR REPLACE TEMP TABLE pairpro_taxa_pairs AS
                         SELECT *
                         FROM taxa_pairs
@@ -127,9 +129,9 @@ def build_pairpro(con, out_db_path, min_ogt_diff: int = 20, min_16s: int = 1300,
           {elapsed_time} seconds""")
     print('Filtering on ogt and 16S sequence parameters...')
 
-    # Builds PairProphet table containing taxa pairs and their associated optimal
-    # growth temperatures (ogt). Excludes 16S sequences and ogt difference
-    # below cutoff values from function input.
+    # Builds PairProphet table containing taxa pairs and their associated
+    # optimal growth temperatures (ogt). Excludes 16S sequences and ogt
+    # difference below cutoff values from function input.
     ogt_pairs_cmd = f"""CREATE OR REPLACE TEMP TABLE pairpro_ogt_taxa_pairs AS
                         SELECT pairpro_taxa_pairs.*,
                         taxa_m.temperature AS meso_ogt,
@@ -209,28 +211,30 @@ def build_pairpro(con, out_db_path, min_ogt_diff: int = 20, min_16s: int = 1300,
         while os.path.exists(f'{filename}_{counter}{ext}'):
             counter += 1
         out_db_path = f'{filename}_{counter}{ext}'
-        filename = f'{filename.split("/")[2]}_{counter}' 
+        filename = f'{filename.split("/")[2]}_{counter}'
     else:
         filename = os.path.splitext(out_db_path)[0].split("/")[2]
 
-       
     print(f'Transferring data to new database {out_db_path}')
     con.execute(f"""ATTACH '{out_db_path}' AS out_db""")
     con.execute("""CREATE SCHEMA out_db.pairpro""")
-    con.execute("""CREATE OR REPLACE TABLE out_db.pairpro.final AS 
-                   SELECT * FROM main.pairpro_final""")    
-    con.execute("""CREATE OR REPLACE TABLE out_db.pairpro.proteins AS 
+    con.execute("""CREATE OR REPLACE TABLE out_db.pairpro.final AS
+                   SELECT * FROM main.pairpro_final""")
+    con.execute("""CREATE OR REPLACE TABLE out_db.pairpro.proteins AS
                    SELECT * FROM main.pairpro_proteins""")
-    con.execute("""DETACH out_db""")    
-                                                        
+    con.execute("""DETACH out_db""")
+
     print('Finishing up...')
     con.commit()
     con.close()
-    
+
     con2, _ = connect_db(out_db_path)
-    
+
     # Add pair IDs to final table
-    con2.execute(f"""CREATE TEMP TABLE pair_ids AS SELECT ROW_NUMBER() OVER(ORDER BY meso_pid, thermo_pid) AS pair_id, meso_pid, thermo_pid FROM {filename}.pairpro.final""")
+    con2.execute(f"""CREATE TEMP TABLE pair_ids AS
+                     SELECT ROW_NUMBER() OVER(ORDER BY meso_pid, thermo_pid)
+                     AS pair_id, meso_pid, thermo_pid
+                     FROM {filename}.pairpro.final""")
     con2.execute(f"""ALTER TABLE {filename}.pairpro.final ADD pair_id int""")
     con2.execute(f"""UPDATE {filename}.pairpro.final AS f
     SET pair_id = pair_ids.pair_id::int
@@ -238,9 +242,9 @@ def build_pairpro(con, out_db_path, min_ogt_diff: int = 20, min_16s: int = 1300,
     WHERE pair_ids.meso_pid = f.meso_pid
     AND pair_ids.thermo_pid = f.thermo_pid
     """)
-    
+
     et_final = time.time()
     elapsed_time = et_final - e_time5
     print(f'Finished. Total execution time: {elapsed_time} seconds')
-    
+
     return con2, filename

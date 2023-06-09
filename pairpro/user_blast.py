@@ -1,5 +1,6 @@
 """
-To do: Raise exception for invalid inputs, try capitalization before removing rows
+To do: Raise exception for invalid inputs, try capitalization before removing
+rows
 """
 from Bio import Align
 from Bio.Align import substitution_matrices
@@ -9,7 +10,7 @@ import re
 import duckdb
 
 
-def make_blast_df(df, mode='local'):
+def make_blast_df(df, mode='local', path='./data/blast_db.db'):
     """
     This function generates pairwise alignment scores for a set of protein
     sequences.
@@ -29,40 +30,41 @@ def make_blast_df(df, mode='local'):
     df.rename(columns={original_cols[0]: 'query', original_cols[1]: 'subject'},
               inplace=True)
 
-   # Remove any rows with NaN or containing non-amino acid letters
+    # Remove any rows with NaN or containing non-amino acid letters
     rows_with_nan = []
     for index, row in df.iterrows():
         is_nan_series = row.isnull()
         if is_nan_series.any():
             rows_with_nan.append(index)
-    
+
     if len(rows_with_nan) != 0:
-        
-        df.drop(np.unique(rows_with_nan), inplace = True)
+
+        df.drop(np.unique(rows_with_nan), inplace=True)
         print(f'Found and skipped {len(rows_with_nan)} row(s) containing NaN.')
-        df.reset_index(drop = True, inplace = True)
-        
+        df.reset_index(drop=True, inplace=True)
+
     # All valid 1-letter amino acid codes.
     amino_acids = set("CSTAGPDEQNHRKMILVWYF")
-    
+
     invalid_rows = []
-    for seqs in ['query','subject']:
-    
+    for seqs in ['query', 'subject']:
+
         for i, seq in enumerate(df[seqs]):
-            
+
             if sequence_validate(seq, amino_acids) is False:
-                    invalid_rows.append(i)
+                invalid_rows.append(i)
 
     if len(invalid_rows) != 0:
-        
-        df.drop(np.unique(invalid_rows), inplace = True)
-        print(f'Found and skipped {len(invalid_rows)} row(s) containing invalid amino acid codes.')
-        df.reset_index(drop = True, inplace = True)
-   
+
+        df.drop(np.unique(invalid_rows), inplace=True)
+        print(f"""Found and skipped {len(invalid_rows)} row(s) containing
+        invalid amino acid codes.""")
+        df.reset_index(drop=True, inplace=True)
+
     # Generate protein ids for each unique query and subject sequence
     n_unique_1 = np.unique(df['query'])
     n_unique_2 = np.unique(df['subject'])
-    
+
     qid_dict = dict(zip(n_unique_1, range(len(n_unique_1))))
     sid_dict = dict(zip(n_unique_2, range(len(n_unique_2))))
 
@@ -100,7 +102,7 @@ def make_blast_df(df, mode='local'):
 
         alignment = aligner.align(subject, query)
         best_alignment = max(alignment, key=lambda x: x.score)
-        
+
         seq1_aligned = format(best_alignment).split('\n')[0]
         seq2_aligned = format(best_alignment).split('\n')[2]
 
@@ -113,8 +115,10 @@ def make_blast_df(df, mode='local'):
         l_query = len(subject)
 
         # Percent ids
-        n_matches, n_gaps, n_columns, n_comp_gaps = get_matches_gaps(seq2_aligned, seq1_aligned)
-        gap_comp_pct_id = gap_compressed_percent_id(n_matches, n_gaps, n_columns, n_comp_gaps)
+        n_matches, n_gaps, n_columns, n_comp_gaps = get_matches_gaps(
+            seq2_aligned, seq1_aligned)
+        gap_comp_pct_id = gap_compressed_percent_id(
+            n_matches, n_gaps, n_columns, n_comp_gaps)
         scaled_local_symmetric_percent_id = 2*n_matches / (l_subject + l_query)
         scaled_local_query_percent_id = n_matches / l_query
 
@@ -132,12 +136,11 @@ def make_blast_df(df, mode='local'):
     # Merge final_df with sequences and ids from input df
     blast_df = df.merge(final_df, left_on=['query_id', 'subject_id'],
                         right_on=['query_id', 'subject_id'])
-    con = duckdb.connect('./data/blast_db.db')
+    con = duckdb.connect(path)
     cmd = """CREATE OR REPLACE TABLE protein_pairs
              AS SELECT * FROM blast_df"""
     con.execute(cmd)
-    
-    
+
     return blast_df, con
 
 
@@ -191,7 +194,7 @@ def sequence_validate(seq, alph):
     Args:
         seq (int): Number of matches in match columns
         alph (int): Number of gaps in match columns
-        
+
     Returns:
         (bool): True if sequence is valid, False if not
     """
