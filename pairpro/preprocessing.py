@@ -49,7 +49,7 @@ def connect_db(path: str, empty=False):
 
 
 def build_pairpro(con, out_db_path, min_ogt_diff: int = 20,
-                  min_16s: int = 1300, parquet_path='temp'):
+                  min_16s: int = 1300):
     '''
     Converts learn2therm DuckDB database into a DuckDB database for PairProphet
     by adding filtered and constructed tables. Ensure at lease 20 GB of free

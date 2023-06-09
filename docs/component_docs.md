@@ -10,112 +10,75 @@ This document offers a comprehensive exposition of all the components as well as
 - [Component 3](#component-3)
 - [Component 4](#component-4)
 - [Component 5](#component-5)
-- [Component 6](#component-6)
 
 # Component 0
+## Software component 0: preprocessing.py
 
-    **Params:**
 
-        **Inputs:** learn2thermDB protein pair database file
+    **Params:** Path for new database file, filtering parameters (likely to be changed/deprecated)
 
-        **Outputs:** Augmented database file containing relevant proteins and pairs for pairpro. Keeps original tables intact.
-                     It is recommended to have a backup copy of the original database as well as 100 GB of free storage and at
-                     least 30 GB of available memory.
+    **Inputs:** learn2thermDB protein pair database file
 
-    Component 0 is specifically concerned with the learn2therm database and is not intended for use by users with other data files.
-    Additionally, this code need only be executed once to generate all files necessary for downstream processing. Users can input
-    their own similarly formatted data for classification starting in component 1. Component 0 can feed both component 1 and
-    component 2. Additionally, users have the option to export intermediate metadata on the flow of information between learn2therm
-    and pairpro as Sankey plots.
+    **Outputs:** New PairProphet database file and connection object containing relevant proteins and 
+                 pairs for pairpro. Keeps original db file intact and automatically closes the connection.
+                 It is still recommended to have a backup copy of the original database as well as ~20 GB 
+                 of free storage and at least 30 GB of available memory for large datasets >10 mil pairs.
+    **Packages:** os, time, duckdb
+    
+Component 0 is specifically concerned with the learn2therm database and is not intended for use by users with other data files. A future release of this code will likely use a more generalized database of protein pairs
+such as OMA, so a separate preprocessing module will be developed. This component is for dev and is not 
+relevant for routine use of the PairProphet model.
+Users can input their own sequences classification starting in component 1.
 
-    **Packages:** os, time, pandas, numpy, duckdb, plotly, kaleido
-
-### **Subcomponent 1**:
-
-**Use case**:
-
-        User has copy of learn2therm database file and generates data for pairpro.
-
-**Test**:
-
-        Test that connection and queries to new pairpro database are correct. Test connection to old tables as well as new
-        within connection object.
-
-### **Subcomponent 2**:
+### **Subcomponent 1**: Database construction
 
 **Use case**:
 
-        Produces basic analysis of database transformation via Sankey plots.
+        User has copy of learn2therm database file and generates data to initiate pairpro pipeline.
 
 **Test**:
 
-        Test that plot files are created and not empty.
-
-=======
-**Packages:** pandas, numpy, duckdb, plotly, kaleidoscope
+        Unit tests are implemented to ensure proper connection and queries to new pairpro database 
+        as well as to check the format of the output database and some params.
+        
 
 # Component 1
+## Software component 1: user_blast.py
 
-    **Params:**
+    **Params:** Can toggle local and global alignment, path to output database file
 
-        **Inputs:** Protein pair database file or pandas dataframe formatted according to instructions in README.
+    **Inputs:** Dataframe containing two columns of amino acid sequences to be analyzed row-wise
 
-                    Input file should contain at minimum:
-
-                        1. AA sequence for both members of each pair.
-                        2. Clear indexing/column names to identify which belongs in meso-thermo groups.
-                        3. Most recent metrics for model training (e.g. alignment/coverage scores). Included in docs
-                           and c1 docstrings.
-
-        **Outputs:** Pandas dataframe(s) containing data sample of specified size. We hope to include analytics as a
-        separate output in the future to inform user decisions about sampling.
-
-    Component 1 formats data for the pairpro model. The resulting dataframe is pruned to contain only features and
-    target data.
-
-    **Packages:** pandas
+    **Outputs:** DuckDB connection object to a new database file containing sequence pairs, alignment
+                 metrics, and sequence and pair-level indices. A DataFrame output is currently supported
+                 but will be deprecated in future releases.
+                 
+    **Packages:** Biopython, numpy, pandas, re, duckdb
+    
+This component generates pairwise alignment metrics for amino acid sequences and formats them for
+downstream processing in the PairProphet pipeline. Since early releases are trained on learn2thermDB data
+which already contains its own alignment scores, this component is only implemented for user-supplied 
+sequence data and model testing. Future releases will use a version of this component to generate
+alignment scores used in model training.
 
 ### **Subcomponent 1**:
 
 **Use case**:
 
-        User supplies path to database or .csv file and desired sample size. Pulls data into DataFrame using one of several sampling
-        methods.
+        User supplies a DataFrame containing paired sequence data to calculate alignment metrics.
+        If sequences are not pre-paired, the user can also generate a combinatorial DataFrame from
+        a 1D list of amino acid sequences using the utils.make_pairs function.
 
 **Test**:
 
-        Test assert that DataFrame was generated, compare shape with desired result. Check for obvious errors such as inconsistent data type within columns. Make sure all sampling configurations function as expected.
+        Unit tests have been implemented that check the output format of the make_blast_df() function
+        as well as ensure quality and correctness of the calculated metrics. The function is also able
+        to handle some incomplete or improperly formatted datasets.
+        
 
 # Component 2
 
-    **Params:**
-
-        **Inputs:** Protein pair database file or pandas dataframe formatted for pairpro. Sampling
-                    parameters for training set.
-
-        **Outputs:** DataFrame containing training data. Exported analytics and plots for user reference (optional, not implemented
-                     Winter 2023).
-
-    Component 2 is a sampler for training the learn2therm database. Users can select the desired sampling method, and the function
-    can seek data subsets satisfying those parameters. For example, data can be represented with higher information density
-    (fringe data is favored) using the Frank-Wolfe algorithm.
-
-    **Packages:** pandas, numpy
-
-### **Subcomponent 1**:
-
-**Use case**:
-
-        User supplies large dataset. Returns sampled dataset according to input parameters. Currently supports random sampling
-        or Frank-Wolfe D-optimal sampling.
-
-**Test**:
-
-        Test that sample distributions are significantly different than random. Test that convergence conditions are met and that output dataframe is the correct size.
-
-# Component 3
-
-## Software Component Three: hmmer.py
+## Software Component Two: hmmer.py
 
     **Params:** sampled sequence data from component 1
 
@@ -130,7 +93,7 @@ This document offers a comprehensive exposition of all the components as well as
 Component 3 aims to use the HMMER algrothim running against the pfam database on all protein pairs specified by the user. In this case, we are using the Learn2thermDB protein pairs.
 This component has two options to be ran locally or using the online HMMER server API. The two options have different subcomponents, use-cases and tests. Depending on the number of sequences provided by the users, the code will either run locally or using the online HMMER server API. In the future, we aim to make this configurable by the user. The code will run the HMMER program on the user's protein pairs and return the target family and a boolean as well as Jaccard score to check if a pair are functional or not according to pfam parsing.
 
-### API Component Three: hmmer.py
+### API Component Two: hmmer.py
 
 **Use case**:
 
@@ -243,9 +206,9 @@ This component has two main worker functions:
         There are currently no unit tests for this component. However, the component has been tested on a small number of sequences, and the results have been verified to be correct.
         Moreover, this component heavily uses the excellent pyhmmer library, which has been tested extensively. The pyhmmer library is optimized python binder for the HMMER software, and it is better than the HMMER software itself in terms of speed and memory usage.
 
-# Component 4
+# Component 3
 
-## Software Component Four: structures.py
+## Software Component Three: structures.py
 
     **Params:** Pandas Dataframe containing PDB or Uniprot IDs.
 
@@ -264,9 +227,9 @@ Component 4 is responsible for obtaining protein structures and running structur
 
 **Test**:
 
-# Component 5 - Training and Validation
+# Component 4 - Training and Validation
 
-## Software Component Five: train_val_scripts.py
+## Software Component Four: train_val_scripts.py
 
     **Params:** Pandas dataframe containing sampled data from our protein database from sampling component + metric of interest from HMMER/Strucutural components..
 
