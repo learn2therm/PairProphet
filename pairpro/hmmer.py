@@ -194,7 +194,8 @@ def run_hmmerscanner(
         df: pd.DataFrame,
         which: str,
         k: int,
-        max_concurrent_requests: int):
+        max_concurrent_requests: int,
+        output_path: str):
     """
     Runs the asynchronous HMMER scanning operation in a new event loop.
 
@@ -203,6 +204,7 @@ def run_hmmerscanner(
         which (str): The column name of the protein sequences.
         k (int): The number of protein sequences to search.
         max_concurrent_requests (int): The maximum number of concurrent requests to the HMMER API.
+        output_path (str): The output directory where the data will be stored. (like '/Users/amin/ValidProt/data/')
 
     Returns:
         pd.DataFrame: A DataFrame containing the search results for all protein sequences.
@@ -214,7 +216,7 @@ def run_hmmerscanner(
 
     # Set up the event loop and call the hmmerscanner function
     nest_asyncio.apply()
-    return asyncio.run(hmmerscanner(df, which, k, max_concurrent_requests))
+    return asyncio.run(hmmerscanner(df, which, k, max_concurrent_requests, output_path))
 
 
 # Local HMMER
