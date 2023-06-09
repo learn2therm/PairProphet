@@ -36,7 +36,8 @@ For more detailed information, click [here](../docs/component_docs.md)
 ## Utilizing the model
 
 1. `user_input.py`
-*Lorem ipsum dolor sit amet, consectetur adipiscing elit*
+
+*Front-end script where the user interacts with our best model*
 
     Params: N/A
 
