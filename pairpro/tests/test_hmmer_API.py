@@ -8,15 +8,15 @@ The packages you need to run this script are:
 """
 
 import pandas as pd
+import asyncio
 import unittest
 from pairpro.hmmer import run_hmmerscanner
-
 
 class HmmerScannerTest(unittest.TestCase):
     """
     This code defines a unit test class named `HmmerScannerTest` that inherits
-    from `unittest.TestCase`. It includes two test methods:
-    `test_realData_hmmerscanner` and `test_fakeData_hmmerscanner`.
+    from `unittest.TestCase`. It includes a test method:
+    `test_realData_hmmerscanner`.
     """
 
     def test_realData_hmmerscanner(self):
@@ -26,84 +26,50 @@ class HmmerScannerTest(unittest.TestCase):
         DataFrame contains the expected columns. If an assertion fails,
         an error message is printed to indicate which assertion failed.
         """
-        
+
         # Input data
         data = {
             'protein_seq': ['MAESGTSRRADHLVPVPGPDAEPPAVADELLRAVGRGDEQAFGRLYDLLAPRVYGLIRRVLRDPALAEEVTQEVLVEVWRRAARFDPAQGSANAWVFTIAHRRAVDRVRAEQKAADRTVRAGAAALDSPYDSVADEVSGRLERRQVRHCLDALTGLQREVVTLAYYQGHSYPQVAELLKTPLGTVKTRMRDGLIRLRDCLGVEATA'],
-            'pid': [48641291]
+            'pair_id': [48641291]
         }
 
         df = pd.DataFrame(data)
 
         # run the hmmerscanner function on the sample DataFrame
-        results_df = hmmerscanner(df, 1, 20)
+        results_df = run_hmmerscanner(df, "protein_seq", 1, 20, '')
 
         # assertion 1: check if the output DataFrame is not empty
-        try:
-            assert len(results_df) > 0
-            print("assertion 1 passed")
-        except AssertionError:
-            print("assertion 1 failed, because the HMMER server may have a problem")
+        assert len(
+            results_df) > 0, "assertion 1 failed, because the HMMER server may have a problem"
 
         # assertion 2: check if the output DataFrame contains 'acc' column
-        try:
-            assert 'acc' in results_df.columns
-            print("assertion 2 passed")
-        except AssertionError:
-            print("assertion 2 failed, because the HMMER server may have a problem")
+        assert 'acc' in results_df.columns, "assertion 2 failed, because the HMMER server may have a problem"
 
         # assertion 3: check if the output DataFrame contains 'name' column
-        try:
-            assert 'name' in results_df.columns
-            print("assertion 3 passed")
-        except AssertionError:
-            print("assertion 3 failed, because the HMMER server may have a problem")
+        assert 'name' in results_df.columns, "assertion 3 failed, because the HMMER server may have a problem"
 
         # assertion 4: check if the output DataFrame contains 'score' column
-        try:
-            assert 'score' in results_df.columns
-            print("assertion 4 passed")
-        except AssertionError:
-            print("assertion 4 failed, because the HMMER server may have a problem")
+        assert 'score' in results_df.columns, "assertion 4 failed, because the HMMER server may have a problem"
 
         # assertion 5: check if the output DataFrame contains 'evalue' column
-        try:
-            assert 'evalue' in results_df.columns
-            print("assertion 5 passed")
-        except AssertionError:
-            print("assertion 5 failed, because the HMMER server may have a problem")
+        assert 'evalue' in results_df.columns, "assertion 5 failed, because the HMMER server may have a problem"
 
         # assertion 6: check if the output DataFrame contains 'pvalue' column
-        try:
-            assert 'pvalue' in results_df.columns
-            print("assertion 6 passed")
-        except AssertionError:
-            print("assertion 6 failed, because the HMMER server may have a problem")
+        assert 'pvalue' in results_df.columns, "assertion 6 failed, because the HMMER server may have a problem"
 
         # assertion 7: check if the output DataFrame contains 'desc' column
-        try:
-            assert 'desc' in results_df.columns
-            print("assertion 7 passed")
-        except AssertionError:
-            print("assertion 7 failed, because the HMMER server may have a problem")
+        assert 'desc' in results_df.columns, "assertion 7 failed, because the HMMER server may have a problem"
 
         # assertion 8: check if the output DataFrame does not contain 'tlen' column
-        try:
-            assert 'tlen' not in results_df.columns
-            print("assertion 8 passed")
-        except AssertionError:
-            print("assertion 8 failed, because the HMMER server may have a problem")
+        assert 'tlen' not in results_df.columns, "assertion 8 failed, because the HMMER server may have a problem"
 
         # assertion 9: check if the output DataFrame does not contain 'ali_len' column
-        try:
-            assert 'ali_len' not in results_df.columns
-            print("assertion 9 passed")
-        except AssertionError:
-            print("assertion 9 failed, because the HMMER server may have a problem")
+        assert 'ali_len' not in results_df.columns, "assertion 9 failed, because the HMMER server may have a problem"
 
         # assertion 10: check if the output DataFrame does not contain 'env_from' column
-        try:
-            assert 'env_from' not in results_df.columns
-            print("assertion 10 passed")
-        except AssertionError:
-            print("assertion 10 failed, because the HMMER server may have a problem")
+        assert 'env_from' not in results_df.columns, "assertion 10 failed, because the HMMER server may have a problem"
+
+
+if __name__ == "__main__":
+    suite = unittest.TestLoader().loadTestsFromTestCase(HmmerScannerTest)
+    unittest.TextTestRunner().run(suite)
