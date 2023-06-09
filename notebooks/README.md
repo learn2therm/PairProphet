@@ -10,12 +10,9 @@ This directory includes notebooks used for development of our software.
 
 -Hyperparameter optimization (Hyperparameter_Optimization)
 
--Pfam/HMMER output generation
+-Pfam/HMMER output generation {hidden}
     
-    -Locally: (dev-HA_Exploring_HMMER)
-    -Through server: (Interpro API Explore)
+-FATCAT development {hidden}
 
--PDB scraping (pypdb)
-
-Notebooks were developed into functional .py scripts, found [here](../FAFSA/).
+Notebooks were developed into functional .py scripts, found [here](../pairpro/).
 
