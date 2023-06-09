@@ -30,6 +30,10 @@ Welcome to PairProphet's documentation!
     :target: https://pairprophet.readthedocs.io/en/latest/?badge=latest
     :alt: release
 
+.. image:: https://badges.frapsoft.com/os/v1/open-source.svg?v=103
+    :target: https://pairprophet.readthedocs.io/en/latest/?badge=latest
+    :alt: open-source
+
 
 PairProphet is a software pipeline developed at the University of
 Washington. This package implements a  “first-pass” model that 
