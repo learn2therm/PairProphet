@@ -1,16 +1,11 @@
 """
 This module utilizes iFeatureOmega, a feature generation
 package for proteins and nucleic acids.
-
-NOTE: Add method to get_fasta_from_dataframe to delete output files after they are read.
 """
 
 import numpy as np
 import iFeatureOmegaCLI
 import pandas as pd
-# import Bio.SeqIO
-# import io
-# from io import StringIO
 
 
 feature_list = ['AAC', 'GAAC', 'DistancePair',

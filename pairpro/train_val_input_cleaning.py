@@ -2,9 +2,6 @@
 This module takes a dataframe from the data scraping component
 and cleans it so that it can be passed through a machine
 learning algorithm.
-In this training/validation stage of the project, we will
-load a sample CSV (n=50,000) with protein pairs from our large
-database to demonstrate functionality.
 """
 
 from sklearn.utils import resample

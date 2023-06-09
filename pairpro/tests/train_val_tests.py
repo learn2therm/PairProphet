@@ -6,6 +6,7 @@ import duckdb as ddb
 import pandas as pd
 import numpy as np
 import os
+import sklearn.ensemble
 
 from pairpro.train_val_classification import train_model
 from pairpro.train_val_classification import validate_model
@@ -20,6 +21,7 @@ from pairpro.train_val_featuregen import get_fasta_from_dataframe
 from pairpro.train_val_featuregen import get_protein_descriptors
 from pairpro.train_val_featuregen import clean_new_dataframe
 from pairpro.train_val_featuregen import create_new_dataframe
+from pairpro.evaluate_model import evaluate_model
 
 
 # load testing dataframe
@@ -242,3 +244,20 @@ class TestGetFastaFromDataframe(unittest.TestCase):
                 os.remove(output_file_a)
             if os.path.exists(output_file_b):
                 os.remove(output_file_b)
+
+
+        """Unit tests for evaluate_model script.
+        """
+
+
+class TestEvaluateModel(unittest.TestCase):
+
+    def test_eval_model(self):
+
+        model = sklearn.ensemble.RandomForestClassifier()
+
+        # Example input dataframe
+        evaluate_model(model, ['hmmer_match', 'structure_match'], df)
+
+        """Need some test here
+        """

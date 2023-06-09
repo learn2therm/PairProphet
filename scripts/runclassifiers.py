@@ -1,3 +1,9 @@
+    """
+    Runs training or testing dataset with features added
+    upstream through list of ML classifiers.
+    Returns score and stats for each of the models.
+    """
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -34,7 +40,7 @@ classifiers = [
         min_weight_fraction_leaf=0,
         min_samples_split=17),
     # RF Classifier with bagging (with optuna)
-    BaggingClassifier(sklearn.ensemble.RandomForestClassifier
+    BaggingClassifier(RandomForestClassifier
                       (n_estimators=200, max_depth=None,
                        min_weight_fraction_leaf=0.000215), max_samples=0.5,
                       max_features=0.5),
@@ -58,7 +64,7 @@ F.write('-1.0 <=MCC<= 1.0' + '\n')
 F.write('_______________________________________' + '\n')
 
 
-def runClassifiers(args):
+def run_classifiers(args):
     '''
     Takes csv, converts to dataframe, and splits it into a
     training and testing set.
@@ -87,105 +93,205 @@ def runClassifiers(args):
     train, val = sklearn.model_selection.train_test_split(
         dev, test_size=0.15, random_state=1)
 
-    target = 'protein_match'
-    # columns = ['bit_score', 'local_gap_compressed_percent_id', 'scaled_local_query_percent_id', 'scaled_local_symmetric_percent_id',
-    #            'query_align_len', 'query_align_cov', 'subject_align_len', 'subject_align_cov', 'm_protein_len',
-    #            't_protein_len', 'protein_match']
-    features = list(dataframe.columns.values)
-    features.remove(target)
+    # determine if problem is multi-class
+    if args.structure:
+        target = ['hmmer_match', 'structure_match']
 
-    dev_X = dev[features].values
-    test_X = test[features].values
+        features = list(dataframe.columns.values)
+        features.remove(target)
 
-    dev_y = dev[target].values.reshape(-1, 1)
-    test_y = test[target].values.reshape(-1, 1)
+        dev_X = dev[features].values
+        test_X = test[features].values
 
-    # test input arguments
-    assert "pandas.core.frame.DataFrame" in str(type(train))
-    assert "pandas.core.frame.DataFrame" in str(type(val))
-    assert "str" in str(type(features[0]))
-    assert "str" in str(type(target[0]))
+        dev_y = dev[target].values
+        test_y = test[target].values
 
-    # split into input and output feature(s)
-    train_X = train[features].values
-    val_X = val[features].values
+        # test input arguments
+        assert "pandas.core.frame.DataFrame" in str(type(train))
+        assert "pandas.core.frame.DataFrame" in str(type(val))
+        assert "str" in str(type(features[0]))
+        assert "str" in str(type(target[0]))
 
-    train_y = train[target].values.reshape(-1, 1)
-    val_y = val[target].values.reshape(-1, 1)
+        # split into input and output feature(s)
+        train_X = train[features].values
+        val_X = val[features].values
 
-    # scale data
-    scaler = sklearn.preprocessing.StandardScaler()
-    train_X = scaler.fit_transform(train_X)
-    val_X = scaler.fit_transform(val_X)
+        train_y = train[target].values
+        val_y = val[target].values
 
-    Results = {}  # compare algorithms
+        # scale data
+        scaler = sklearn.preprocessing.StandardScaler()
+        train_X = scaler.fit_transform(train_X)
+        val_X = scaler.fit_transform(val_X)
 
-    from sklearn.metrics import accuracy_score, \
-        confusion_matrix, \
-        roc_auc_score,\
-        average_precision_score,\
-        auc,\
-        roc_curve, f1_score, recall_score, matthews_corrcoef, auc
+        Results = {}  # compare algorithms
 
-    for classifier, name in zip(classifiers, names):
-        accuracy = []
-        avg_precision = []
-        F1_Score = []
-        AUC = []
-        MCC = []
-        Recall = []
+        from sklearn.metrics import accuracy_score, \
+            confusion_matrix, \
+            roc_auc_score,\
+            average_precision_score,\
+            auc,\
+            roc_curve, f1_score, recall_score, matthews_corrcoef, auc
 
-        mean_TPR = 0.0
-        mean_FPR = np.linspace(0, 1, 100)
+        # need to adjust this for multi-class label
+        for classifier, name in zip(classifiers, names):
+            accuracy = []
+            avg_precision = []
+            F1_Score = []
+            AUC = []
+            MCC = []
+            Recall = []
 
-        print('{} is done.'.format(classifier.__class__.__name__))
+            mean_TPR = 0.0
+            mean_FPR = np.linspace(0, 1, 100)
 
-        model = classifier
+            print('{} is done.'.format(classifier.__class__.__name__))
 
-        # model
-        model.fit(train_X, train_y)
+            model = classifier
 
-        preds = model.predict(val_X)
+            # model
+            model.fit(train_X, train_y)
 
-        # Calculate ROC Curve and Area the Curve
-        proba_y = model.predict_proba(val_X)[:, 1]
-        FPR, TPR, _ = roc_curve(val_y, proba_y, pos_label=1)
-        roc_auc = auc(FPR, TPR)
+            preds = model.predict(val_X)
 
-        # calculate scoring metrics
-        # include option to return these scores
-        accuracy.append(accuracy_score(y_pred=preds, y_true=val_y))
-        avg_precision.append(
-            average_precision_score(
-                y_true=val_y,
-                y_score=proba_y,
-                pos_label=1))
-        F1_Score.append(f1_score(y_true=val_y, y_pred=preds, pos_label=1))
-        MCC.append(matthews_corrcoef(y_true=val_y, y_pred=preds))
-        Recall.append(recall_score(y_true=val_y, y_pred=preds, pos_label=1))
-        AUC.append(roc_auc)
+            # Calculate ROC Curve and Area the Curve
+            proba_y = model.predict_proba(val_X)[:, 1]
+            FPR, TPR, _ = roc_curve(val_y, proba_y, pos_label=True)
+            roc_auc = auc(FPR, TPR)
 
-        confusion_matrix = sklearn.metrics.confusion_matrix(
-            y_pred=preds, y_true=val_y)
-        sklearn.metrics.ConfusionMatrixDisplay(confusion_matrix).plot()
+            # calculate scoring metrics
+            # include option to return these scores
+            accuracy.append(accuracy_score(y_pred=preds, y_true=val_y))
+            avg_precision.append(
+                average_precision_score(
+                    y_true=val_y,
+                    y_score=proba_y,
+                    pos_label=True),
+                    average=None)
+            F1_Score.append(f1_score(y_true=val_y, y_pred=preds, pos_label=True, average=None))
+            MCC.append(matthews_corrcoef(y_true=val_y, y_pred=preds, Average=None))
+            Recall.append(recall_score(y_true=val_y, y_pred=preds, pos_label=True, average=None))
+            AUC.append(roc_auc)
 
-        accuracy = [_*100.0 for _ in accuracy]
-        Results[name + ' Accuracy, F1 Score'] = [accuracy, F1_Score]
+            confusion_matrix = sklearn.metrics.confusion_matrix(
+                y_pred=preds, y_true=val_y)
+            sklearn.metrics.ConfusionMatrixDisplay(confusion_matrix).plot()
 
-        F.write('Classifier: {}\n'.format(name))
-        F.write('Accuracy: {0:.4f}%\n'.format(np.mean(accuracy)))
-        F.write('AUC: {0:.4f}\n'.format(np.mean(AUC)))
-        F.write(
-            'auPR: {0:.4f}\n'.format(
-                np.mean(avg_precision)))  # average_Precision
-        F.write('F1_Score: {0:.4f}\n'.format(np.mean(F1_Score)))
-        F.write('MCC: {0:.4f}\n'.format(np.mean(MCC)))
+            accuracy = [_*100.0 for _ in accuracy]
+            Results[name + ' Accuracy, F1 Score'] = [accuracy, F1_Score]
 
-#         TN, FP, FN, TP = CM.ravel()
-        F.write('Recall: {0:.4f}\n'.format(np.mean(Recall)))
-        F.write('_______________________________________' + '\n')
+            F.write('Classifier: {}\n'.format(name))
+            F.write('Accuracy: {0:.4f}%\n'.format(np.mean(accuracy)))
+            F.write('AUC: {0:.4f}\n'.format(np.mean(AUC)))
+            F.write(
+                'auPR: {0:.4f}\n'.format(
+                    np.mean(avg_precision)))  # average_Precision
+            F.write('F1_Score: {0:.4f}\n'.format(np.mean(F1_Score)))
+            F.write('MCC: {0:.4f}\n'.format(np.mean(MCC)))
 
-    F.close()
+    #         TN, FP, FN, TP = CM.ravel()
+            F.write('Recall: {0:.4f}\n'.format(np.mean(Recall)))
+            F.write('_______________________________________' + '\n')
+
+        F.close()
+
+    else:
+        target = ['hmmer_match']
+        features = list(dataframe.columns.values)
+        features.remove(target)
+
+        dev_X = dev[features].values
+        test_X = test[features].values
+
+        dev_y = dev[target].values.reshape(-1, 1)
+        test_y = test[target].values.reshape(-1, 1)
+
+        # test input arguments
+        assert "pandas.core.frame.DataFrame" in str(type(train))
+        assert "pandas.core.frame.DataFrame" in str(type(val))
+        assert "str" in str(type(features[0]))
+        assert "str" in str(type(target[0]))
+
+        # split into input and output feature(s)
+        train_X = train[features].values
+        val_X = val[features].values
+
+        train_y = train[target].values.reshape(-1, 1)
+        val_y = val[target].values.reshape(-1, 1)
+
+        # scale data
+        scaler = sklearn.preprocessing.StandardScaler()
+        train_X = scaler.fit_transform(train_X)
+        val_X = scaler.fit_transform(val_X)
+
+        Results = {}  # compare algorithms
+
+        from sklearn.metrics import accuracy_score, \
+            confusion_matrix, \
+            roc_auc_score,\
+            average_precision_score,\
+            auc,\
+            roc_curve, f1_score, recall_score, matthews_corrcoef, auc
+
+        for classifier, name in zip(classifiers, names):
+            accuracy = []
+            avg_precision = []
+            F1_Score = []
+            AUC = []
+            MCC = []
+            Recall = []
+
+            mean_TPR = 0.0
+            mean_FPR = np.linspace(0, 1, 100)
+
+            print('{} is done.'.format(classifier.__class__.__name__))
+
+            model = classifier
+
+            # model
+            model.fit(train_X, train_y)
+
+            preds = model.predict(val_X)
+
+            # Calculate ROC Curve and Area the Curve
+            proba_y = model.predict_proba(val_X)[:, 1]
+            FPR, TPR, _ = roc_curve(val_y, proba_y, pos_label=True)
+            roc_auc = auc(FPR, TPR)
+
+            # calculate scoring metrics
+            # include option to return these scores
+            accuracy.append(accuracy_score(y_pred=preds, y_true=val_y))
+            avg_precision.append(
+                average_precision_score(
+                    y_true=val_y,
+                    y_score=proba_y,
+                    pos_label=True))
+            F1_Score.append(f1_score(y_true=val_y, y_pred=preds, pos_label=True))
+            MCC.append(matthews_corrcoef(y_true=val_y, y_pred=preds))
+            Recall.append(recall_score(y_true=val_y, y_pred=preds, pos_label=True))
+            AUC.append(roc_auc)
+
+            confusion_matrix = sklearn.metrics.confusion_matrix(
+                y_pred=preds, y_true=val_y)
+            sklearn.metrics.ConfusionMatrixDisplay(confusion_matrix).plot()
+
+            accuracy = [_*100.0 for _ in accuracy]
+            Results[name + ' Accuracy, F1 Score'] = [accuracy, F1_Score]
+
+            F.write('Classifier: {}\n'.format(name))
+            F.write('Accuracy: {0:.4f}%\n'.format(np.mean(accuracy)))
+            F.write('AUC: {0:.4f}\n'.format(np.mean(AUC)))
+            F.write(
+                'auPR: {0:.4f}\n'.format(
+                    np.mean(avg_precision)))  # average_Precision
+            F.write('F1_Score: {0:.4f}\n'.format(np.mean(F1_Score)))
+            F.write('MCC: {0:.4f}\n'.format(np.mean(MCC)))
+
+    #         TN, FP, FN, TP = CM.ravel()
+            F.write('Recall: {0:.4f}\n'.format(np.mean(Recall)))
+            F.write('_______________________________________' + '\n')
+
+        F.close()
 
     return Results
 
@@ -208,6 +314,13 @@ if __name__ == '__main__':
         type=str,
         help='~/dataset.csv',
         default='./data/learn2therm_classifiers.csv')  # change this path
+    p.add_argument(
+        '-structure',
+        '--structure',
+        type=str,
+        help='Specify whether strucutre is an input (Boolean)',
+        default=False)  # change this path
+    
     # p.add_argument('-columns', '--columns', type=list, help='Specify feature columns', default = [
     # 'bit_score','local_gap_compressed_percent_id','scaled_local_query_percent_id','scaled_local_symmetric_percent_id','query_align_len',
     # 'query_align_cov','subject_align_len','subject_align_cov','m_protein_len', 't_protein_len', 'protein_match',
@@ -215,4 +328,4 @@ if __name__ == '__main__':
 
     args = p.parse_args()
 
-    runClassifiers(args)
+    run_classifiers(args)
