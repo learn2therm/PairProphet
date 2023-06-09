@@ -235,7 +235,7 @@ Component 4 is responsible for obtaining protein structures and running structur
 
     **Inputs:** Training: Pandas Dataframe containing known protein pairs with Boolean metric of interest.
                           Training includes feature engineering using iFeatureOmegaCLI.
-                Testing: Pair of amino acid sequences from Component 3.
+                Testing: Pair of amino acid sequences from user + features generated upstream.
 
     **Outputs:**  Boolean Prediction (Functional pair: True or Functional pair: False)
                   Confidence score on prediction.
@@ -246,15 +246,14 @@ Component 4 is responsible for obtaining protein structures and running structur
 
 The purpose of this component is to train a machine learning classifier model on our large dataset of protein pairs.
 
-For training, the model will take in a pandas dataframe containing protein pairs as examples. The database will be cleaned until 10 quantitative features remain, including alignment metrics, optimal growth temperature, bit scores, sequence length, and alignment coverage. The sequences are then run through a feature generation algorithm, adding a variable-length vector of features to supplement model training. The cleaned dataframe will also include a Boolean target, classifying the protein as either a functional pair or not a functional pair. The model will be trained and tested based on this data.
+For training, the model will take in a pandas dataframe containing protein pairs as examples. The database will be cleaned until 10 quantitative features remain, including alignment metrics, optimal growth temperature, bit scores, sequence length, and alignment coverage. The sequences are then run through a feature generation algorithm, adding a variable-length vector of features to supplement model training. The cleaned dataframe will also include a two-class Boolean target, classifying the protein as either a functional pair or not a functional pair. The Booleas come from HMMER and Structure components upstream.
 
-This component will undergo significant further development to include structural information as a separate target representing Boolean protein pair functionality. The targets from HMMER and structural search are combined to improve classification accuracy.
 
 ### **Subcomponent 1**: Test for pandas dataframe input
 
 **Use case**:
 
-        User takes data from component 3 (where data is processed into pandas dataframe) and wants to pass it into relationship component.
+        User takes data from upstream (where data is processed into pandas dataframe) and wants to pass it into relationship component.
 
 **Test**:
 
