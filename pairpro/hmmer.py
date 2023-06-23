@@ -26,7 +26,7 @@ import requests
 import time
 import urllib.parse
 import tempfile
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 # library dependencies
 import duckdb as ddb
@@ -290,23 +290,27 @@ def save_to_digital_sequences(dataframe: pd.DataFrame):
 
 
 def run_pyhmmer(
-        seqs: pyhmmer.easel.DigitalSequenceBlock,
+        seqs: Union[pyhmmer.easel.DigitalSequenceBlock, str],
         hmms_path: str,
-        press_path: str,
-        prefetch: bool = False,
+        pressed_path: str,
+        prefetch: Union[bool, pyhmmer.plan7.OptimizedProfileBlock] = False,
         output_file: str = None,
         cpu: int = 4,
-        eval_con: float = 1e-10):
+        scan: bool=True,
+        eval_con: float = 1e-10,
+        **kwargs
+        ):
     """
     Run HMMER's hmmscan program on a set of input sequences using HMMs from a database.
 
     Args:
         seqs (pyhmmer.easel.DigitalSequenceBlock): Digital sequence block of input sequences.
         hmms_path (str): Path to the HMM database.
-        press_path (str): Path to the pressed HMM database.
+        pressed_path (str): Path to the pressed HMM database.
         prefetch (bool, optional): Specifies whether to use prefetching mode for HMM storage. Defaults to False.
         output_file (str, optional): Path to the output file if the user wants to write the file. Defaults to None.
         cpu (int, optional): The number of CPUs to use. Defaults to 4.
+        scan (bool, optional): Specifies whether to run hmmscan or hmmsearch. Defaults to True.
         eval_con (float, optional): E-value threshold for domain reporting. Defaults to 1e-10.
 
     Returns:
@@ -319,18 +323,51 @@ def run_pyhmmer(
         In normal mode, the HMMs are pressed and stored in a directory before execution.
         In prefetching mode, the HMMs are kept in memory for faster search.
     """
+    # check if both hmms_path and pressed_path are specified
+    if not hmms_path and not pressed_path:
+        raise ValueError("Must specifity one of hmm path (to a .hmm file) or pressed_path (containing .h3m, etc.)")
+    
     # ensure output_file has .domtblout extension
     if output_file is not None and not output_file.endswith('.domtblout'):
         output_file = f"{os.path.splitext(output_file)[0]}.domtblout"
 
     # HMM profile modes
     if prefetch:
-        targets = prefetch_targets(hmms_path)
+        if isinstance(prefetch, pyhmmer.plan7.OptimizedProfileBlock):
+            targets = prefetch
+        elif pressed_path is None:
+            raise ValueError("Spcified prefetch but did not pass a path to pressed files")
+        else:
+            targets = prefetch_targets(pressed_path)
     else:
-        targets = pyhmmer.plan7.HMMFile(press_path)
+        if hmms_path is None:
+            raise ValueError("Spcified prefetch but did not pass a path to the .hmm file")
+        targets = pyhmmer.plan7.HMMFile(hmms_path)
+
+    # are the sequences preloaded?
+    if isinstance(seqs, str):
+        seqs = pyhmmer.easel.SequenceFile(seqs, format='fasta', digital=True, alphabet=pyhmmer.easel.Alphabet.amino())
+    else:
+        pass
 
     # HMMscan execution with or without saving output to file
-    all_hits = list(pyhmmer.hmmer.hmmscan(seqs, targets, cpus=cpu, E=eval_con))
+    if hasattr(seqs, '__len__'):
+        seqs_size = len(seqs)
+    else:
+        seqs_size = "In file, unknown length"
+
+    if hasattr(targets, '__len__'):
+        targets_size = len(targets)
+    else:
+        targets_size = "In file, unknown length"
+
+    # run hmmscan or hmmsearch
+    if scan:
+        logger.info(f"Running hmmscan... {seqs_size} sequences against {targets_size} HMMs, using {cpu} CPUs, additional kwargs: {kwargs}")
+        all_hits = pyhmmer.hmmer.hmmscan(seqs, targets, cpus=cpu, incE=eval_con, **kwargs)
+    else:
+        logger.info(f"Running hmmsearch... {targets_size} HMMs against {seqs_size} seqs, using {cpu} CPUs, additional kwargs: {kwargs}")
+        all_hits = pyhmmer.hmmer.hmmsearch(targets, seqs, cpus=cpu, incE=eval_con, **kwargs)
     # check if we should save the output
     if output_file is not None:
         with open(output_file, "wb") as dst:
@@ -339,13 +376,14 @@ def run_pyhmmer(
     return all_hits
 
 
-def parse_pyhmmer(all_hits, chunk_query_ids):
+def parse_pyhmmer(all_hits, chunk_query_ids, scanned: bool = True):
     """
     Parses the TopHit pyhmmer objects, extracting query and accession IDs, and saves them to a DataFrame.
 
     Args:
         all_hits (list): A list of TopHit objects from pyhmmer.
         chunk_query_ids (list): A list of query IDs from the chunk.
+        scanned (bool, optional): Specifies whether the sequences were scanned or searched. Defaults to True.
 
     Returns:
         pandas.DataFrame: A DataFrame containing the query and accession IDs.
@@ -361,9 +399,16 @@ def parse_pyhmmer(all_hits, chunk_query_ids):
     # iterate over each protein hit
     for top_hits in all_hits:
         for hit in top_hits:
+            # check e-value
+            if hit.evalue > top_hits.incE:
+                continue
             # extract the query and accession IDs and decode the query ID
-            query_id = hit.hits.query_name.decode('utf-8')
-            accession_id = hit.accession.decode('utf-8')
+            if scanned:
+                query_id = hit.hits.query_name.decode('utf-8')
+                accession_id = hit.accession.decode('utf-8')
+            else:
+                query_id = hit.name.decode('utf-8')
+                accession_id = hit.hits.query_accession.decode('utf-8')
 
             # if the query_id already exists in the dictionary, append the accession_id
             # to the existing value
