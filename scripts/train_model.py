@@ -24,6 +24,7 @@ import os
 import click
 import duckdb as ddb
 import pandas as pd
+import pyhmmer
 import joblib
 from joblib import Parallel, delayed
 from sklearn.utils import resample
@@ -51,7 +52,7 @@ import pairpro.structures
 
 
 # db Paths
-TEST_DB_PATH = '/Users/humoodalanzi/pfam/l2t_500k.db'  # l2t_50k.db
+TEST_DB_PATH = './data/l2t_50k.db'  # l2t_50k.db
 
 # HMMER Paths
 HMM_PATH = './data/pfam/Pfam-A.hmm'  # ./Pfam-A.hmm
@@ -78,7 +79,7 @@ LOGFILE = f'./logs/{os.path.basename(__file__)}.log'
 
 
 @click.command()
-@click.option('--chunk_size', default=2500,
+@click.option('--chunk_size', default=5,
               help='Number of sequences to process in each chunk')
 @click.option('--njobs', default=4,
               help='Number of parallel processes to use for HMMER')
@@ -111,40 +112,44 @@ def model_construction(chunk_size, njobs, jaccard_threshold,
 
     # get all the proteins in pairs
 
-    proteins_in_pair_pids = con.execute(
-        f"SELECT pid FROM {db_name}.pairpro.proteins").df()
-    logger.debug(
-        f"Total number of protein in pairs: {len(proteins_in_pair_pids)} in pipeline")
+    proteins_in_pair = con.execute(
+        f"SELECT pid, protein_seq FROM {db_name}.pairpro.proteins") #take out df() later
+    # logger.debug(
+    #     f"Total number of protein in pairs: {len(proteins_in_pair)} in pipeline")
+    
+    # get number of hmms for evalue calc
+    profiles = list(pyhmmer.plan7.HMMFile(HMM_PATH))
+    n_hmms = len(profiles)
+    del profiles
+    logger.info(f"Number of HMMs: {n_hmms}")
 
-    # chunking the PID so the worker function queries
-    protein_pair_pid_chunks = [proteins_in_pair_pids[i:i + chunk_size]
-                               for i in range(0, len(proteins_in_pair_pids), chunk_size)]
+    # run hmmsearch
+    targets = pairpro.hmmer.prefetch_targets(PRESS_PATH)
+    logger.debug(f"number of targets: {len(targets)}") #can change below when OOP is done
+    wrapper = lambda chunk_index, pid_chunk: pairpro.hmmer.local_hmmer_wrapper(
+        chunk_index, pid_chunk, press_path=PRESS_PATH, hmm_path=HMM_PATH, out_dir=HMMER_OUTPUT_DIR, cpu=njobs, prefetch=targets, e_value=1.e-10, scan=False, Z=n_hmms)
 
-    con.close()
+    complete = False
+    chunk_index = 0
+    total_processed = 0
+    while not complete:
+        pid_chunk = proteins_in_pair.fetch_df_chunk(vectors_per_chunk=chunk_size)
+        logger.info(f"Loaded chunk of size {len(pid_chunk)}")
+        if len(pid_chunk) == 0:
+            complete = True
+            break
+        wrapper(chunk_index, pid_chunk)
+        logger.info(f"Ran chunk, validating results")
 
-    # run hmmscan
-    logger.info('Running pyhmmer in parallel on all chunks')
+        df = pd.read_csv(f'{HMMER_OUTPUT_DIR}/{chunk_index}_output.csv')
+        assert set(list(pid_chunk['pid'].values)) == set(list(df['query_id'].values)), "Not all query ids are in the output file"
 
-    with tqdm(total=len(protein_pair_pid_chunks)) as pbar:
-        Parallel(
-            n_jobs=njobs)(
-            delayed(pairpro.hmmer.local_hmmer_wrapper)(
-                chunk_index,
-                db_path,
-                db_name,
-                protein_pair_pid_chunks,
-                PRESS_PATH,
-                HMMER_OUTPUT_DIR,
-                None) for chunk_index,
-            protein_pair_pid_chunks in enumerate(protein_pair_pid_chunks))
-        pbar.update(1)
-    logger.debug(f"number of protein chunks: {len(protein_pair_pid_chunks)}")
+        logger.info(f"Completed chunk {chunk_index} with size {len(pid_chunk)}")
+        total_processed += len(pid_chunk)
+        chunk_index += 1
 
-    logger.info('Finished running pyhmmer in parallel on all chunks')
+    
     logger.info('Starting to parse HMMER output')
-
-    # re-open connection (ask Ryan about this)
-    con = ddb.connect(db_path)
 
     # setup the database and get some pairs to run
     con.execute("""

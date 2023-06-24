@@ -291,8 +291,8 @@ def save_to_digital_sequences(dataframe: pd.DataFrame):
 
 def run_pyhmmer(
         seqs: Union[pyhmmer.easel.DigitalSequenceBlock, str],
-        hmms_path: str,
-        pressed_path: str,
+        hmms_path: str = None,
+        pressed_path: str = None,
         prefetch: Union[bool, pyhmmer.plan7.OptimizedProfileBlock] = False,
         output_file: str = None,
         cpu: int = 4,
@@ -440,30 +440,30 @@ def parse_pyhmmer(all_hits, chunk_query_ids, scanned: bool = True):
     return df
 
 
-def local_hmmer_wrapper(chunk_index, dbpath, dbname, chunked_pid_inputs,
-                        press_path, out_dir, wakeup=None):
+def local_hmmer_wrapper(chunk_index, chunked_inputs, press_path, hmm_path, out_dir, e_value: float=1e-6, prefetch=True, cpu=1, wakeup=None, scan=True, **kwargs):
     """
     A wrapping function that runs and parses pyhmmer in chunks.
 
     Args:
         chunk_index (int): Number of sequence chunks.
-        dbpath (stf): Path to the database.
-        dbname (str): Name of the database.
-        chunked_pid_inputs (pandas.DataFrame): DataFrame containing chunked PID inputs.
-        press_path (str): Path to the pressed HMM database.
-        out_path (str): Path to directory where output will be saved.
+        chunked_inputs (pandas.DataFrame): DataFrame containing chunked PID inputs
+        press_path (str): Path to the pressed HMMs.
+        hmm_path (str): Path to the HMMs.
+        out_dir (str): Path to the output directory.
+        e_value (float, optional): E-value threshold. Defaults to 1e-6.
+        prefetch (bool, optional): Specifies whether to prefetch the HMMs. Defaults to True.
+        cpu (int, optional): Number of CPUs to use. Defaults to 1.
         wakeup (int or None, optional): Delay in seconds before starting the execution. Default is None.
+        scan (bool, optional): Specifies whether to run hmmscan or hmmsearch. Defaults to True.
 
     Returns:
         None
 
     Notes:
         This function performs the following steps:
-        1. Queries the database to get sequences only from chunked_pid_inputs.
-        2. Converts the query result to a DataFrame.
-        3. Converts string sequences to pyhmmer digital blocks.
-        4. Runs HMMER via pyhmmer with the provided sequences.
-        5. Parses the pyhmmer output and saves it to a CSV file.
+        1. Converts string sequences to pyhmmer digital blocks.
+        2. Runs HMMER via pyhmmer with the provided sequences.
+        3. Parses the pyhmmer output and saves it to a CSV file.
 
         The parsed pyhmmer output is saved in the directory specified by OUTPUT_DIR,
         with each chunk having its own separate output file named '{chunk_index}_output.csv'.
@@ -476,41 +476,34 @@ def local_hmmer_wrapper(chunk_index, dbpath, dbname, chunked_pid_inputs,
     if wakeup is not None:
         time.sleep(wakeup)
 
-    # query the database to get sequences only from chunked_pid_inputs
-    conn = ddb.connect(dbpath, read_only=True)
-
-    # get the unique pids from the chunked_pid_inputs
-    pids = set(chunked_pid_inputs["pid"])
-
-    # Only extract protein_seqs from the list of PID inputs
-    placeholders = ', '.join(['?'] * len(pids))
-    query = f"SELECT pid, protein_seq FROM {dbname}.pairpro.proteins WHERE pid IN ({placeholders})"
-    query_db = conn.execute(query, list(pids)).fetchall()
-
-    # close db connection
-    conn.close()
-
-    # convert the query db to a dataframe
-    result_df = pd.DataFrame(query_db, columns=['pid', 'protein_seq'])
-
     # convert string sequences to pyhmmer digital blocks
-    sequences = save_to_digital_sequences(result_df)
+    sequences = save_to_digital_sequences(chunked_inputs)
 
     # run HMMER via pyhmmer
-    hits = run_pyhmmer(
-        seqs=sequences,
-        hmms_path=press_path,
-        press_path=press_path,
-        prefetch=True,
-        cpu=1,
-        eval_con=1e-12)
-
-    # get the query IDs from the chunked_pid_inputs
-    chunk_query_ids = chunked_pid_inputs["pid"].tolist()
+    if prefetch:
+        hits = run_pyhmmer(
+            seqs=sequences,
+            pressed_path=press_path,
+            prefetch=prefetch,
+            cpu=cpu,
+            eval_con=e_value,
+            scan=scan,
+            **kwargs
+        )
+    else:
+        hits = run_pyhmmer(
+            seqs=sequences,
+            hmms_path=hmm_path,
+            prefetch=False,
+            cpu=cpu,
+            eval_con=e_value,
+            scan=scan,
+            **kwargs
+        )
 
     # Parse pyhmmer output and save to CSV file
     accessions_parsed = parse_pyhmmer(
-        all_hits=hits, chunk_query_ids=chunk_query_ids)
+        all_hits=hits, chunk_query_ids=chunked_inputs['pid'].tolist(), scanned=scan)
     accessions_parsed.to_csv(
         f'{out_dir}/{chunk_index}_output.csv',
         index=False)
@@ -529,15 +522,14 @@ def preprocess_accessions(meso_accession: str, thermo_accession: str):
     Returns:
         tuple: A tuple containing the preprocessed meso_accession and thermo_accession sets.
     """
-    # Convert accessions to sets
-    # print(meso_accession)
-    # print(type(meso_accession))
-    # print(thermo_accession)
-    # print(type(thermo_accession))
-
-    meso_accession_set = set(str(meso_accession).split(';'))
-    thermo_accession_set = set(str(thermo_accession).split(';'))
-
+    if meso_accession == '' or meso_accession == 'nan':
+        meso_accession_set = set()
+    else:
+        meso_accession_set = set(meso_accession.split(';'))
+    if thermo_accession == '' or thermo_accession == 'nan':
+        thermo_accession_set = set()
+    else:
+        thermo_accession_set = set(thermo_accession.split(';'))
     return meso_accession_set, thermo_accession_set
 
 
@@ -593,25 +585,42 @@ def process_pairs_table(
 
     # Define the evaluation function for the apply function
     def evaluation_function(row, jaccard_threshold):
-        """TODO
+        """
+        Evaluates the Jaccard similarity between meso_pid and thermo_pid pairs based on their accessions.
+
+        Notes:
+            This function is used in the apply function to calculate the Jaccard similarity
+            between meso_pid and thermo_pid pairs based on their accessions.
+            There is a parsing logic for the accessions, which is described below.
+            If both meso_accession and thermo_accession are empty, then the Jaccard similarity is None.
+            If either meso_accession or thermo_accession is empty, then the Jaccard similarity is 0.
+            If both meso_accession and thermo_accession are not empty, then the Jaccard similarity is calculated.
         """
         # Get the accessions
         meso_acc = row['meso_accession']
         thermo_acc = row['thermo_accession']
+        
+        # Preprocess the accessions
+        if type(meso_acc) == str:
+            meso_acc_set, thermo_acc_set = preprocess_accessions(meso_acc, thermo_acc)
+        elif type(meso_acc) == list:
+            meso_acc_set = set(meso_acc)
+            thermo_acc_set = set(thermo_acc)
+        else:
+            print("meso_acc: ", meso_acc)
+            raise ValueError("meso_acc must be either a string or a list")
 
         # parsing accessions logic
-        if meso_acc == 'nan' and thermo_acc == 'nan':
+        if not meso_acc_set and not thermo_acc_set:
             score = None
             functional = None
-        elif meso_acc and thermo_acc:
+        elif meso_acc_set and thermo_acc_set:
             # Preprocess the accessions
-            meso_acc_set, thermo_acc_set = preprocess_accessions(
-                meso_acc, thermo_acc)
             score = calculate_jaccard_similarity(meso_acc_set, thermo_acc_set)
             functional = score > jaccard_threshold
         else:
             # Handle unmatched rows
-            score = None
+            score = 0.0
             functional = False
 
         return {'functional': functional, 'score': score}
