@@ -79,7 +79,7 @@ LOGFILE = f'./logs/{os.path.basename(__file__)}.log'
 
 
 @click.command()
-@click.option('--chunk_size', default=5,
+@click.option('--chunk_size', default=1,
               help='Number of sequences to process in each chunk')
 @click.option('--njobs', default=4,
               help='Number of parallel processes to use for HMMER')

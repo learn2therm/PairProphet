@@ -522,14 +522,9 @@ def preprocess_accessions(meso_accession: str, thermo_accession: str):
     Returns:
         tuple: A tuple containing the preprocessed meso_accession and thermo_accession sets.
     """
-    if meso_accession == '' or meso_accession == 'nan':
-        meso_accession_set = set()
-    else:
-        meso_accession_set = set(meso_accession.split(';'))
-    if thermo_accession == '' or thermo_accession == 'nan':
-        thermo_accession_set = set()
-    else:
-        thermo_accession_set = set(thermo_accession.split(';'))
+    meso_accession_set = set(str(meso_accession).split(';'))
+    thermo_accession_set = set(str(thermo_accession).split(';'))
+
     return meso_accession_set, thermo_accession_set
 
 
@@ -600,22 +595,14 @@ def process_pairs_table(
         meso_acc = row['meso_accession']
         thermo_acc = row['thermo_accession']
         
-        # Preprocess the accessions
-        if type(meso_acc) == str:
-            meso_acc_set, thermo_acc_set = preprocess_accessions(meso_acc, thermo_acc)
-        elif type(meso_acc) == list:
-            meso_acc_set = set(meso_acc)
-            thermo_acc_set = set(thermo_acc)
-        else:
-            print("meso_acc: ", meso_acc)
-            raise ValueError("meso_acc must be either a string or a list")
-
         # parsing accessions logic
-        if not meso_acc_set and not thermo_acc_set:
+        if meso_acc == 'nan' and thermo_acc == 'nan':
             score = None
             functional = None
-        elif meso_acc_set and thermo_acc_set:
+        elif meso_acc and thermo_acc:
             # Preprocess the accessions
+            meso_acc_set, thermo_acc_set = preprocess_accessions(
+                meso_acc, thermo_acc)
             score = calculate_jaccard_similarity(meso_acc_set, thermo_acc_set)
             functional = score > jaccard_threshold
         else:
