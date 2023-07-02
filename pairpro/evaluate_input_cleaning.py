@@ -179,3 +179,44 @@ def input_cleaning_wrapper(dataframe, structure):
     print('The new shape of the dataframe is:{}'.format(verify_pairs.shape))
 
     return verify_pairs
+
+#consider using only this funciton to speed up code
+def verify_input_data(dataframe, structure):
+    '''
+    Verifies input dataframe and performs necessary cleaning steps.
+
+    Args:
+        dataframe: pandas DataFrame
+        structure: boolean indicating whether to include 'structure_match' column
+
+    Returns:
+        dataframe: cleaned and verified pandas DataFrame
+    '''
+    # Normalize bit scores
+    dataframe['norm_bit_score_query'] = dataframe['bit_score'] / dataframe['query_len']
+    dataframe['norm_bit_score_subject'] = dataframe['bit_score'] / dataframe['subject_len']
+
+    # Check type of dataframe
+    assert isinstance(dataframe, pd.DataFrame), 'Not a pandas dataframe!'
+
+    # Clean out unnecessary columns
+    dataframe.drop(columns=dataframe.columns.difference(columns_to_keep), inplace=True)
+
+    # Verify necessary columns are present
+    assert set(columns_to_keep).issubset(dataframe.columns), 'Missing columns in dataframe!'
+
+    # Drop rows with NaN values
+    dataframe.dropna(subset=columns_to_keep, inplace=True)
+
+    # Verify protein pairs
+    assert 'query_len' in dataframe.columns, 'Dataframe missing query sequence!'
+    assert 'subject_len' in dataframe.columns, 'Dataframe missing subject sequence!'
+
+    # Add structure_match column if required
+    if structure:
+        columns_to_keep.append('structure_match')
+
+    print('The new shape of the dataframe is: {}'.format(dataframe.shape))
+
+    return dataframe
+
