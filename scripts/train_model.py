@@ -125,7 +125,7 @@ def model_construction(chunk_size, njobs, jaccard_threshold,
 
     # run hmmsearch
     targets = pairpro.hmmer.prefetch_targets(PRESS_PATH)
-    logger.debug(f"number of targets: {len(targets)}") #can change below when OOP is done
+    logger.debug(f"number of targets: {len(targets)}")
     wrapper = lambda chunk_index, pid_chunk: pairpro.hmmer.local_hmmer_wrapper(
         chunk_index, pid_chunk, press_path=PRESS_PATH, hmm_path=HMM_PATH, out_dir=HMMER_OUTPUT_DIR, cpu=njobs, prefetch=targets, e_value=1.e-10, scan=False, Z=n_hmms)
 

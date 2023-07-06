@@ -409,7 +409,7 @@ def process_pairs_table(
             This function is used in the apply function to calculate the Jaccard similarity
             between meso_pid and thermo_pid pairs based on their accessions.
             There is a parsing logic for the accessions, which is described below.
-            If both meso_accession and thermo_accession are empty, then the Jaccard similarity is None.
+            If both meso_accession and thermo_accession are nan, then the Jaccard similarity is None.
             If either meso_accession or thermo_accession is empty, then the Jaccard similarity is 0.
             If both meso_accession and thermo_accession are not empty, then the Jaccard similarity is calculated.
         """
@@ -442,11 +442,10 @@ def process_pairs_table(
         chunk_counter = 0  # Initialize the chunk counter
         while data_remaining:
             # Fetch the query result in chunks
-            query_chunk = query.fetch_df_chunk(chunk_size)
-            print(query_chunk.shape)
+            query_chunk = query.fetch_df_chunk(vectors_per_chunk=chunk_size)
 
             # Check if there is data remaining
-            if query_chunk.empty:
+            if len(query_chunk) == 0:
                 data_remaining = False
                 break
 
@@ -465,6 +464,7 @@ def process_pairs_table(
                     'thermo_pid',
                     'functional',
                     'score'])
+            logger.info(f'Chunk {chunk_counter} of size {len(query_chunk)} written to csv.')
 
     except IOError as e:
         logger.warning(f"Error writing to CSV file: {e}")
