@@ -13,6 +13,7 @@ dependencies:
   - scikit-learn
   - joblib
   - sphinx
+  - dask
   - pip:
       - click
       - duckdb==0.7.1
