@@ -2,15 +2,25 @@
 To do: Raise exception for invalid inputs, try capitalization before removing
 rows
 """
+import ray
 from Bio import Align
 from Bio.Align import substitution_matrices
+import sys
 import numpy as np
 import pandas as pd
 import re
 import duckdb
+import pickle
 
 
-def make_blast_df(df, mode='local', path='./data/blast_db.db'):
+
+class PicklablePairwiseAligner(Align.PairwiseAligner):
+    def __getstate__(self):
+        return
+    def __setstate__(self, state):
+        return
+
+def make_blast_df(df_in, mode='local', path='./data/blast_db.db', module_path='.'):
     """
     This function generates pairwise alignment scores for a set of protein
     sequences.
@@ -25,10 +35,11 @@ def make_blast_df(df, mode='local', path='./data/blast_db.db'):
                                           pairs, associated id values, and
                                           alignment scores.
     """
+    # TODO: Clean up ray implementation
     # Rename input data columns for compatibility
-    original_cols = df.columns
-    df.rename(columns={original_cols[0]: 'query', original_cols[1]: 'subject'},
-              inplace=True)
+    original_cols = df_in.columns
+    df = df_in.rename(columns={original_cols[0]: 'query', original_cols[1]: 'subject'})
+
 
     # Remove any rows with NaN or containing non-amino acid letters
     rows_with_nan = []
@@ -84,57 +95,63 @@ def make_blast_df(df, mode='local', path='./data/blast_db.db'):
                'subject_align_cov',
                'bit_score']
 
-    data_dict = df.to_dict('records')
+    #data_dict = df.to_dict('records')
 
     # Initialize PairWiseAligner with required parameters for model
-    aligner = Align.PairwiseAligner()
+    aligner = PicklablePairwiseAligner()
     aligner.substitution_matrix = substitution_matrices.load("BLOSUM62")
     aligner.open_gap_score = -11
     aligner.extend_gap_score = -1
     aligner.mode = mode
 
-    final_data = []
-
     # Iterate through all pairs and calculate best alignment and metrics
-    for row in data_dict:
-        query = row['query']
-        subject = row['subject']
+    cols = metrics + ['query_id', 'subject_id']
+    final_data = pd.DataFrame(columns=cols)
 
+    ray.init(runtime_env={'working_dir': '/home/ryfran/PairProphet/pairpro'})
+    @ray.remote
+    def aligner_align(row):
+  
+        subject = row[1]['subject']
+        query = row[1]['query']
         alignment = aligner.align(subject, query)
         best_alignment = max(alignment, key=lambda x: x.score)
+        alignment_str = format(best_alignment)
+        alignment_lines = alignment_str.split('\n')
+        seq1_aligned = alignment_lines[0]
+        seq2_aligned = alignment_lines[2]
 
-        seq1_aligned = format(best_alignment).split('\n')[0]
-        seq2_aligned = format(best_alignment).split('\n')[2]
-
-        # Coverage
-        subject_cov = sum(c != '-' for c in seq1_aligned) / len(seq1_aligned)
-        query_cov = sum(c != '-' for c in seq2_aligned) / len(seq2_aligned)
-
-        # Sequence length
-        l_subject = len(query)
-        l_query = len(subject)
+        # Coverage and sequence length
+        subject_cov = sum(c != '-' for c in seq1_aligned)
+        query_cov = sum(c != '-' for c in seq2_aligned)
+        subject_length = len(seq1_aligned)
+        query_length = len(seq2_aligned)
+        subject_cov /= subject_length
+        query_cov /= query_length
 
         # Percent ids
         n_matches, n_gaps, n_columns, n_comp_gaps = get_matches_gaps(
             seq2_aligned, seq1_aligned)
         gap_comp_pct_id = gap_compressed_percent_id(
             n_matches, n_gaps, n_columns, n_comp_gaps)
-        scaled_local_symmetric_percent_id = 2*n_matches / (l_subject + l_query)
-        scaled_local_query_percent_id = n_matches / l_query
+        scaled_local_symmetric_percent_id = 2*n_matches / (subject_length + query_length)
+        scaled_local_query_percent_id = n_matches / query_length
 
         # Collect calculated metrics into a list for addition to final_data
         new_row = [gap_comp_pct_id, scaled_local_query_percent_id,
-                   scaled_local_symmetric_percent_id, l_query,
-                   query_cov, l_subject, subject_cov, best_alignment.score,
-                   row['query_id'], row['subject_id']]
-        final_data.append(new_row)
+                scaled_local_symmetric_percent_id, query_length,
+                query_cov, subject_length, subject_cov, best_alignment.score,
+                row[1]['query_id'], row[1]['subject_id']]
+        return new_row
+    
+    for row in df.iterrows():
+        final_data.loc[len(final_data)] = ray.get(aligner_align.remote(row))
 
     # Construct temporary dataframe from collected metrics
-    columns = metrics + ['query_id', 'subject_id']
-    final_df = pd.DataFrame(final_data, columns=columns)
+    
 
     # Merge final_df with sequences and ids from input df
-    blast_df = df.merge(final_df, left_on=['query_id', 'subject_id'],
+    blast_df = df.merge(final_data, left_on=['query_id', 'subject_id'],
                         right_on=['query_id', 'subject_id'])
     con = duckdb.connect(path)
     cmd = """CREATE OR REPLACE TABLE protein_pairs
