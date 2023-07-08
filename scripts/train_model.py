@@ -52,7 +52,7 @@ import pairpro.structures
 
 
 # db Paths
-TEST_DB_PATH = './data/l2t_50k.db'  # l2t_50k.db
+TEST_DB_PATH = 'l2t_500k.db'  # l2t_50k.db
 
 # HMMER Paths
 HMM_PATH = './data/pfam/Pfam-A.hmm'  # ./Pfam-A.hmm
@@ -112,10 +112,13 @@ def model_construction(chunk_size, njobs, jaccard_threshold,
 
     # get all the proteins in pairs
 
+    proteins_in_pair_count = con.execute(f"SELECT COUNT(*) FROM {db_name}.pairpro.proteins").fetchone()[0]
+    logger.debug(
+        f"Total number of protein in pairs: {proteins_in_pair_count} in pipeline")
+
     proteins_in_pair = con.execute(
         f"SELECT pid, protein_seq FROM {db_name}.pairpro.proteins") #take out df() later
-    # logger.debug(
-    #     f"Total number of protein in pairs: {len(proteins_in_pair)} in pipeline")
+    
     
     # get number of hmms for evalue calc
     profiles = list(pyhmmer.plan7.HMMFile(HMM_PATH))
@@ -132,6 +135,8 @@ def model_construction(chunk_size, njobs, jaccard_threshold,
     complete = False
     chunk_index = 0
     total_processed = 0
+    # use tqdm to track progress
+    pbar = tqdm(total=proteins_in_pair_count)
     while not complete:
         pid_chunk = proteins_in_pair.fetch_df_chunk(vectors_per_chunk=chunk_size)
         logger.info(f"Loaded chunk of size {len(pid_chunk)}")
@@ -148,6 +153,9 @@ def model_construction(chunk_size, njobs, jaccard_threshold,
         total_processed += len(pid_chunk)
         chunk_index += 1
 
+        # update progress bar
+        pbar.update(len(pid_chunk))
+    pbar.close()
     
     logger.info('Starting to parse HMMER output')
 
@@ -252,6 +260,7 @@ def model_construction(chunk_size, njobs, jaccard_threshold,
     joblib.dump(model, f'{MODEL_PATH}trained_model.pkl')
     logger.debug(f'model training data is {df.head()}')
     logger.info(f'Model saved to {MODEL_PATH}')
+    con.close()
 
 
 if __name__ == "__main__":

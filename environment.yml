@@ -10,6 +10,7 @@ dependencies:
   - pandas
   - python
   - pip
+  - ray-default
   - scikit-learn
   - joblib
   - sphinx
