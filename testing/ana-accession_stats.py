@@ -20,6 +20,9 @@ Future Work:
     - [ ] think about a better data structure for evalue and jaccard threshold values  
     - [ ] use os more for paths stuff specifically for assembling paths
         os.path.join(path1, path2, path3, ...)
+    - [ ] shift everything right as jaccard threshold is not a parameter for hmmsearch
+Suggestion:
+    Do the cursor. Save the chunk of the df locally. (caching)
 """
 # system dependencies
 import os
@@ -108,6 +111,7 @@ def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, vector_size, *
     for evalue_value in evalue_values_to_test:
         for jaccard_threshold_value in jaccard_threshold_values_to_test:
 
+
             ### Run HMMER ###
             # get number of hmms for evalue calc
             profiles = list(pyhmmer.plan7.HMMFile(HMM_PATH))
@@ -120,6 +124,10 @@ def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, vector_size, *
             logger.info(f"Number of targets: {len(targets)}")
             wrapper = lambda chunk_index, pid_chunk: pp_hmmer.local_hmmer_wrapper(
                 chunk_index, pid_chunk, press_path=PRESS_PATH, hmm_path=HMM_PATH, out_dir=HMMER_OUTPUT_DIR, cpu=njobs, prefetch=targets, e_value=evalue, scan=False, Z=n_hmms)
+            
+            # get proteins in pairs
+            proteins_in_pair = con.execute(
+                f"SELECT pid, protein_seq FROM pairpro.pairpro.proteins")
             
             # the hmmsearch loop
             complete = False
