@@ -52,7 +52,7 @@ import pairpro.structures
 
 
 # db Paths
-TEST_DB_PATH = 'l2t_500k.db'  # l2t_50k.db
+TEST_DB_PATH = './data/l2t_50k.db'  # l2t_50k.db
 
 # HMMER Paths
 HMM_PATH = './data/pfam/Pfam-A.hmm'  # ./Pfam-A.hmm

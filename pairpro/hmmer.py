@@ -543,3 +543,101 @@ def local_hmmer_wrapper_example(chunk_index, dbpath, chunked_pid_inputs,
     accessions_parsed.to_csv(
         f'{out_dir}/{chunk_index}_output.csv',
         index=False)
+
+def process_pairs_table_ana(
+        conn,
+        dbname,
+        chunk_size: int,
+        output_directory,
+        jaccard_threshold):
+    """
+    Processes the pairs table, calculates Jaccard similarity, and generates output CSV.
+
+    Parameters:
+        conn (**): Path to the database file.
+        dbname (str): Name of the database.
+        chunk_size (int): Size of each query chunk to fetch from the database.
+        output_directory (str): Directory path to save the output CSV files.
+        jaccard_threshold (float): Threshold value for Jaccard similarity.
+
+    Returns:
+        None
+    """
+    # Perform a join to get relevant information from the two tables
+    query1 = f"""
+        CREATE OR REPLACE TEMP TABLE joined_pairs AS
+        SELECT p.meso_pid, p.thermo_pid, pr.accession AS meso_accession, pr2.accession AS thermo_accession
+        FROM {dbname}.pairpro.final AS p
+        INNER JOIN proteins_from_pairs4 AS pr ON (p.meso_pid = pr.pid)
+        INNER JOIN proteins_from_pairs4 AS pr2 ON (p.thermo_pid = pr2.pid)
+    """
+    conn.execute(query1)
+
+    # Define the evaluation function for the apply function
+    def evaluation_function(row, jaccard_threshold):
+        """
+        Evaluates the Jaccard similarity between meso_pid and thermo_pid pairs based on their accessions.
+
+        Notes:
+            This function is used in the apply function to calculate the Jaccard similarity
+            between meso_pid and thermo_pid pairs based on their accessions.
+            There is a parsing logic for the accessions, which is described below.
+            If both meso_accession and thermo_accession are nan, then the Jaccard similarity is None.
+            If either meso_accession or thermo_accession is empty, then the Jaccard similarity is 0.
+            If both meso_accession and thermo_accession are not empty, then the Jaccard similarity is calculated.
+        """
+        # Get the accessions
+        meso_acc = row['meso_accession']
+        thermo_acc = row['thermo_accession']
+        
+        # parsing accessions logic
+        if meso_acc == 'nan' and thermo_acc == 'nan':
+            score = None
+            functional = None
+        elif meso_acc and thermo_acc:
+            # Preprocess the accessions
+            meso_acc_set, thermo_acc_set = preprocess_accessions(
+                meso_acc, thermo_acc)
+            score = calculate_jaccard_similarity(meso_acc_set, thermo_acc_set)
+            functional = score > jaccard_threshold
+        else:
+            # Handle unmatched rows
+            score = 0.0
+            functional = False
+
+        return {'functional': functional, 'score': score}
+
+    # Generate output CSV file
+    try:
+        # Execute the query
+        query = conn.execute("SELECT * FROM joined_pairs")
+        data_remaining = True
+        chunk_counter = 0  # Initialize the chunk counter
+        while data_remaining:
+            # Fetch the query result in chunks
+            query_chunk = query.fetch_df_chunk(vectors_per_chunk=chunk_size)
+
+            # Check if there is data remaining
+            if len(query_chunk) == 0:
+                data_remaining = False
+                break
+
+            # Calculate Jaccard similarity and determine functional status
+            # using apply function
+            query_chunk[['functional', 'score']] = query_chunk.apply(
+                evaluation_function, axis=1, args=(jaccard_threshold,), result_type='expand')
+
+            # Write DataFrame to CSV
+            chunk_counter += 1  # Increment the chunk counter
+            query_chunk.to_csv(
+                f'{output_directory}{chunk_counter}_output.csv',
+                index=False,
+                columns=[
+                    'meso_pid',
+                    'thermo_pid',
+                    'functional',
+                    'score'])
+            logger.info(f'Chunk {chunk_counter} of size {len(query_chunk)} written to csv.')
+
+    except IOError as e:
+        logger.warning(f"Error writing to CSV file: {e}")
