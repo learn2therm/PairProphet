@@ -1,0 +1,1 @@
+The following is a directory for developmental purposes only. It is exploring different promsing avenues for the project.
