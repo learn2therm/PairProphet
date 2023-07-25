@@ -3,7 +3,7 @@ Wrapper functions evaluating model with user data.
 """
 
 from pairpro.evaluate_model import evaluate_model
-from pairpro.evaluate_input_cleaning import input_cleaning_wrapper
+from pairpro.evaluate_input_cleaning import verify_input_data
 from pairpro.eval_featuregen import create_new_dataframe
 
 
@@ -24,7 +24,7 @@ def evaluate_model_wrapper(model, dataframe, target,
         Model score
     '''
     # clean input dataframe
-    dataframe = input_cleaning_wrapper(dataframe, structure)
+    dataframe = verify_input_data(dataframe, structure)
 
     if features is True:
         feature_list = [

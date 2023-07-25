@@ -3,7 +3,7 @@ Wrapper functions for all of the machine learning component.
 """
 
 from pairpro.train_val_classification import rf_wrapper
-from pairpro.train_val_input_cleaning import input_cleaning_wrapper
+from pairpro.train_val_input_cleaning import verify_input_data
 from pairpro.train_val_featuregen import create_new_dataframe
 
 
@@ -23,7 +23,7 @@ def train_val_wrapper(dataframe, target, structure=False, features=False):
         Model score
     '''
     # clean input dataframe
-    dataframe = input_cleaning_wrapper(dataframe, structure)
+    dataframe = verify_input_data(dataframe, structure)
 
     if features is True:
         feature_list = [
