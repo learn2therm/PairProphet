@@ -20,7 +20,9 @@ Future Work:
     - [ ] think about a better data structure for evalue and jaccard threshold values  
     - [ ] use os more for paths stuff specifically for assembling paths
         os.path.join(path1, path2, path3, ...)
-    - [ ] shift everything right as jaccard threshold is not a parameter for hmmsearch
+    - [x] shift everything right as jaccard threshold is not a parameter for hmmsearch
+    - [ ] use count and collections to estimate the number of proteins in pairs true and falses (e.g. how many proteins are in pairs) divide by the total number of proteins
+        to get the frequency of proteins in pairs that way we can see how e_value and jaccard threshold affect the number of proteins in pairs
 Suggestion:
     Do the cursor. Save the chunk of the df locally. (caching)
 """
@@ -111,7 +113,9 @@ def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, vector_size, *
     for evalue_value in evalue_values_to_test:
         for jaccard_threshold_value in jaccard_threshold_values_to_test:
 
-
+            # create a counter index
+            counter_index = 0
+            
             ### Run HMMER ###
             # get number of hmms for evalue calc
             profiles = list(pyhmmer.plan7.HMMFile(HMM_PATH))
@@ -123,7 +127,7 @@ def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, vector_size, *
             targets = pp_hmmer.prefetch_targets(PRESS_PATH)
             logger.info(f"Number of targets: {len(targets)}")
             wrapper = lambda chunk_index, pid_chunk: pp_hmmer.local_hmmer_wrapper(
-                chunk_index, pid_chunk, press_path=PRESS_PATH, hmm_path=HMM_PATH, out_dir=HMMER_OUTPUT_DIR, cpu=njobs, prefetch=targets, e_value=evalue, scan=False, Z=n_hmms)
+                chunk_index, pid_chunk, press_path=PRESS_PATH, hmm_path=HMM_PATH, out_dir=HMMER_OUTPUT_DIR, cpu=njobs, prefetch=targets, e_value=evalue_value, scan=False, Z=n_hmms)
             
             # get proteins in pairs
             proteins_in_pair = con.execute(
@@ -155,6 +159,31 @@ def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, vector_size, *
                 pbar.update(len(pid_chunk))
             pbar.close()
 
+    
+            logger.info('Finished running HMMER.')
+
+            # parse the output
+            logger.info('Parsing HMMER output...')
+
+            # setup the database and get some pairs to run
+            con.execute("""
+                CREATE OR REPLACE TABLE proteins_from_pairs4 AS
+                SELECT query_id AS pid, accession_id AS accession
+                FROM read_csv_auto('./data/analysis/hmmer/*.csv', HEADER=TRUE)
+            """)
+            con.commit()
+
+            logger.info('creating pair table')
+            pp_hmmer.process_pairs_table_ana(
+                con,
+                'pairpro',
+                vector_size,
+                PARSE_HMMER_OUTPUT_DIR,
+                jaccard_threshold_value)
+
+            logger.info('Finished parsing HMMER output.')
+
+            logger.info('Calculating statistics...')
             ### Read HMMER output ###
             logger.info('Reading HMMER output...')
             df_lists = [] # initialize list to store dataframes
@@ -172,45 +201,26 @@ def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, vector_size, *
             mean_accession_length = bfd['accession_id'].str.split(';').str.len().mean()
             
             # .apply(lambda x: len(x.split(';'))).mean()
-            logger.debug(f"Mean length of accessions: {mean_accession_length}")            
+            logger.debug(f"Mean length of accessions: {mean_accession_length}")
+
 
             # store the stats for each combination
             evalue_values.append(evalue_value)
             jaccard_threshold_values.append(jaccard_threshold_value)
             mean_acc_length_values.append(mean_accession_length)
-    
-    logger.info('Finished running HMMER. Added stats')
 
-    # store the stats in a dataframe
-    results_df = pd.DataFrame({
-        'e-value': evalue_values,
-        'jaccard_threshold': jaccard_threshold_values,
-        'mean_acc_length': mean_acc_length_values
-    })
+            # store the stats in a dataframe
+            results_df = pd.DataFrame({
+                'e-value': evalue_values,
+                'jaccard_threshold': jaccard_threshold_values,
+                'mean_acc_length': mean_acc_length_values
+            })
 
-    # save the result in a dataframe for later use
-    results_df.to_csv(f'{ANALYSIS_OUTPUT_PATH}statistics_results.csv', index=False)
+            # counter index
+            counter_index += 1 
 
-    # parse the output
-    logger.info('Parsing HMMER output...')
-
-    # # setup the database and get some pairs to run
-    # con.execute("""
-    #     CREATE TABLE proteins_from_pairs4 AS
-    #     SELECT query_id AS pid, accession_id AS accession
-    #     FROM read_csv_auto('./data/analysis/hmmer/*.csv', HEADER=TRUE)
-    # """)
-    # con.commit()
-
-    logger.info('creating pair table')
-    pp_hmmer.process_pairs_table_ana(
-        con,
-        'pairpro',
-        vector_size,
-        PARSE_HMMER_OUTPUT_DIR,
-        jaccard_threshold)
-
-    logger.info('Finished parsing HMMER output.')
+            # save the result in a dataframe for later use
+            results_df.to_csv(f'{ANALYSIS_OUTPUT_PATH}{counter_index}_statistics_results.csv', index=False)
 
     
 
