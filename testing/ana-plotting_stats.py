@@ -4,7 +4,9 @@ TODO: Write a script that plots the statistics of the data
 # system dependencies
 
 # library dependencies
+import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 import pandas as pd
 
 # local dependencies
@@ -15,35 +17,42 @@ import pandas as pd
 ####################
 # Paths
 
+####################
+#### SEABORN #######
+####################
+# seaborn settings
+sns.set_context('talk')
+sns.set_style('whitegrid')
+
 
 ####################
 #### matplotlib ####
 ####################
-# matplotlib settings
-plt.rcParams.update({
-    'font.family': 'Helvetica',  # Times New Roman, Calibri
-    'font.weight': 'normal',
-    'mathtext.fontset': 'cm',
-    'font.size': 16,
-    'lines.linewidth': 2,
-    'axes.linewidth': 2,
-    'axes.spines.top': False,
-    'axes.spines.right': False,
-    'axes.titleweight': 'bold',
-    'axes.titlesize': 18,
-    'axes.labelweight': 'bold',
-    'xtick.major.size': 8,
-    'xtick.major.width': 2,
-    'ytick.major.size': 8,
-    'ytick.major.width': 2,
-    'figure.dpi': 80,
-    'legend.framealpha': 1, 
-    'legend.edgecolor': 'black',
-    'legend.fancybox': False,
-    'legend.fontsize': 14
-})
+# # matplotlib settings
+# plt.rcParams.update({
+#     'font.family': 'Arial',  # Times New Roman, Calibri
+#     'font.weight': 'normal',
+#     'mathtext.fontset': 'cm',
+#     'font.size': 16,
+#     'lines.linewidth': 2,
+#     'axes.linewidth': 2,
+#     'axes.spines.top': False,
+#     'axes.spines.right': False,
+#     'axes.titleweight': 'bold',
+#     'axes.titlesize': 18,
+#     'axes.labelweight': 'bold',
+#     'xtick.major.size': 8,
+#     'xtick.major.width': 2,
+#     'ytick.major.size': 8,
+#     'ytick.major.width': 2,
+#     'figure.dpi': 80,
+#     'legend.framealpha': 1, 
+#     'legend.edgecolor': 'black',
+#     'legend.fancybox': False,
+#     'legend.fontsize': 14
+# })
 
-####################
+# ####################
 
 
 ####################
@@ -54,23 +63,70 @@ plt.rcParams.update({
 # Read the data
 ## first number in variable name is e_value
 ## second number in variable name is Jaccard similarity score
-data_1_1 = pd.read_csv('./data/analysis/1_statistics_results.csv')
-# data_1_2 = pd.read_csv('./data/analysis/2_statistics_results.csv')
-# data_1_3 = pd.read_csv('./data/analysis/3_statistics_results.csv')
-# data_1_4 = pd.read_csv('./data/analysis/4_statistics_results.csv')
-# data_2_1 = pd.read_csv('./data/analysis/5_statistics_results.csv')
-# data_2_2 = pd.read_csv('./data/analysis/6_statistics_results.csv')
-# data_2_3 = pd.read_csv('./data/analysis/7_statistics_results.csv')
-# data_2_4 = pd.read_csv('./data/analysis/8_statistics_results.csv')
-# data_3_1 = pd.read_csv('./data/analysis/9_statistics_results.csv')
-# data_3_2 = pd.read_csv('./data/analysis/10_statistics_results.csv')
-# data_3_3 = pd.read_csv('./data/analysis/11_statistics_results.csv')
-# data_3_4 = pd.read_csv('./data/analysis/12_statistics_results.csv')
-# data_4_1 = pd.read_csv('./data/analysis/13_statistics_results.csv')
-# data_4_2 = pd.read_csv('./data/analysis/14_statistics_results.csv')
-# data_4_3 = pd.read_csv('./data/analysis/15_statistics_results.csv')
-# data_4_4 = pd.read_csv('./data/analysis/16_statistics_results.csv')
+data = pd.read_csv('./data/analysis/statistics_results.csv')
+
 
 
 if __name__ == '__main__':
-    print(data_1_1.head())
+    # print(data.head())
+    
+    ###########
+    # Summary #
+    ###########
+    print(data.describe())
+
+    ###############
+    # Manuplation #
+    ###############
+
+    # Define a parameter lambda
+    lambda_param = 0.5  # This can be adjusted based on how much you want to penalize false_proportion
+
+    # Compute the score
+    data['score'] = data['true_proportion'] - lambda_param * data['false_proportion']
+    print(f'new data head: {data.head()}')
+
+
+    # ###########
+    # # Heatmap #
+    # ###########
+    # # Compute correlation matrix
+    # correlation_matrix_all = data[['e-value', 'jaccard_threshold', 'mean_acc_length', 'true_proportion', 'false_proportion']].corr()
+
+    # # Plot heatmap
+    # plt.figure(figsize=(10, 8))
+    # sns.heatmap(correlation_matrix_all, annot=True, cmap='coolwarm', center=0)
+    # plt.title('Correlation Heatmap of All Variables')
+    # plt.savefig('./data/analysis/heatmap.png')  # Save the figure before showing it
+    # plt.show()
+
+    # ############
+    # # Pairplot #
+    # ############
+    # # Create a pairplot to visualize the relationships between all pairs of variables
+    # sns.pairplot(data, diag_kind='kde', plot_kws={'alpha': 0.6})
+    # plt.savefig('./data/analysis/pairplot.png')  # Save the figure before showing it
+    # plt.show()
+
+
+    ################
+    # Countour Plot #
+    ################
+    # Create a contour plot to visualize the relationship between e-value and jaccard_threshold
+
+    # Define the space for interpolation
+    grid_x, grid_y = np.mgrid[0:1:100j, data['e-value'].min():data['e-value'].max():100j]
+
+    # Interpolate the data for score
+    grid_z = griddata((data['jaccard_threshold'], data['e-value']), data['score'], (grid_x, grid_y), method='cubic')
+
+    # Create contour plot
+    plt.figure(figsize=(10, 8))
+    cp = plt.contourf(grid_x, grid_y, grid_z, cmap='viridis')
+    plt.colorbar(cp)
+    plt.title('Score Contour Plot')
+    plt.xlabel('Jaccard Threshold')
+    plt.ylabel('e-value')
+    plt.savefig('./data/analysis/cplot.png')  # Save the figure before showing it
+    plt.show()
+
