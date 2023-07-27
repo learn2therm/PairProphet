@@ -126,11 +126,11 @@ def process_row(row, pdb_dir):
 
     return compare_fatcat(p1_file, p2_file, pdb_dir, row['pair_id'])
 
-def run_fatcat_dict_job(df, pdb_dir, file):
+def run_fatcat_dict_job(df, pdb_dir, njobs, file):
     p_values = []  # List to store the extracted p-values
 
     # Parallelize the execution of the function using joblib
-    p_values = Parallel(n_jobs=-1)(delayed(process_row)(row, pdb_dir) for _, row in df.iterrows())
+    p_values = Parallel(n_jobs=njobs)(delayed(process_row)(row, pdb_dir) for _, row in df.iterrows())
     # p_values = Parallel(n_jobs=num_cores)(delayed(process_row)(row, pdb_dir) for _, row in df.iterrows())
     # Filter out None values
     p_values = [p_value for p_value in p_values if p_value is not None]

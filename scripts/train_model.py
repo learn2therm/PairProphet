@@ -202,7 +202,7 @@ def model_construction(chunk_size, njobs, jaccard_threshold,
             structure_df, 'thermo_pdb', 'thermo_pid', STRUCTURE_DIR)
         logger.info('Finished downloading structures. Running FATCAT.')
         pairpro.structures.run_fatcat_dict_job(
-            structure_df, STRUCTURE_DIR, f'{STRUCTURE_OUTPUT_DIR}/output.csv')
+            structure_df, STRUCTURE_DIR, njobs, f'{STRUCTURE_OUTPUT_DIR}/output.csv')
         logger.info('Finished running FATCAT.')
 
         con.execute("""CREATE OR REPLACE TEMP TABLE structure_results AS SELECT * FROM read_csv_auto('./data/protein_pairs/structures/*.csv', HEADER=TRUE)""")
