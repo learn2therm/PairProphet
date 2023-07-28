@@ -30,6 +30,7 @@ Suggestion:
 import os
 import logging
 from collections import Counter
+import itertools
 
 # library dependencies
 import click
@@ -108,141 +109,143 @@ def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, vector_size, *
     
     all_results = [] # initialize the list to store all the results 
 
+    # Generate all combinations of evalue and jaccard_threshold values
+    combinations = itertools.product(evalue_values_to_test, jaccard_threshold_values_to_test)
+
     # Loop over e-value and Jaccard threshold values
-    for evalue_value in evalue_values_to_test:
-        for jaccard_threshold_value in jaccard_threshold_values_to_test:
+    for evalue_value, jaccard_threshold_value in combinations:
 
-            logger.info(f"Running analysis for e-value: {evalue_value} and jaccard threshold: {jaccard_threshold_value}")
-            ### Run HMMER ###
-            # get number of hmms for evalue calc
-            profiles = list(pyhmmer.plan7.HMMFile(HMM_PATH))
-            n_hmms = len(profiles)
-            del profiles
-            logger.info(f"Number of HMMs: {n_hmms}")
+        logger.info(f"Running analysis for e-value: {evalue_value} and jaccard threshold: {jaccard_threshold_value}")
+        ### Run HMMER ###
+        # get number of hmms for evalue calc
+        profiles = list(pyhmmer.plan7.HMMFile(HMM_PATH))
+        n_hmms = len(profiles)
+        del profiles
+        logger.info(f"Number of HMMs: {n_hmms}")
 
-            # run hmmsearch
-            targets = pp_hmmer.prefetch_targets(PRESS_PATH)
-            logger.info(f"Number of targets: {len(targets)}")
-            wrapper = lambda chunk_index, pid_chunk: pp_hmmer.local_hmmer_wrapper(
-                chunk_index, pid_chunk, press_path=PRESS_PATH, hmm_path=HMM_PATH, out_dir=HMMER_OUTPUT_DIR, cpu=njobs, prefetch=targets, e_value=evalue_value, scan=False, Z=n_hmms)
-            
-            # get proteins in pairs
-            proteins_in_pair = con.execute(
-                f"SELECT pid, protein_seq FROM pairpro.pairpro.proteins")
-            
-            # the hmmsearch loop
-            complete = False
-            chunk_index = 0
-            total_processed = 0
-            # use tqdm to track progress
-            pbar = tqdm(total=proteins_in_pair_count)
-            while not complete:
-                pid_chunk = proteins_in_pair.fetch_df_chunk(vectors_per_chunk=chunk_size)
-                logger.info(f"Loaded chunk of size {len(pid_chunk)}")
-                if len(pid_chunk) == 0:
-                    complete = True
-                    break
-                wrapper(chunk_index, pid_chunk)
-                logger.info(f"Ran chunk, validating results")
-
-                df = pd.read_csv(f'{HMMER_OUTPUT_DIR}/{chunk_index}_output.csv')
-                assert set(list(pid_chunk['pid'].values)) == set(list(df['query_id'].values)), "Not all query ids are in the output file"
-
-                logger.info(f"Completed chunk {chunk_index} with size {len(pid_chunk)}")
-                total_processed += len(pid_chunk)
-                chunk_index += 1
-
-                # update progress bar
-                pbar.update(len(pid_chunk))
-            pbar.close()
-
-
-            logger.info('Finished running HMMER.')
-
-            # parse the output
-            logger.info('Parsing HMMER output...')
-
-            # setup the database and get some pairs to run
-            con.execute("""
-                CREATE OR REPLACE TABLE proteins_from_pairs4 AS
-                SELECT query_id AS pid, accession_id AS accession
-                FROM read_csv_auto('./data/analysis/hmmer/*.csv', HEADER=TRUE)
-            """)
-            con.commit()
-
-            logger.info('creating pair table')
-            pp_hmmer.process_pairs_table_ana(
-                con,
-                'pairpro',
-                vector_size,
-                PARSE_HMMER_OUTPUT_DIR,
-                jaccard_threshold_value)
-
-            logger.info('Finished parsing HMMER output.')
-
-            logger.info('Calculating statistics...')
-            
-            ### Read HMMER output ###
-            logger.info('Reading HMMER output...')
-            hmmer_list = [] # initialize list to store dataframes
-            for chunk_index in range(chunk_index):
-                output_file_path = f'{HMMER_OUTPUT_DIR}{chunk_index}_output.csv'
-                df = pd.read_csv(output_file_path)
-                logger.debug(f"Loaded chunk {chunk_index} with size {len(df)}")
-                hmmer_list.append(df)
-                
-
-            logger.debug(f"hmmer_list: {hmmer_list}")
-            bfd1 = pd.concat(hmmer_list, ignore_index=True)
+        # run hmmsearch
+        targets = pp_hmmer.prefetch_targets(PRESS_PATH)
+        logger.info(f"Number of targets: {len(targets)}")
+        wrapper = lambda chunk_index, pid_chunk: pp_hmmer.local_hmmer_wrapper(
+            chunk_index, pid_chunk, press_path=PRESS_PATH, hmm_path=HMM_PATH, out_dir=HMMER_OUTPUT_DIR, cpu=njobs, prefetch=targets, e_value=evalue_value, scan=False, Z=n_hmms)
         
-            # calculate stats on the data (e.g. mean length of accessions)
-            mean_accession_length = bfd1['accession_id'].str.split(';').str.len().mean()
+        # get proteins in pairs
+        proteins_in_pair = con.execute(
+            f"SELECT pid, protein_seq FROM pairpro.pairpro.proteins")
+        
+        # the hmmsearch loop
+        complete = False
+        chunk_index = 0
+        total_processed = 0
+        # use tqdm to track progress
+        pbar = tqdm(total=proteins_in_pair_count)
+        while not complete:
+            pid_chunk = proteins_in_pair.fetch_df_chunk(vectors_per_chunk=chunk_size)
+            logger.info(f"Loaded chunk of size {len(pid_chunk)}")
+            if len(pid_chunk) == 0:
+                complete = True
+                break
+            wrapper(chunk_index, pid_chunk)
+            logger.info(f"Ran chunk, validating results")
+
+            df = pd.read_csv(f'{HMMER_OUTPUT_DIR}/{chunk_index}_output.csv')
+            assert set(list(pid_chunk['pid'].values)) == set(list(df['query_id'].values)), "Not all query ids are in the output file"
+
+            logger.info(f"Completed chunk {chunk_index} with size {len(pid_chunk)}")
+            total_processed += len(pid_chunk)
+            chunk_index += 1
+
+            # update progress bar
+            pbar.update(len(pid_chunk))
+        pbar.close()
+
+
+        logger.info('Finished running HMMER.')
+
+        # parse the output
+        logger.info('Parsing HMMER output...')
+
+        # setup the database and get some pairs to run
+        con.execute("""
+            CREATE OR REPLACE TABLE proteins_from_pairs4 AS
+            SELECT query_id AS pid, accession_id AS accession
+            FROM read_csv_auto('./data/analysis/hmmer/*.csv', HEADER=TRUE)
+        """)
+        con.commit()
+
+        logger.info('creating pair table')
+        pp_hmmer.process_pairs_table_ana(
+            con,
+            'pairpro',
+            vector_size,
+            PARSE_HMMER_OUTPUT_DIR,
+            jaccard_threshold_value)
+
+        logger.info('Finished parsing HMMER output.')
+
+        logger.info('Calculating statistics...')
+        
+        ### Read HMMER output ###
+        logger.info('Reading HMMER output...')
+        hmmer_list = [] # initialize list to store dataframes
+        for chunk_index in range(chunk_index):
+            output_file_path = f'{HMMER_OUTPUT_DIR}{chunk_index}_output.csv'
+            df = pd.read_csv(output_file_path)
+            logger.debug(f"Loaded chunk {chunk_index} with size {len(df)}")
+            hmmer_list.append(df)
             
-            # .apply(lambda x: len(x.split(';'))).mean()
-            logger.debug(f"Mean length of accessions: {mean_accession_length}")
 
-            # create empty lists to store statistics
-            evalue_values = []
-            jaccard_threshold_values = []
-            mean_acc_length_values = []
+        logger.debug(f"hmmer_list: {hmmer_list}")
+        bfd1 = pd.concat(hmmer_list, ignore_index=True)
+    
+        # calculate stats on the data (e.g. mean length of accessions)
+        mean_accession_length = bfd1['accession_id'].str.split(';').str.len().mean()
+        
+        # .apply(lambda x: len(x.split(';'))).mean()
+        logger.debug(f"Mean length of accessions: {mean_accession_length}")
 
-            # store the stats for each combination
-            evalue_values.append(evalue_value)
-            jaccard_threshold_values.append(jaccard_threshold_value)
-            mean_acc_length_values.append(mean_accession_length)
+        # create empty lists to store statistics
+        evalue_values = []
+        jaccard_threshold_values = []
+        mean_acc_length_values = []
 
-            parse_list = [] # initialize list to store dataframes
-            for chunk_index in range(1, chunk_index):
-                output_file_path = f'{PARSE_HMMER_OUTPUT_DIR}{chunk_index}_output.csv'     
-                df = pd.read_csv(output_file_path)
-                logger.debug(f"Loaded chunk {chunk_index} with size {len(df)}")
-                parse_list.append(df)
-            
-            # get the data
-            logger.debug(f"parse_list: {parse_list}")
-            bfd2 = pd.concat(parse_list, ignore_index=True)
+        # store the stats for each combination
+        evalue_values.append(evalue_value)
+        jaccard_threshold_values.append(jaccard_threshold_value)
+        mean_acc_length_values.append(mean_accession_length)
 
-            # calculate True/False score distribution
-            logger.info('Calculating True/False score distribution...')
-            true_count = bfd2['functional'].sum()
-            false_count = len(bfd2) - true_count
+        parse_list = [] # initialize list to store dataframes
+        for chunk_index in range(1, chunk_index):
+            output_file_path = f'{PARSE_HMMER_OUTPUT_DIR}{chunk_index}_output.csv'     
+            df = pd.read_csv(output_file_path)
+            logger.debug(f"Loaded chunk {chunk_index} with size {len(df)}")
+            parse_list.append(df)
+        
+        # get the data
+        logger.debug(f"parse_list: {parse_list}")
+        bfd2 = pd.concat(parse_list, ignore_index=True)
 
-            # calculate proportions by dividing by the total number of proteins in pairs
-            total_pairs = len(bfd2)
-            true_proportion = true_count / total_pairs
-            false_proportion = false_count / total_pairs
+        # calculate True/False score distribution
+        logger.info('Calculating True/False score distribution...')
+        true_count = bfd2['score'].sum()
+        false_count = len(bfd2) - true_count
 
-            # store the stats in a dataframe
-            result = pd.DataFrame({
-                'e-value': evalue_values,
-                'jaccard_threshold': jaccard_threshold_values,
-                'mean_acc_length': mean_acc_length_values,
-                'true_proportion': true_proportion,
-                'false_proportion': false_proportion
-            })
+        # calculate proportions by dividing by the total number of proteins in pairs
+        total_pairs = len(bfd2)
+        true_proportion = true_count / total_pairs
+        false_proportion = false_count / total_pairs
 
-            # append the result to the list of results
-            all_results.append(result)
+        # store the stats in a dataframe
+        result = pd.DataFrame({
+            'e-value': evalue_values,
+            'jaccard_threshold': jaccard_threshold_values,
+            'mean_acc_length': mean_acc_length_values,
+            'true_proportion': true_proportion,
+            'false_proportion': false_proportion
+        })
+
+        # append the result to the list of results
+        all_results.append(result)
 
     # combine all the results into a single dataframe
     results_df = pd.concat(all_results, ignore_index=True)
