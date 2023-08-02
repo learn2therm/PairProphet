@@ -226,9 +226,10 @@ def model_construction(chunk_size, njobs, jaccard_threshold,
         query_align_len, query_align_cov, subject_align_len, subject_align_cov,
         LENGTH(m_protein_seq) AS m_protein_len, LENGTH(t_protein_seq) AS t_protein_len, hmmer_match FROM {db_name}.pairpro.final""").df()
 
-    logger.debug(f'dataframe columns before sampling: {df.info}')
+    logger.debug(df.info(verbose=True))
     logger.debug(df.shape)
     logger.debug(df.head())
+    logger.debug(df.keys())
 
     logger.info('Beginning to preprocess data for model training')
 

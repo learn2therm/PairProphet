@@ -20,7 +20,6 @@ columns_to_keep = [
     'query_len',
     'subject_len',
     'hmmer_match',
-    'structure_match',
     'norm_bit_score_query',
     'norm_bit_score_subject',
     'query',
