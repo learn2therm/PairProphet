@@ -71,9 +71,8 @@ MODEL_PATH = './data/models/'
 # get environmental variables
 if 'LOGLEVEL' in os.environ:
     LOGLEVEL = os.environ['LOGLEVEL']
-    LOGLEVEL = getattr(logging, LOGLEVEL)
 else:
-    LOGLEVEL = logging.INFO
+    LOGLEVEL = 'INFO'
 LOGNAME = __file__
 LOGFILE = f'./logs/{os.path.basename(__file__)}.log'
 
@@ -227,8 +226,9 @@ def model_construction(chunk_size, njobs, jaccard_threshold,
         query_align_len, query_align_cov, subject_align_len, subject_align_cov,
         LENGTH(m_protein_seq) AS m_protein_len, LENGTH(t_protein_seq) AS t_protein_len, hmmer_match FROM {db_name}.pairpro.final""").df()
 
-    print(df.head())
-    print(df.shape)
+    logger.debug(f'dataframe columns before sampling: {df.info}')
+    logger.debug(df.shape)
+    logger.debug(df.head())
 
     logger.info('Beginning to preprocess data for model training')
 

@@ -193,6 +193,12 @@ def verify_input_data(dataframe, structure):
     Returns:
         dataframe: cleaned and verified pandas DataFrame
     '''
+
+    if structure:
+        columns_to_keep.append('structure_match')
+    else:
+        pass
+
     # Normalize bit scores
     dataframe['norm_bit_score_m'] = dataframe['bit_score'] / dataframe['m_protein_len']
     dataframe['norm_bit_score_t'] = dataframe['bit_score'] / dataframe['t_protein_len']
@@ -210,12 +216,8 @@ def verify_input_data(dataframe, structure):
     dataframe.dropna(subset=columns_to_keep, inplace=True)
 
     # Verify protein pairs
-    assert 'm_protein_len' in dataframe.columns, 'Dataframe missing mesophilic sequence!'
-    assert 't_protein_len' in dataframe.columns, 'Dataframe missing thermophilic sequence!'
-
-    # Add structure_match column if required
-    if structure:
-        columns_to_keep.append('structure_match')
+    assert 'm_protein_len' in dataframe.columns, 'Dataframe missing query sequence!'
+    assert 't_protein_len' in dataframe.columns, 'Dataframe missing subject sequence!'
 
     print('The new shape of the dataframe is: {}'.format(dataframe.shape))
 

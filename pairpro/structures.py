@@ -7,6 +7,7 @@ import os
 import pandas as pd
 import subprocess
 import time
+import logging
 
 import asyncio
 import httpx
@@ -17,6 +18,8 @@ import numpy as np
 import csv
 from joblib import Parallel, delayed
 
+logger = logging.getLogger(__name__)
+
 async def download_aff(session, url, filename, semaphore):
     try:
         async with semaphore:
@@ -24,13 +27,13 @@ async def download_aff(session, url, filename, semaphore):
             if response.status_code == 200:
                 with open(filename, 'wb') as f:
                     f.write(response.content)
-                print(f"Downloaded file: {filename}")
+                logger.info(f"Downloaded file: {filename}")
                 return True
             else:
-                print(f"Failed to download file: {filename}. Status code: {response.status_code}")
+                logger.info(f"Failed to download file: {filename}. Status code: {response.status_code}")
                 return False
     except httpx.RequestError as e:
-        print(f"Error while downloading file: {filename}. Exception: {str(e)}")
+        logger.info(f"Error while downloading file: {filename}. Exception: {str(e)}")
         return False
 
 async def download_af(row, u_column, pdb_dir, semaphore):
@@ -61,7 +64,7 @@ def run_download_af_all(df, pdb_column, u_column, pdb_dir):
         results = await asyncio.gather(*tasks)
         success_count = sum(results)
 
-        print(f"Successfully downloaded {success_count} files out of {len(df)}")
+        logger.info(f"Successfully downloaded {success_count} files out of {len(df)}")
 
     asyncio.run(download_af_all())
 
@@ -84,7 +87,7 @@ def download_structure(df, pdb_column, u_column, pdb_dir):
     run_download_af_all(df, pdb_column, u_column, pdb_dir)
     end_time = time.time()  # Stop measuring time
     execution_time = end_time - start_time
-    print(f"Execution time: {execution_time} seconds")
+    logger.info(f"Execution time: {execution_time} seconds")
 
 def compare_fatcat(p1_file, p2_file, pdb_dir, pair_id):
     # Set the FATCAT command and its arguments

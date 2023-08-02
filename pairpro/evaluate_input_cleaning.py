@@ -20,6 +20,7 @@ columns_to_keep = [
     'query_len',
     'subject_len',
     'hmmer_match',
+    'structure_match',
     'norm_bit_score_query',
     'norm_bit_score_subject',
     'query',
@@ -192,6 +193,12 @@ def verify_input_data(dataframe, structure):
     Returns:
         dataframe: cleaned and verified pandas DataFrame
     '''
+
+    if structure:
+        columns_to_keep.append('structure_match')
+    else:
+        pass
+
     # Normalize bit scores
     dataframe['norm_bit_score_query'] = dataframe['bit_score'] / dataframe['query_len']
     dataframe['norm_bit_score_subject'] = dataframe['bit_score'] / dataframe['subject_len']
@@ -211,10 +218,6 @@ def verify_input_data(dataframe, structure):
     # Verify protein pairs
     assert 'query_len' in dataframe.columns, 'Dataframe missing query sequence!'
     assert 'subject_len' in dataframe.columns, 'Dataframe missing subject sequence!'
-
-    # Add structure_match column if required
-    if structure:
-        columns_to_keep.append('structure_match')
 
     print('The new shape of the dataframe is: {}'.format(dataframe.shape))
 
