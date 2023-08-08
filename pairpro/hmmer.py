@@ -330,7 +330,10 @@ def local_hmmer_wrapper(chunk_index, chunked_inputs, press_path, hmm_path, out_d
         f'{out_dir}/{chunk_index}_output.csv',
         index=False)
 
-# parsing
+
+#################
+#### parsing ####
+#################
 
 
 def preprocess_accessions(meso_accession: str, thermo_accession: str):
@@ -344,9 +347,16 @@ def preprocess_accessions(meso_accession: str, thermo_accession: str):
     Returns:
         tuple: A tuple containing the preprocessed meso_accession and thermo_accession sets.
     """
-    meso_accession_set = set(str(meso_accession).split(';'))
-    thermo_accession_set = set(str(thermo_accession).split(';'))
-
+   # Convert accessions to sets
+    if pd.isna(meso_accession):
+        meso_accession_set = set()
+    else:
+        meso_accession_set = set(str(meso_accession.split(';')))
+    if pd.isna(thermo_accession):
+        thermo_accession_set = set()
+    else:
+        thermo_accession_set = set(str(thermo_accession.split(';')))
+    
     return meso_accession_set, thermo_accession_set
 
 
@@ -469,6 +479,10 @@ def process_pairs_table(
     except IOError as e:
         logger.warning(f"Error writing to CSV file: {e}")
 
+##########################################################################################
+### Variations of the above code ##########################################################
+##########################################################################################
+
 
 def local_hmmer_wrapper_example(chunk_index, dbpath, chunked_pid_inputs,
                                 press_path, out_dir, wakeup=None):
@@ -551,7 +565,7 @@ def process_pairs_table_ana(
         output_directory,
         jaccard_threshold):
     """
-    Processes the pairs table, calculates Jaccard similarity, and generates output CSV.
+    Analysis Module: Processes the pairs table, calculates Jaccard similarity, and generates output CSV.
 
     Parameters:
         conn (**): Path to the database file.
@@ -589,15 +603,25 @@ def process_pairs_table_ana(
         # Get the accessions
         meso_acc = row['meso_accession']
         thermo_acc = row['thermo_accession']
+        logger.debug(f"meso_acc: {meso_acc}, thermo_acc: {thermo_acc}")
+
+        if type(meso_acc) == str:
+            meso_acc_set, thermo_acc_set = preprocess_accessions(meso_acc, thermo_acc)
+        elif type(meso_acc) == list:
+            meso_acc_set = set(meso_acc)
+            thermo_acc_set = set(thermo_acc)
+        elif pd.isna(meso_acc) or pd.isna(thermo_acc):
+            meso_acc_set = set()
+            thermo_acc_set = set()
+        else:
+            raise ValueError("meso_acc must be either a string or a list")
         
         # parsing accessions logic
-        if meso_acc == 'nan' and thermo_acc == 'nan':
+        if not meso_acc_set and not thermo_acc_set:
             score = None
             functional = None
-        elif meso_acc and thermo_acc:
+        elif meso_acc_set and thermo_acc_set:
             # Preprocess the accessions
-            meso_acc_set, thermo_acc_set = preprocess_accessions(
-                meso_acc, thermo_acc)
             score = calculate_jaccard_similarity(meso_acc_set, thermo_acc_set)
             functional = score > jaccard_threshold
         else:

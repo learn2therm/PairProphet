@@ -30,15 +30,18 @@ Suggestion:
 import os
 import logging
 from collections import Counter
-import itertools
+
 
 # library dependencies
 import click
 import duckdb as ddb
 
+import numpy as np
 import pandas as pd
 import pyhmmer
+from sklearn.metrics import log_loss, roc_curve
 from tqdm import tqdm
+
 
 
 # local dependencies
@@ -65,9 +68,8 @@ PARSE_HMMER_OUTPUT_DIR = './data/analysis/hmmer_parsed/'
 # venv variables
 if 'LOGLEVEL' in os.environ:
     LOGLEVEL = os.environ['LOGLEVEL']
-    LOGLEVEL = getattr(logging, LOGLEVEL)
 else:
-    LOGLEVEL = logging.DEBUG # change to INFO for production
+    LOGLEVEL = 'DEBUG' # change to INFO for production
 LOGNAME = __file__
 LOGFILE = f'./logs/{os.path.basename(__file__)}.log'
 
@@ -107,15 +109,16 @@ def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, vector_size, *
     proteins_in_pair = con.execute(
         f"SELECT pid, protein_seq FROM pairpro.pairpro.proteins")
     
+    # create empty lists to store statistics
+    evalue_values = []
+    mean_acc_length_values = []
     all_results = [] # initialize the list to store all the results 
 
-    # Generate all combinations of evalue and jaccard_threshold values
-    combinations = itertools.product(evalue_values_to_test, jaccard_threshold_values_to_test)
+    
+    # Loop over e-value values
+    for evalue_value in evalue_values_to_test:
 
-    # Loop over e-value and Jaccard threshold values
-    for evalue_value, jaccard_threshold_value in combinations:
-
-        logger.info(f"Running analysis for e-value: {evalue_value} and jaccard threshold: {jaccard_threshold_value}")
+        logger.info(f"Running analysis for e-value: {evalue_value}")
         ### Run HMMER ###
         # get number of hmms for evalue calc
         profiles = list(pyhmmer.plan7.HMMFile(HMM_PATH))
@@ -164,6 +167,9 @@ def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, vector_size, *
 
         # parse the output
         logger.info('Parsing HMMER output...')
+        
+        # arbitrary jaccard threshold
+        jaccard_threshold_value = 0.5
 
         # setup the database and get some pairs to run
         con.execute("""
@@ -204,14 +210,9 @@ def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, vector_size, *
         # .apply(lambda x: len(x.split(';'))).mean()
         logger.debug(f"Mean length of accessions: {mean_accession_length}")
 
-        # create empty lists to store statistics
-        evalue_values = []
-        jaccard_threshold_values = []
-        mean_acc_length_values = []
-
+        
         # store the stats for each combination
         evalue_values.append(evalue_value)
-        jaccard_threshold_values.append(jaccard_threshold_value)
         mean_acc_length_values.append(mean_accession_length)
 
         parse_list = [] # initialize list to store dataframes
@@ -226,22 +227,28 @@ def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, vector_size, *
         bfd2 = pd.concat(parse_list, ignore_index=True)
 
         # calculate True/False score distribution
-        logger.info('Calculating True/False score distribution...')
-        true_count = bfd2['score'].sum()
-        false_count = len(bfd2) - true_count
+        logger.info('Calculating Jacobian score distribution...')
+        score_values = bfd2['score']
+        functional_values = bfd2['functional']
 
+        # function value proportionality
+        true_count = bfd2['functional'].sum()
+        false_count = len(bfd2) - true_count
         # calculate proportions by dividing by the total number of proteins in pairs
         total_pairs = len(bfd2)
         true_proportion = true_count / total_pairs
         false_proportion = false_count / total_pairs
+        
 
         # store the stats in a dataframe
         result = pd.DataFrame({
             'e-value': evalue_values,
-            'jaccard_threshold': jaccard_threshold_values,
             'mean_acc_length': mean_acc_length_values,
+            'score': score_values,
+            'classification': functional_values,
             'true_proportion': true_proportion,
             'false_proportion': false_proportion
+
         })
 
         # append the result to the list of results
@@ -260,6 +267,9 @@ if __name__ == "__main__":
     # Initialize logger
     logger = pp_utils.start_logger_if_necessary(
         LOGNAME, LOGFILE, LOGLEVEL, filemode='w')
+    hmmer_logger = logging.getLogger('pairpro.hmmer')
+    hmmer_logger.setLevel(getattr(logging, LOGLEVEL))
+    hmmer_logger.addHandler(logging.FileHandler(LOGFILE))
     logger.info(f"Running {__file__}")
 
     # create analysis directory
@@ -284,9 +294,8 @@ if __name__ == "__main__":
     ## assume that the data is already in the correct location
     ## the hmm's have been also pressed
 
-    # define the range of e-value and Jaccard threshold values to test
+    # define the range of e-value to test
     evalue_values_to_test = [1e-10, 1e-5, 1e-3, 1e-1]
-    jaccard_threshold_values_to_test = [0.4, 0.5, 0.7, 0.9]
 
 
     # run the analysis

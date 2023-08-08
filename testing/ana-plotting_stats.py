@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+from sklearn.metrics import log_loss, roc_curve
 
 # local dependencies
 
