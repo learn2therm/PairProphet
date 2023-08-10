@@ -603,7 +603,7 @@ def process_pairs_table_ana(
         # Get the accessions
         meso_acc = row['meso_accession']
         thermo_acc = row['thermo_accession']
-        logger.debug(f"meso_acc: {meso_acc}, thermo_acc: {thermo_acc}")
+        # logger.debug(f"meso_acc: {meso_acc}, thermo_acc: {thermo_acc}")
 
         if type(meso_acc) == str:
             meso_acc_set, thermo_acc_set = preprocess_accessions(meso_acc, thermo_acc)

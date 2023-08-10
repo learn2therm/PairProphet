@@ -58,6 +58,7 @@ import pairpro.utils as pp_utils
 # Paths
 HMM_PATH = './data/pfam/Pfam-A.hmm'
 DB_PATH = './tmp/pairpro.db'
+TRUE_LABEL_PATH = 'OMA-pairpro_cross.db'
 PRESS_PATH = './data/pfam/pfam'
 
 ANALYSIS_OUTPUT_PATH = './data/analysis/'
@@ -111,7 +112,6 @@ def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, vector_size, *
     
     # create empty lists to store statistics
     evalue_values = []
-    mean_acc_length_values = []
     all_results = [] # initialize the list to store all the results 
 
     
@@ -189,32 +189,8 @@ def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, vector_size, *
 
         logger.info('Finished parsing HMMER output.')
 
-        logger.info('Calculating statistics...')
-        
-        ### Read HMMER output ###
-        logger.info('Reading HMMER output...')
-        hmmer_list = [] # initialize list to store dataframes
-        for chunk_index in range(chunk_index):
-            output_file_path = f'{HMMER_OUTPUT_DIR}{chunk_index}_output.csv'
-            df = pd.read_csv(output_file_path)
-            logger.debug(f"Loaded chunk {chunk_index} with size {len(df)}")
-            hmmer_list.append(df)
-            
-
-        logger.debug(f"hmmer_list: {hmmer_list}")
-        bfd1 = pd.concat(hmmer_list, ignore_index=True)
-    
-        # calculate stats on the data (e.g. mean length of accessions)
-        mean_accession_length = bfd1['accession_id'].str.split(';').str.len().mean()
-        
-        # .apply(lambda x: len(x.split(';'))).mean()
-        logger.debug(f"Mean length of accessions: {mean_accession_length}")
-
-        
-        # store the stats for each combination
-        evalue_values.append(evalue_value)
-        mean_acc_length_values.append(mean_accession_length)
-
+        logger.info('Finding ground truth...')
+        ## load HMMER output data
         parse_list = [] # initialize list to store dataframes
         for chunk_index in range(1, chunk_index):
             output_file_path = f'{PARSE_HMMER_OUTPUT_DIR}{chunk_index}_output.csv'     
@@ -222,43 +198,28 @@ def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, vector_size, *
             logger.debug(f"Loaded chunk {chunk_index} with size {len(df)}")
             parse_list.append(df)
         
-        # get the data
         logger.debug(f"parse_list: {parse_list}")
-        bfd2 = pd.concat(parse_list, ignore_index=True)
+        hmmer_df = pd.concat(parse_list, ignore_index=True)
 
-        # calculate True/False score distribution
-        logger.info('Calculating Jacobian score distribution...')
-        score_values = bfd2['score']
-        functional_values = bfd2['functional']
+        ## load the true labels
+        conn = ddb.connect(TRUE_LABEL_PATH, read_only=False)
+        true_pairs_query = 'SELECT meso_pid, thermo_pid FROM pairs'
+        true_pairs_df = conn.execute(true_pairs_query).fetch_df()
 
-        # function value proportionality
-        true_count = bfd2['functional'].sum()
-        false_count = len(bfd2) - true_count
-        # calculate proportions by dividing by the total number of proteins in pairs
-        total_pairs = len(bfd2)
-        true_proportion = true_count / total_pairs
-        false_proportion = false_count / total_pairs
+        ## create 'true pairs' column based on merge
+        merged_df = pd.merge(hmmer_df, true_pairs_df,
+                            how='left', left_on=['meso_pid', 'thermo_pid'], right_on=['meso_pid', 'thermo_pid'])
+
+        # create "true pairs" column based                   
+        merged_df['true_pairs'] = merged_df['meso_pid'].notnull() & merged_df['thermo_pid'].notnull()
+
+        # save the merged dataframe
+        merged_df.to_csv(f'{ANALYSIS_OUTPUT_PATH}merged_df.csv', index=False)
+
+        # continue from here
         
 
-        # store the stats in a dataframe
-        result = pd.DataFrame({
-            'e-value': evalue_values,
-            'mean_acc_length': mean_acc_length_values,
-            'score': score_values,
-            'classification': functional_values,
-            'true_proportion': true_proportion,
-            'false_proportion': false_proportion
-
-        })
-
-        # append the result to the list of results
-        all_results.append(result)
-
-    # combine all the results into a single dataframe
-    results_df = pd.concat(all_results, ignore_index=True)
-
-    # save the result in a dataframe for later use
-    results_df.to_csv(f'{ANALYSIS_OUTPUT_PATH}statistics_results.csv', index=False)
+    
 
     
 
