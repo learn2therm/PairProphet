@@ -111,12 +111,12 @@ def model_construction(chunk_size, njobs, jaccard_threshold,
 
     # get all the proteins in pairs
 
-    proteins_in_pair_count = con.execute(f"SELECT COUNT(*) FROM {db_name}.pairpro.proteins").fetchone()[0]
+    proteins_in_pair_count = con.execute(f"SELECT COUNT(*) FROM {db_name}.pairpro.proteins LIMIT 100").fetchone()[0]
     logger.debug(
         f"Total number of protein in pairs: {proteins_in_pair_count} in pipeline")
 
     proteins_in_pair = con.execute(
-        f"SELECT pid, protein_seq FROM {db_name}.pairpro.proteins") #take out df() later
+        f"SELECT pid, protein_seq FROM {db_name}.pairpro.proteins LIMIT 100") #take out df() later
     
     
     # get number of hmms for evalue calc
@@ -255,7 +255,9 @@ def model_construction(chunk_size, njobs, jaccard_threshold,
         target = 'hmmer_match'
 
     # you can use ifeature omega by enternig feature_list as feature
+    logger.debug(f'before:{df.columns}')
     accuracy_score, model = train_val_wrapper(df, target, structure, features)
+    logger.debug(f'after:{df.columns}')
     logger.info(f'Accuracy score: {accuracy_score}')
 
     joblib.dump(model, f'{MODEL_PATH}trained_model.pkl')
@@ -268,6 +270,10 @@ if __name__ == "__main__":
     # Initialize logger
     logger = pairpro.utils.start_logger_if_necessary(
         LOGNAME, LOGFILE, LOGLEVEL, filemode='w')
+    structure_logger = logging.getLogger('pairpro.structure')
+    structure_logger.setLevel(getattr(logging, LOGLEVEL))
+    structure_logger.addHandler(logging.FileHandler(LOGFILE))
+    logger.info(f"Running {__file__}")
     logger.info(f"Running {__file__}")
 
     # create pfam HMM directory (this was before HMM download script)

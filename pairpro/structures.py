@@ -27,10 +27,10 @@ async def download_aff(session, url, filename, semaphore):
             if response.status_code == 200:
                 with open(filename, 'wb') as f:
                     f.write(response.content)
-                logger.info(f"Downloaded file: {filename}")
+                logger.debug(f"Downloaded file: {filename}")
                 return True
             else:
-                logger.info(f"Failed to download file: {filename}. Status code: {response.status_code}")
+                logger.debug(f"Failed to download file: {filename}. Status code: {response.status_code}")
                 return False
     except httpx.RequestError as e:
         logger.info(f"Error while downloading file: {filename}. Exception: {str(e)}")
@@ -103,11 +103,11 @@ def compare_fatcat(p1_file, p2_file, pdb_dir, pair_id):
     # Extract the p-value and convert it to a numeric value
     p_value = float(p_value_line.split()[1])
 
-    # Check if p-value is less than 0.05 and assign 1 or 0 accordingly
+    # Check if p-value is less than 0.05 and assign True or False accordingly
     if p_value < 0.05:
-        return {'pair_id': pair_id, 'p_value': 1}
+        return {'pair_id': pair_id, 'p_value': True}
     else:
-        return {'pair_id': pair_id, 'p_value': 0}
+        return {'pair_id': pair_id, 'p_value': False}
 
 def process_row(row, pdb_dir):
     if not pd.isna(row['meso_pdb']):

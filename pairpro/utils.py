@@ -46,9 +46,6 @@ def start_logger_if_necessary(logger_name: str, log_file: str, log_level,
         pass
     else:
         fh.setFormatter(logging.Formatter('%(filename)s - %(asctime)s %(levelname)-8s %(message)s'))
-        structure_logger = logging.getLogger('pairpro.structures')
-        structure_logger.setLevel(getattr(logging, log_level))
-        structure_logger.addHandler(fh)
         if len(logger.handlers) == 0:
             logger.addHandler(fh)
         else:
