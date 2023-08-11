@@ -112,7 +112,6 @@ def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, vector_size, *
     
     # create empty lists to store statistics
     evalue_values = []
-    all_results = [] # initialize the list to store all the results 
 
     
     # Loop over e-value values
@@ -213,10 +212,32 @@ def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, vector_size, *
         # create "true pairs" column based                   
         merged_df['true_pairs'] = merged_df['meso_pid'].notnull() & merged_df['thermo_pid'].notnull()
 
+        logger.debug(f"merged_df, true_pairs: {merged_df['true_pairs'].describe()}")
+
+        # Add e-value column
+        merged_df['e_value'] = evalue_value
+
+        # Filter false positives
+        merged_df.loc[~merged_df['true_pairs'], 'score'] = np.nan
+
+        # Filter out rows with NaN values in the 'score' column
+        valid_rows = merged_df['score'].notnull()
+
         # save the merged dataframe
         merged_df.to_csv(f'{ANALYSIS_OUTPUT_PATH}merged_df.csv', index=False)
 
-        # continue from here
+        # Calculate ROC curve only for valid rows
+        fpr, tpr, thresholds = roc_curve(merged_df[valid_rows]['true_pairs'], merged_df[valid_rows]['score'])
+
+        # Calculate cross-entropy only for valid rows
+        cross_entropy = log_loss(merged_df[valid_rows]['true_pairs'], merged_df[valid_rows]['score'])
+
+        # Save ROC curve data and cross-entropy result
+        roc_data = pd.DataFrame({'FPR': fpr, 'TPR': tpr, 'Thresholds': thresholds})
+        roc_data.to_csv(f'{ANALYSIS_OUTPUT_PATH}roc_curve_data_{evalue_value:.0e}.csv', index=False)
+
+        with open(f'{ANALYSIS_OUTPUT_PATH}cross_entropy_{evalue_value:.0e}.txt', 'w') as f:
+            f.write(f'Cross-Entropy: {cross_entropy}')
         
 
     
