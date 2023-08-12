@@ -426,6 +426,7 @@ def process_pairs_table(
         # Get the accessions
         meso_acc = row['meso_accession']
         thermo_acc = row['thermo_accession']
+        
 
         # preprocessing accessions logic
         if type(meso_acc) == str:
@@ -488,6 +489,11 @@ def process_pairs_table(
 
     except IOError as e:
         logger.warning(f"Error writing to CSV file: {e}")
+
+
+##########################################################################################
+### Variations of the above code ##########################################################
+##########################################################################################
 
 
 def local_hmmer_wrapper_example(chunk_index, dbpath, chunked_pid_inputs,

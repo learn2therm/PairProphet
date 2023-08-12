@@ -111,12 +111,13 @@ def model_construction(chunk_size, njobs, jaccard_threshold,
 
     # get all the proteins in pairs
 
-    proteins_in_pair_count = con.execute(f"SELECT COUNT(*) FROM {db_name}.pairpro.proteins LIMIT 100").fetchone()[0]
+    proteins_in_pair_count = con.execute(f"SELECT COUNT(*) FROM {db_name}.pairpro.proteins").fetchone()[0]
+    # proteins_in_pair_count = con.execute(f"""SELECT COUNT(*) FROM (SELECT * FROM {db_name}.pairpro.proteins LIMIT 100) sub""").fetchone()[0]
     logger.debug(
         f"Total number of protein in pairs: {proteins_in_pair_count} in pipeline")
 
     proteins_in_pair = con.execute(
-        f"SELECT pid, protein_seq FROM {db_name}.pairpro.proteins LIMIT 100") #take out df() later
+        f"SELECT pid, protein_seq FROM {db_name}.pairpro.proteins")
     
     
     # get number of hmms for evalue calc
@@ -160,7 +161,7 @@ def model_construction(chunk_size, njobs, jaccard_threshold,
 
     # setup the database and get some pairs to run
     con.execute("""
-        CREATE TABLE proteins_from_pairs AS
+        CREATE OR REPLACE TABLE proteins_from_pairs AS
         SELECT query_id AS pid, accession_id AS accession
         FROM read_csv_auto('./data/protein_pairs/*.csv', HEADER=TRUE)
     """)
@@ -178,7 +179,7 @@ def model_construction(chunk_size, njobs, jaccard_threshold,
     logger.info('Finished parsing HMMER output.')
 
     # checking if the parsed output is appended to table
-    con.execute("""CREATE TABLE hmmer_results AS SELECT * FROM read_csv_auto('./data/protein_pairs/parsed_hmmer_output/*.csv', HEADER=TRUE)""")
+    con.execute("""CREATE OR REPLACE TEMP TABLE hmmer_results AS SELECT * FROM read_csv_auto('./data/protein_pairs/parsed_hmmer_output/*.csv', HEADER=TRUE)""")
     con.execute(
         f"""ALTER TABLE {db_name}.pairpro.final ADD COLUMN hmmer_match BOOLEAN""")
     con.execute(f"""UPDATE {db_name}.pairpro.final AS f
@@ -201,7 +202,7 @@ def model_construction(chunk_size, njobs, jaccard_threshold,
             structure_df, 'thermo_pdb', 'thermo_pid', STRUCTURE_DIR)
         logger.info('Finished downloading structures. Running FATCAT.')
         pairpro.structures.run_fatcat_dict_job(
-            structure_df, STRUCTURE_DIR, njobs, f'{STRUCTURE_OUTPUT_DIR}/output.csv')
+            structure_df, STRUCTURE_DIR, njobs, f'{STRUCTURE_OUTPUT_DIR}output.csv')
         logger.info('Finished running FATCAT.')
 
         con.execute("""CREATE OR REPLACE TEMP TABLE structure_results AS SELECT * FROM read_csv_auto('./data/protein_pairs/structures/*.csv', HEADER=TRUE)""")
@@ -255,9 +256,7 @@ def model_construction(chunk_size, njobs, jaccard_threshold,
         target = 'hmmer_match'
 
     # you can use ifeature omega by enternig feature_list as feature
-    logger.debug(f'before:{df.columns}')
     accuracy_score, model = train_val_wrapper(df, target, structure, features)
-    logger.debug(f'after:{df.columns}')
     logger.info(f'Accuracy score: {accuracy_score}')
 
     joblib.dump(model, f'{MODEL_PATH}trained_model.pkl')
@@ -270,11 +269,19 @@ if __name__ == "__main__":
     # Initialize logger
     logger = pairpro.utils.start_logger_if_necessary(
         LOGNAME, LOGFILE, LOGLEVEL, filemode='w')
+    
+    # Nested loggers
+    hmmer_logger = logging.getLogger('pairpro.hmmer')
+    hmmer_logger.setLevel(getattr(logging, LOGLEVEL))
+    hmmer_logger.addHandler(logging.FileHandler(LOGFILE))
+
     structure_logger = logging.getLogger('pairpro.structure')
     structure_logger.setLevel(getattr(logging, LOGLEVEL))
     structure_logger.addHandler(logging.FileHandler(LOGFILE))
+
+
     logger.info(f"Running {__file__}")
-    logger.info(f"Running {__file__}")
+    
 
     # create pfam HMM directory (this was before HMM download script)
     try:
