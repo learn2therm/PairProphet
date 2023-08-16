@@ -72,7 +72,7 @@ MODEL_PATH = './data/models/'
 if 'LOGLEVEL' in os.environ:
     LOGLEVEL = os.environ['LOGLEVEL']
 else:
-    LOGLEVEL = 'INFO'
+    LOGLEVEL = 'DEBUG' # change to INFO for production
 LOGNAME = __file__
 LOGFILE = f'./logs/{os.path.basename(__file__)}.log'
 
@@ -130,7 +130,7 @@ def model_construction(chunk_size, njobs, jaccard_threshold,
     targets = pairpro.hmmer.prefetch_targets(PRESS_PATH)
     logger.debug(f"number of targets: {len(targets)}")
     wrapper = lambda chunk_index, pid_chunk: pairpro.hmmer.local_hmmer_wrapper(
-        chunk_index, pid_chunk, press_path=PRESS_PATH, hmm_path=HMM_PATH, out_dir=HMMER_OUTPUT_DIR, cpu=njobs, prefetch=targets, e_value=1.e-10, scan=False, Z=n_hmms)
+        chunk_index, pid_chunk, press_path=PRESS_PATH, hmm_path=HMM_PATH, out_dir=HMMER_OUTPUT_DIR, cpu=njobs, prefetch=targets, e_value=1.e-5, scan=False, Z=n_hmms)
 
     complete = False
     chunk_index = 0
@@ -175,18 +175,30 @@ def model_construction(chunk_size, njobs, jaccard_threshold,
         vector_size,
         PARSE_HMMER_OUTPUT_DIR,
         jaccard_threshold)
+    
 
     logger.info('Finished parsing HMMER output.')
 
     # checking if the parsed output is appended to table
-    con.execute("""CREATE OR REPLACE TEMP TABLE hmmer_results AS SELECT * FROM read_csv_auto('./data/protein_pairs/parsed_hmmer_output/*.csv', HEADER=TRUE)""")
+    con.execute("""CREATE OR REPLACE TEMP TABLE hmmer_results AS 
+                SELECT * FROM read_csv_auto('./data/protein_pairs/parsed_hmmer_output/*.csv', HEADER=TRUE)
+                WHERE functional IS NOT NULL AND score IS NOT NULL
+                """)
     con.execute(
         f"""ALTER TABLE {db_name}.pairpro.final ADD COLUMN hmmer_match BOOLEAN""")
     con.execute(f"""UPDATE {db_name}.pairpro.final AS f
     SET hmmer_match = hmmer.functional::BOOLEAN
     FROM hmmer_results AS hmmer
-    WHERE hmmer.meso_pid = f.meso_pid
-    AND hmmer.thermo_pid = f.thermo_pid
+    WHERE 
+        hmmer.meso_pid = f.meso_pid
+        AND hmmer.thermo_pid = f.thermo_pid
+        AND hmmer.functional IS NOT NULL
+        AND hmmer.score IS NOT NULL;
+    """)
+    # delete rows from pairpro.final where corresponding hmmer_results have NaN functional
+    # Delete rows from pairpro.final where hmmer_match is NULL
+    con.execute(f"""DELETE FROM {db_name}.pairpro.final
+    WHERE hmmer_match IS NULL;
     """)
     logger.info('Finished appending parsed HMMER output to table.')
 
