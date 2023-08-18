@@ -16,7 +16,7 @@ import nest_asyncio
 import duckdb as db
 import numpy as np
 import csv
-from joblib import Parallel, delayed
+from multiprocessing import Pool
 
 logger = logging.getLogger(__name__)
 
@@ -127,16 +127,16 @@ def process_row(row, pdb_dir):
         # Assign NaN as the p-value instead of dropping the row
         return None
 
-    return compare_fatcat(p1_file, p2_file, pdb_dir, row['pair_id'])
+    return p1_file, p2_file, pdb_dir, row['pair_id']
 
-def run_fatcat_dict_job(df, pdb_dir, njobs, file):
-    p_values = []  # List to store the extracted p-values
+def run_fatcat_dict_job(df, pdb_dir, file):
+    p_values = []
 
-    # Parallelize the execution of the function using joblib
-    p_values = Parallel(n_jobs=njobs)(delayed(process_row)(row, pdb_dir) for _, row in df.iterrows())
-    # p_values = Parallel(n_jobs=num_cores)(delayed(process_row)(row, pdb_dir) for _, row in df.iterrows())
-    # Filter out None values
-    p_values = [p_value for p_value in p_values if p_value is not None]
+    with Pool() as pool:
+        args_list = [process_row(row, pdb_dir) for _, row in df.iterrows() if process_row(row, pdb_dir) is not None]
+        results = pool.map(compare_fatcat, args_list)
+
+        p_values = [p_value for p_value in results if p_value is not None]
 
     with open(file, 'w') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=['pair_id', 'p_value'])

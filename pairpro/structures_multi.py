@@ -130,11 +130,11 @@ def run_fatcat_dict_job_1(df, pdb_dir, file):
 
     return file
 
-if __name__ == '__main__':
-    dff = pd.read_csv('../data/chau_test.csv')
-    df = dff.sample(5)
+# if __name__ == '__main__':
+#     dff = pd.read_csv('../data/chau_test.csv')
+#     df = dff.sample(5)
 
-    download_structure(df, 'meso_pdb', 'meso_pid', 'af')
-    download_structure(df, 'thermo_pdb', 'thermo_pid', 'af')
+#     download_structure(df, 'meso_pdb', 'meso_pid', 'af')
+#     download_structure(df, 'thermo_pdb', 'thermo_pid', 'af')
 
-    run_fatcat_dict_job_1(df, 'af', 'align')
+#     run_fatcat_dict_job_1(df, 'af', 'align')
