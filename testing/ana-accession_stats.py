@@ -198,46 +198,43 @@ def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, vector_size, *
             parse_list.append(df)
         
         logger.debug(f"parse_list: {parse_list}")
-        hmmer_df = pd.concat(parse_list, ignore_index=True)
+        hmmer_df = pd.concat(parse_list, ignore_index=True).dropna().reset_index(drop=True)
 
         ## load the true labels
         conn = ddb.connect(TRUE_LABEL_PATH, read_only=False)
         true_pairs_query = 'SELECT meso_pid, thermo_pid FROM pairs'
         true_pairs_df = conn.execute(true_pairs_query).fetch_df()
+        true_pairs_df['true_pairs'] = True
 
         ## create 'true pairs' column based on merge
-        merged_df = pd.merge(hmmer_df, true_pairs_df,
-                            how='left', left_on=['meso_pid', 'thermo_pid'], right_on=['meso_pid', 'thermo_pid'])
-
-        # create "true pairs" column based                   
-        merged_df['true_pairs'] = merged_df['meso_pid'].notnull() & merged_df['thermo_pid'].notnull()
-
-        logger.debug(f"merged_df, true_pairs: {merged_df['true_pairs'].describe()}")
+        merged_df = pd.merge(hmmer_df, true_pairs_df, how='left', on=['meso_pid', 'thermo_pid'])
+        
+        #### Test here ####
+    
+        logger.debug(f"merged_df: {merged_df.head()}")
+        logger.debug(f"let's see how many true pairs there are: {merged_df['true_pairs'].value_counts()}")
 
         # Add e-value column
         merged_df['e_value'] = evalue_value
 
-        # Filter false positives
-        merged_df.loc[~merged_df['true_pairs'], 'score'] = np.nan
-
-        # Filter out rows with NaN values in the 'score' column
-        valid_rows = merged_df['score'].notnull()
+        # Fill NaN values with False
+        merged_df.loc[merged_df['true_pairs'].isnull(), 'true_pairs'] = False
 
         # save the merged dataframe
         merged_df.to_csv(f'{ANALYSIS_OUTPUT_PATH}merged_df.csv', index=False)
 
-        # Calculate ROC curve only for valid rows
-        fpr, tpr, thresholds = roc_curve(merged_df[valid_rows]['true_pairs'], merged_df[valid_rows]['score'])
+        # # Calculate ROC curve
+        # fpr, tpr, thresholds = roc_curve(merged_df['true_pairs'], merged_df['score'])
 
-        # Calculate cross-entropy only for valid rows
-        cross_entropy = log_loss(merged_df[valid_rows]['true_pairs'], merged_df[valid_rows]['score'])
+        # # Calculate cross-entropy
+        # cross_entropy = log_loss(merged_df['true_pairs'], merged_df['score'])
 
-        # Save ROC curve data and cross-entropy result
-        roc_data = pd.DataFrame({'FPR': fpr, 'TPR': tpr, 'Thresholds': thresholds})
-        roc_data.to_csv(f'{ANALYSIS_OUTPUT_PATH}roc_curve_data_{evalue_value:.0e}.csv', index=False)
+        # # Save ROC curve data and cross-entropy result
+        # roc_data = pd.DataFrame({'FPR': fpr, 'TPR': tpr, 'Thresholds': thresholds})
+        # roc_data.to_csv(f'{ANALYSIS_OUTPUT_PATH}roc_curve_data_{evalue_value:.0e}.csv', index=False)
 
-        with open(f'{ANALYSIS_OUTPUT_PATH}cross_entropy_{evalue_value:.0e}.txt', 'w') as f:
-            f.write(f'Cross-Entropy: {cross_entropy}')
+        # with open(f'{ANALYSIS_OUTPUT_PATH}cross_entropy_{evalue_value:.0e}.txt', 'w') as f:
+        #     f.write(f'Cross-Entropy: {cross_entropy}')
         
 
     
