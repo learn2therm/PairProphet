@@ -8,6 +8,7 @@ import pandas as pd
 import subprocess
 import time
 import logging
+import json
 
 import asyncio
 import httpx
@@ -112,25 +113,39 @@ class ProteinDownloader:
 
 
 class FatcatProcessor:
-    """
-    Class for running FATCAT on paired protein structures.
-    """
-    def __init__(self, pdb_dir):
+    def __init__(self, pdb_dir, cache_file="./tmp/fatcat_cache.json"):
         self.pdb_dir = pdb_dir
-    
+        self.cache_file = cache_file
+        # Check if cache file exists, if not, create an empty one
+        if not os.path.exists(self.cache_file):
+            with open(self.cache_file, 'w') as f:
+                json.dump({}, f)
+
     def compare_fatcat(self, args):
-        p1_file, p2_file, self.pdb_dir, pair_id = args
-        # Set the FATCAT command and its arguments
+        p1_file, p2_file, pair_id = args
+
+        # Check cache for result
+        with open(self.cache_file, 'r') as f:
+            cache = json.load(f)
+            if pair_id in cache:
+                logger.debug(f"Using cached result for pair_id: {pair_id}")
+                return cache[pair_id]
+
+        # If not in cache, process the pair
         cmd = ['FATCAT', '-p1', p1_file, '-p2', p2_file, '-i', self.pdb_dir, '-q']
         result = subprocess.run(cmd, capture_output=True, text=True)
         output = result.stdout
         p_value_line = next(line for line in output.split('\n') if line.startswith("P-value"))
         p_value = float(p_value_line.split()[1])
-        if p_value < 0.05:
-            return {'pair_id': pair_id, 'p_value': True}
-        else:
-            return {'pair_id': pair_id, 'p_value': False}
-        
+        result = {'pair_id': pair_id, 'p_value': True if p_value < 0.05 else False}
+
+        # Save result to cache
+        with open(self.cache_file, 'w') as f:
+            cache[pair_id] = result
+            json.dump(cache, f)
+
+        return result
+
     def process_row(self, row):
         if not pd.isna(row['meso_pdb']):
             p1 = row['meso_pdb']
@@ -142,15 +157,13 @@ class FatcatProcessor:
         else:
             p2 = row['thermo_pid']
 
-        # Check if the structure files exist in the 'checking' folder
         p1_file = f'{p1}.pdb'
         p2_file = f'{p2}.pdb'
         if not os.path.exists(os.path.join(self.pdb_dir, p1_file)) or not os.path.exists(os.path.join(self.pdb_dir, p2_file)):
-            # Assign NaN as the p-value instead of dropping the row
             return None
-        
-        return p1_file, p2_file, self.pdb_dir, row['pair_id']
-    
+
+        return p1_file, p2_file, row['pair_id']
+
     def run_fatcat_dict_job(self, df, output_file):
         p_values = []
         with Pool() as pool:
