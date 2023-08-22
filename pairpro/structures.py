@@ -37,6 +37,11 @@ class ProteinDownloader:
             os.makedirs(self.pdb_dir)
 
     async def _download_aff(self, session, url, filename, semaphore):
+        # Check if the file already exists (cache check)
+        if os.path.exists(filename):
+            logger.debug(f"File {filename} already exists. Skipping download.")
+            return True
+
         try:
             async with semaphore:
                 response = await session.get(url)
@@ -85,10 +90,15 @@ class ProteinDownloader:
         pdbl = PDBList()
         pdbs = df[pdb_column].dropna().unique()
         for p in pdbs:
-            pdbl.retrieve_pdb_file(p, pdir=self.pdb_dir, file_format='pdb')
-            file_path = os.path.join(self.pdb_dir, f'pdb{p.lower()}.ent')
+            file_path = os.path.join(self.pdb_dir, f'{p}.pdb')
+            # Check if the file already exists (cache check)
             if os.path.exists(file_path):
-                os.rename(file_path, os.path.join(self.pdb_dir, f'{p}.pdb'))
+                logger.debug(f"File {file_path} already exists. Skipping download.")
+                continue
+            pdbl.retrieve_pdb_file(p, pdir=self.pdb_dir, file_format='pdb')
+            renamed_path = os.path.join(self.pdb_dir, f'pdb{p.lower()}.ent')
+            if os.path.exists(renamed_path):
+                os.rename(renamed_path, file_path)
             else:
                 pass
     
