@@ -217,19 +217,42 @@ def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
         query_align_len, query_align_cov, subject_align_len, subject_align_cov,
         LENGTH(m_protein_seq) AS m_protein_len, LENGTH(t_protein_seq) AS t_protein_len, {', '.join(ml_feature_list)} FROM {db_name}.pairpro.final""").df()
 
+        # Separate the majority and minority classes
+        majority_class = df[df['hmmer_match'] == True]
+        minority_class = df[df['hmmer_match'] == False]
+
+        # Undersample the majority class to match the number of minority class
+        # samples
+        n_samples = len(minority_class)
+        undersampled_majority = resample(
+            majority_class,
+            n_samples=n_samples,
+            replace=False)
+
+        # Combine the undersampled majority class with the minority class
+        df = pd.concat([undersampled_majority, minority_class])
+
     # structure component
     if structure:
         structure_df = con.execute(
             f"""SELECT pair_id, thermo_pid, thermo_pdb, meso_pid, meso_pdb FROM {db_name}.pairpro.final""").df()
+        downloader = pairpro.structures.ProteinDownloader(pdb_dir=STRUCTURE_DIR)
         logger.info(
             f'Downloading structures. Output directory: {STRUCTURE_DIR}')
-        pairpro.structures.download_structure(
-            structure_df, 'meso_pdb', 'meso_pid', STRUCTURE_DIR)
-        pairpro.structures.download_structure(
-            structure_df, 'thermo_pdb', 'thermo_pid', STRUCTURE_DIR)
+        downloader.download_structure(
+            structure_df, 'meso_pdb', 'meso_pid')
+        downloader.download_structure(
+            structure_df, 'thermo_pdb', 'thermo_pid')
+        # pairpro.structures.download_structure(
+        #     structure_df, 'meso_pdb', 'meso_pid', STRUCTURE_DIR)
+        # pairpro.structures.download_structure(
+        #     structure_df, 'thermo_pdb', 'thermo_pid', STRUCTURE_DIR)
         logger.info('Finished downloading structures. Running FATCAT.')
-        pairpro.structures.run_fatcat_dict_job(
-            structure_df, STRUCTURE_DIR, f'{STRUCTURE_OUTPUT_DIR}output.csv')
+        processor = pairpro.structures.FatcatProcessor(pdb_dir=STRUCTURE_DIR)
+        processor.run_fatcat_dict_job(
+            structure_df, output_file='{STRUCTURE_OUTPUT_DIR}output.csv')
+        # pairpro.structures.run_fatcat_dict_job(
+        #     structure_df, STRUCTURE_DIR, f'{STRUCTURE_OUTPUT_DIR}output.csv')
         logger.info('Finished running FATCAT.')
 
         ml_feature_list.append('structure_match')
@@ -249,11 +272,25 @@ def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
         query_align_len, query_align_cov, subject_align_len, subject_align_cov,
         LENGTH(m_protein_seq) AS m_protein_len, LENGTH(t_protein_seq) AS t_protein_len, {', '.join(ml_feature_list)} FROM {db_name}.pairpro.final WHERE structure_match IS NOT NULL""").df()
 
+        # Separate the majority and minority classes
+        majority_class = df[df['structure_match'] == True]
+        minority_class = df[df['structure_match'] == False]
+
+        # Undersample the majority class to match the number of minority class
+        # samples
+        n_samples = len(minority_class)
+        undersampled_majority = resample(
+            majority_class,
+            n_samples=n_samples,
+            replace=False)
+        
+        # Combine the undersampled majority class with the minority class
+        df = pd.concat([undersampled_majority, minority_class])
+
     else:
         raise NotImplementedError('Currently, you cannot train a model without hmmer or structure')
         
-        
-
+    
     logger.debug(df.info(verbose=True))
     logger.debug(df.shape)
     logger.debug(df.head())
@@ -261,26 +298,15 @@ def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
 
     logger.info('Beginning to preprocess data for model training')
 
-    # Separate the majority and minority classes
-    majority_class = df[df['hmmer_match'] == True]
-    minority_class = df[df['hmmer_match'] == False]
-
-    # Undersample the majority class to match the number of minority class
-    # samples
-    n_samples = len(minority_class)
-    undersampled_majority = resample(
-        majority_class,
-        n_samples=n_samples,
-        replace=False)
-
-    # Combine the undersampled majority class with the minority class
-    df = pd.concat([undersampled_majority, minority_class])
-
     # specify hmmer target
-    if structure:
+    if hmmer:
+        target = 'hmmer_match'
+    elif structure:
+        target = 'structure_match'
+    elif hmmer and structure:
         target = ['hmmer_match', 'structure_match']
     else:
-        target = 'hmmer_match'
+        raise NotImplementedError('Currently, you cannot train a model without hmmer or structure')
 
     # you can use ifeature omega by enternig feature_list as feature
     accuracy_score, model = train_val_wrapper(df, target, structure, features)

@@ -118,33 +118,84 @@ class FatcatProcessor:
         self.cache_file = cache_file
         # Check if cache file exists, if not, create an empty one
         if not os.path.exists(self.cache_file):
-            with open(self.cache_file, 'w') as f:
-                json.dump({}, f)
+            open(self.cache_file, 'a').close()  # Just create an empty file if it doesn't exist.
+
+
+
+    ## caching stuff
+    def append_to_cache(self, result):
+        if not result:
+            logger.warning(f'Trying to append an empty result to the cache: {result}')
+        else:
+            logger.debug(f'Appending result to cache: {result}')
+        # Check if the result is valid
+        if not result or "pair_id" not in result or "p_value" not in result:
+            logger.error(f"Invalid result to be cached: {result}")
+            return
+        # append to cache file
+        with open(self.cache_file, 'a') as f:
+            f.write(json.dumps(result) + "\n")
+
+    def read_cache(self):
+        # Check if cache file exists, if not, create an empty one
+        if not os.path.exists(self.cache_file):
+            return {}
+        cache = {}
+        if os.path.exists(self.cache_file):
+            with open(self.cache_file, 'r') as f:
+                for line in f:
+                    line = line.strip() # remove whitespace
+                    if not line or line == '{}': # skip empty lines or lines with '{}
+                        continue
+                    try:
+                        item = json.loads(line)
+                        pair_id = item.get("pair_id")
+                        if pair_id is not None:
+                            cache[pair_id] = item
+                        else:
+                            logger.warning(f"Unexpected cache entry found: {item}")
+                    except json.JSONDecodeError:
+                        logger.error(f"Failed to decode cache entry: {line.strip()}")
+        return cache
+    
+    def clear_cache(self):
+        cache = self.read_cache()
+        with open(self.cache_file, 'w') as f:
+            for pair_id, item in cache.items():
+                f.write(json.dumps(item) + "\n")
+    ## end caching stuff
+
 
     def compare_fatcat(self, args):
         p1_file, p2_file, pair_id = args
 
-        # Check cache for result
-        with open(self.cache_file, 'r') as f:
-            cache = json.load(f)
-            if pair_id in cache:
+        # Check if the result is already in cache
+        cache = self.read_cache()
+        if str(pair_id) in cache:  # ensure the pair_id is a string, as JSON keys are always strings
+            cached_item = cache[str(pair_id)]
+            if "pair_id" in cached_item:
                 logger.debug(f"Using cached result for pair_id: {pair_id}")
-                return cache[pair_id]
+                return cached_item
+            else:
+                logger.warning(f"Cache entry for pair_id {pair_id} does not contain 'pair_id' key. Processing again.")
 
         # If not in cache, process the pair
         cmd = ['FATCAT', '-p1', p1_file, '-p2', p2_file, '-i', self.pdb_dir, '-q']
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        output = result.stdout
-        p_value_line = next(line for line in output.split('\n') if line.startswith("P-value"))
-        p_value = float(p_value_line.split()[1])
-        result = {'pair_id': pair_id, 'p_value': True if p_value < 0.05 else False}
-
-        # Save result to cache
-        with open(self.cache_file, 'w') as f:
-            cache[pair_id] = result
-            json.dump(cache, f)
+        try:
+            logger.debug(f"Running FATCAT for pair_id: {pair_id} with cmd: {' '.join(cmd)}")
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=1500)
+            output = result.stdout
+            p_value_line = next(line for line in output.split('\n') if line.startswith("P-value"))
+            p_value = float(p_value_line.split()[1])
+            result = {'pair_id': pair_id, 'p_value': True if p_value < 0.05 else False}
+            # Save result to cache
+            self.append_to_cache(result)
+        except Exception as e:
+            logger.error(f'Error while running FATCAT for pair_id: {pair_id}. Exception: {str(e)}')
+            result = None
 
         return result
+
 
     def process_row(self, row):
         if not pd.isna(row['meso_pdb']):
@@ -165,10 +216,17 @@ class FatcatProcessor:
         return p1_file, p2_file, row['pair_id']
 
     def run_fatcat_dict_job(self, df, output_file):
+        # check inital cache state
+        with open(self.cache_file, 'r') as f:
+            initial_cache_content = f.read()
+        logger.debug(f"Initial cache content: {initial_cache_content}")
+
+        num_cores = os.cpu_count() # get the number of available cores
         p_values = []
-        with Pool() as pool:
+        with Pool(processes=num_cores) as pool: # use the dynamic number of processes
             args_list = [self.process_row(row) for _, row in df.iterrows() if self.process_row(row) is not None]
-            results = pool.map(self.compare_fatcat, args_list)
+            chunk_size = max(1, len(args_list) // (2 * num_cores))  # Adjust this as needed
+            results = pool.map(self.compare_fatcat, args_list, chunksize=chunk_size)
             p_values = [p_value for p_value in results if p_value is not None]
 
         with open(output_file, 'w') as csvfile:
@@ -178,11 +236,21 @@ class FatcatProcessor:
         return output_file
 
 
-# Uncomment the following lines to run the class methods
+# # Uncomment the following lines to run the class methods
 # if __name__ == '__main__':
 #     # set up logger
-#     logging.basicConfig(level=logging.INFO)
 #     logger = logging.getLogger(__name__)
+#     logger.setLevel(logging.DEBUG)
+#     fh = logging.FileHandler('./logs/dev-structures.log', mode='w')
+#     fh.setFormatter(logging.Formatter('%(filename)s - %(asctime)s %(levelname)-8s %(message)s'))
+#     # conditional check to avoid duplicate handlers
+#     if len(logger.handlers) == 0:
+#         logger.addHandler(fh)
+#     else:
+#         logger.handlers[-1] = fh
+    
+
+
 
 #     dff = pd.read_csv('./data/chau_test.csv')
 #     df = dff.sample(5)
@@ -191,4 +259,4 @@ class FatcatProcessor:
 #     downloader.download_structure(df, pdb_column="thermo_pdb", u_column="thermo_pid")
 
 #     processor = FatcatProcessor(pdb_dir=STRUCTURE_DIR)
-#     processor.run_fatcat_dict_job(df, output_file=f"{STRUCTURE_DIR}output.csv")
+#     processor.run_fatcat_dict_job(df, output_file=f"{STRUCTURE_DIR}test_output.csv")
