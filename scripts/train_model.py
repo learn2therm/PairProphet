@@ -78,6 +78,90 @@ else:
 LOGNAME = __file__
 LOGFILE = f'./logs/{os.path.basename(__file__)}.log'
 
+##################
+# Aux. functions #
+##################
+def combine_balanced_dfs(balanced_dfs, strategy='intersection'):
+    """
+    Combines multiple balanced dataframes based on a chosen strategy.
+
+    Args:
+        balanced_dfs (list): List of balanced dataframes.
+        strategy (str): The combination strategy to use. Options are 'intersection' and 'union'.
+
+    Returns:
+        DataFrame: A combined dataframe.
+    """
+
+    if strategy == 'intersection':
+        # Use merge to get the intersection of all dataframes
+        combined_df = balanced_dfs[0]
+        for df in balanced_dfs[1:]:
+            combined_df = combined_df.merge(df, how='inner')
+    
+    elif strategy == 'union':
+        # Use concat to get the union of all dataframes
+        combined_df = pd.concat(balanced_dfs, axis=0).drop_duplicates().reset_index(drop=True)
+    
+    else:
+        raise ValueError(f"Unknown combination strategy: {strategy}")
+
+    return combined_df
+
+
+def balance_dataframe(df, target_columns, strategy='undersample'):
+    """
+    Balances a dataframe based on the target column(s) and the chosen strategy.
+
+    Args:
+        df (DataFrame): The dataframe to balance.
+        target_columns (list): List of target column names.
+        strategy (str): The sampling strategy to use. Options are 'undersample', 'oversample', 'smote', and 'none'.
+
+    Returns:
+        list: A list of balanced dataframes for each target column.
+    """
+    # Ensure target_columns is a list, even if it's a single column.
+    if not isinstance(target_columns, list):
+        target_columns = [target_columns]
+
+    balanced_dfs = []
+
+    for target in target_columns:
+        # separate the majority and minority classes
+        majority_class = df[df[target] == True]
+        minority_class = df[df[target] == False]
+
+        if strategy == 'undersample':
+            n_samples = len(minority_class)
+            sampled_majority = resample(majority_class, n_samples=n_samples, replace=False)
+            balanced_df = pd.concat([sampled_majority, minority_class])
+
+        elif strategy == 'oversample':
+            n_samples = len(majority_class)
+            sampled_minority = resample(minority_class, n_samples=n_samples, replace=True)
+            balanced_df = pd.concat([sampled_minority, majority_class])
+        
+        elif strategy == 'smote':
+            raise NotImplementedError('SMOTE is not yet implemented')
+
+        elif strategy == 'none':
+            balanced_df = df
+
+        else:
+            raise ValueError(f"Unknown sampling strategy: {strategy}")
+
+        balanced_dfs.append(balanced_df)
+        # add logging statement to see the shape of balanced dataframe
+        logger.debug(f'Dataframe shape after balancing for {target}: {balanced_df.shape}')
+
+    return balanced_dfs # if combining mutliple target columns
+
+################
+# Main script #
+################
+
+
 @click.command()
 @click.option('--hmmer', default=False, help='Whether to run HMMER or not')
 @click.option('--chunk_size', default=1,
@@ -188,8 +272,6 @@ def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
 
         logger.info('Finished parsing HMMER output.')
 
-        ml_feature_list.append('hmmer_match')
-
         # checking if the parsed output is appended to table
         con.execute("""CREATE OR REPLACE TEMP TABLE hmmer_results AS 
                     SELECT * FROM read_csv_auto('./data/protein_pairs/parsed_hmmer_output/*.csv', HEADER=TRUE)
@@ -212,25 +294,15 @@ def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
         WHERE hmmer_match IS NULL;
         """)
         logger.info('Finished appending parsed HMMER output to table.')
+        ml_feature_list.append('hmmer_match')
+
         df = con.execute(f"""SELECT pair_id, m_protein_seq, t_protein_seq, bit_score, local_gap_compressed_percent_id,
         scaled_local_query_percent_id, scaled_local_symmetric_percent_id,
         query_align_len, query_align_cov, subject_align_len, subject_align_cov,
         LENGTH(m_protein_seq) AS m_protein_len, LENGTH(t_protein_seq) AS t_protein_len, {', '.join(ml_feature_list)} FROM {db_name}.pairpro.final""").df()
 
-        # Separate the majority and minority classes
-        majority_class = df[df['hmmer_match'] == True]
-        minority_class = df[df['hmmer_match'] == False]
+        logger.debug(f"DataFrame shape after HMMER processing: {df.shape}")
 
-        # Undersample the majority class to match the number of minority class
-        # samples
-        n_samples = len(minority_class)
-        undersampled_majority = resample(
-            majority_class,
-            n_samples=n_samples,
-            replace=False)
-
-        # Combine the undersampled majority class with the minority class
-        df = pd.concat([undersampled_majority, minority_class])
 
     # structure component
     if structure:
@@ -243,19 +315,11 @@ def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
             structure_df, 'meso_pdb', 'meso_pid')
         downloader.download_structure(
             structure_df, 'thermo_pdb', 'thermo_pid')
-        # pairpro.structures.download_structure(
-        #     structure_df, 'meso_pdb', 'meso_pid', STRUCTURE_DIR)
-        # pairpro.structures.download_structure(
-        #     structure_df, 'thermo_pdb', 'thermo_pid', STRUCTURE_DIR)
         logger.info('Finished downloading structures. Running FATCAT.')
         processor = pairpro.structures.FatcatProcessor(pdb_dir=STRUCTURE_DIR)
         processor.run_fatcat_dict_job(
-            structure_df, output_file='{STRUCTURE_OUTPUT_DIR}output.csv')
-        # pairpro.structures.run_fatcat_dict_job(
-        #     structure_df, STRUCTURE_DIR, f'{STRUCTURE_OUTPUT_DIR}output.csv')
+            structure_df, output_file=f'{STRUCTURE_OUTPUT_DIR}output.csv')
         logger.info('Finished running FATCAT.')
-
-        ml_feature_list.append('structure_match')
 
         con.execute("""CREATE OR REPLACE TEMP TABLE structure_results AS SELECT * FROM read_csv_auto('./data/protein_pairs/structures/*.csv', HEADER=TRUE)""")
         con.execute(
@@ -267,25 +331,15 @@ def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
         """)
         logger.info('Finished appending structure output to table.')
 
+        ml_feature_list.append('structure_match')
+
         df = con.execute(f"""SELECT pair_id, m_protein_seq, t_protein_seq, bit_score, local_gap_compressed_percent_id,
         scaled_local_query_percent_id, scaled_local_symmetric_percent_id,
         query_align_len, query_align_cov, subject_align_len, subject_align_cov,
         LENGTH(m_protein_seq) AS m_protein_len, LENGTH(t_protein_seq) AS t_protein_len, {', '.join(ml_feature_list)} FROM {db_name}.pairpro.final WHERE structure_match IS NOT NULL""").df()
 
-        # Separate the majority and minority classes
-        majority_class = df[df['structure_match'] == True]
-        minority_class = df[df['structure_match'] == False]
 
-        # Undersample the majority class to match the number of minority class
-        # samples
-        n_samples = len(minority_class)
-        undersampled_majority = resample(
-            majority_class,
-            n_samples=n_samples,
-            replace=False)
-        
-        # Combine the undersampled majority class with the minority class
-        df = pd.concat([undersampled_majority, minority_class])
+        logger.debug(f"DataFrame shape after structure processing: {df.shape}")
 
     else:
         raise NotImplementedError('Currently, you cannot train a model without hmmer or structure')
@@ -298,24 +352,45 @@ def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
 
     logger.info('Beginning to preprocess data for model training')
 
-    # specify hmmer target
-    if hmmer:
+    # specify target (this is tenative for now. Will be updated later)
+    if hmmer and structure:
+        target = ['hmmer_match', 'structure_match']
+    elif hmmer:
         target = 'hmmer_match'
     elif structure:
         target = 'structure_match'
-    elif hmmer and structure:
-        target = ['hmmer_match', 'structure_match']
     else:
         raise NotImplementedError('Currently, you cannot train a model without hmmer or structure')
+    
+    # balance the dataframe
+    balanced_dataframes = balance_dataframe(df, target_columns=target, strategy='undersample')
+
+    logger.debug(f"Number of balanced dataframes: {len(balanced_dataframes)}")
+    logger.debug(f"DataFrame shape before balancing: {df.shape}")
+
+    # combine the balanced dataframes
+    df = combine_balanced_dfs(balanced_dataframes, strategy='union')
+
+    logger.debug(f"DataFrame shape after balancing: {df.shape}")
 
     # you can use ifeature omega by enternig feature_list as feature
-    accuracy_score, model = train_val_wrapper(df, target, structure, features)
-    logger.info(f'Accuracy score: {accuracy_score}')
+    if 'structure_match' in target:
+        accuracy_score, model = train_val_wrapper(df, target, True, features)
+        logger.info(f'Accuracy score: {accuracy_score}')
 
-    joblib.dump(model, f'{MODEL_PATH}trained_model.pkl')
-    logger.debug(f'model training data is {df.head()}')
-    logger.info(f'Model saved to {MODEL_PATH}')
-    con.close()
+        joblib.dump(model, f'{MODEL_PATH}trained_model.pkl')
+        logger.debug(f'model training data is {df.head()}')
+        logger.info(f'Model saved to {MODEL_PATH}')
+        con.close()
+
+    else:
+        accuracy_score, model = train_val_wrapper(df, target, False, features)
+        logger.info(f'Accuracy score: {accuracy_score}')
+
+        joblib.dump(model, f'{MODEL_PATH}trained_model.pkl')
+        logger.debug(f'model training data is {df.head()}')
+        logger.info(f'Model saved to {MODEL_PATH}')
+        con.close()
 
 
 

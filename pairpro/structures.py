@@ -4,6 +4,7 @@ Returns a Boolean for structure similarity. If no structures were found for prot
 """
 from Bio.PDB import PDBList
 import os
+from functools import partial
 import pandas as pd
 import subprocess
 import time
@@ -166,11 +167,10 @@ class FatcatProcessor:
     ## end caching stuff
 
 
-    def compare_fatcat(self, args):
+    def compare_fatcat(self, args, cache):
         p1_file, p2_file, pair_id = args
 
-        # Check if the result is already in cache
-        cache = self.read_cache()
+        # Check if the pair is already in cache
         if str(pair_id) in cache:  # ensure the pair_id is a string, as JSON keys are always strings
             cached_item = cache[str(pair_id)]
             if "pair_id" in cached_item:
@@ -221,12 +221,15 @@ class FatcatProcessor:
             initial_cache_content = f.read()
         logger.debug(f"Initial cache content: {initial_cache_content}")
 
+        # load cache at the beginning of the job
+        cache = self.read_cache()
+
         num_cores = os.cpu_count() # get the number of available cores
         p_values = []
         with Pool(processes=num_cores) as pool: # use the dynamic number of processes
             args_list = [self.process_row(row) for _, row in df.iterrows() if self.process_row(row) is not None]
             chunk_size = max(1, len(args_list) // (2 * num_cores))  # Adjust this as needed
-            results = pool.map(self.compare_fatcat, args_list, chunksize=chunk_size)
+            results = pool.map(partial(self.compare_fatcat, cache=cache), args_list, chunksize=chunk_size)
             p_values = [p_value for p_value in results if p_value is not None]
 
         with open(output_file, 'w') as csvfile:
