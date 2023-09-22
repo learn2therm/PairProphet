@@ -176,8 +176,10 @@ def balance_dataframe(df, target_columns, strategy='undersample'):
               help='List of features to use for the model')
 @click.option('--structure', default=False,
               help='Whether to use structure or not')
+@click.option('--MODEL_NAME', default='BASE',
+              help='Decide which flags to run during training')
 def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
-                       vector_size, structure, features):
+                       vector_size, structure, features, MODEL_NAME):
     """
     Function to train a ML model to classify protein pairs
     """
@@ -378,7 +380,7 @@ def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
         accuracy_score, model = train_val_wrapper(df, target, True, features)
         logger.info(f'Accuracy score: {accuracy_score}')
 
-        joblib.dump(model, f'{MODEL_PATH}trained_model.pkl')
+        joblib.dump(model, f'{MODEL_PATH}{MODEL_NAME}.pkl')
         logger.debug(f'model training data is {df.head()}')
         logger.info(f'Model saved to {MODEL_PATH}')
         con.close()
@@ -387,7 +389,7 @@ def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
         accuracy_score, model = train_val_wrapper(df, target, False, features)
         logger.info(f'Accuracy score: {accuracy_score}')
 
-        joblib.dump(model, f'{MODEL_PATH}trained_model.pkl')
+        joblib.dump(model, f'{MODEL_PATH}{MODEL_NAME}.pkl')
         logger.debug(f'model training data is {df.head()}')
         logger.info(f'Model saved to {MODEL_PATH}')
         con.close()
