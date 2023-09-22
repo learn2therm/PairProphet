@@ -305,7 +305,7 @@ def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
 
 
     # structure component
-    if structure:
+    elif structure:
         structure_df = con.execute(
             f"""SELECT pair_id, thermo_pid, thermo_pdb, meso_pid, meso_pdb FROM {db_name}.pairpro.final""").df()
         downloader = pairpro.structures.ProteinDownloader(pdb_dir=STRUCTURE_DIR)
