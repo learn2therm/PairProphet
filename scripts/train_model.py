@@ -81,81 +81,116 @@ LOGFILE = f'./logs/{os.path.basename(__file__)}.log'
 ##################
 # Aux. functions #
 ##################
-def combine_balanced_dfs(balanced_dfs, strategy='intersection'):
-    """
-    Combines multiple balanced dataframes based on a chosen strategy.
+
+# Logan edit of combined dataframe function (need to change function call name in main script):
+
+def balance_data(dataframe, label_columns):
+    """Resamples the dataframe to evenly distribute labels
 
     Args:
-        balanced_dfs (list): List of balanced dataframes.
-        strategy (str): The combination strategy to use. Options are 'intersection' and 'union'.
+        dataframe (pandas dataframe): training dataframe
+        label_columns (list): list of columns to sample from
 
     Returns:
-        DataFrame: A combined dataframe.
+        pandas dataframe: New DF with evenly sampled labels
     """
-
-    if strategy == 'intersection':
-        # Use merge to get the intersection of all dataframes
-        combined_df = balanced_dfs[0]
-        for df in balanced_dfs[1:]:
-            combined_df = combined_df.merge(df, how='inner')
+    from sklearn.utils import resample
     
-    elif strategy == 'union':
-        # Use concat to get the union of all dataframes
-        combined_df = pd.concat(balanced_dfs, axis=0).drop_duplicates().reset_index(drop=True)
-    
-    else:
-        raise ValueError(f"Unknown combination strategy: {strategy}")
-
-    return combined_df
-
-
-def balance_dataframe(df, target_columns, strategy='undersample'):
-    """
-    Balances a dataframe based on the target column(s) and the chosen strategy.
-
-    Args:
-        df (DataFrame): The dataframe to balance.
-        target_columns (list): List of target column names.
-        strategy (str): The sampling strategy to use. Options are 'undersample', 'oversample', 'smote', and 'none'.
-
-    Returns:
-        list: A list of balanced dataframes for each target column.
-    """
     # Ensure target_columns is a list, even if it's a single column.
-    if not isinstance(target_columns, list):
-        target_columns = [target_columns]
+    if not isinstance(label_columns, list):
+        label_columns = [label_columns]
 
-    balanced_dfs = []
-
-    for target in target_columns:
+    for label in label_columns:
         # separate the majority and minority classes
-        majority_class = df[df[target] == True]
-        minority_class = df[df[target] == False]
+        majority_class = dataframe[dataframe[label] == dataframe[label].value_counts().idxmax()]
+        minority_class = dataframe[dataframe[label] == dataframe[label].value_counts().idxmin()]
 
-        if strategy == 'undersample':
-            n_samples = len(minority_class)
-            sampled_majority = resample(majority_class, n_samples=n_samples, replace=False)
-            balanced_df = pd.concat([sampled_majority, minority_class])
+        #create new dataframe with len(minority_class)
+        n_samples = len(minority_class)
+        undersampled_majority = resample(majority_class, n_samples=n_samples, replace=False)
 
-        elif strategy == 'oversample':
-            n_samples = len(majority_class)
-            sampled_minority = resample(minority_class, n_samples=n_samples, replace=True)
-            balanced_df = pd.concat([sampled_minority, majority_class])
+        # Combine the undersampled majority class with the minority class
+        dataframe = pd.concat([undersampled_majority, minority_class])
+        print(f'DF length reduced to {dataframe.shape}')
+        print(f'{label} value counts: {dataframe[label].value_counts()}')
         
-        elif strategy == 'smote':
-            raise NotImplementedError('SMOTE is not yet implemented')
+    return dataframe
 
-        elif strategy == 'none':
-            balanced_df = df
+# def combine_balanced_dfs(balanced_dfs, strategy='intersection'):
+#     """
+#     Combines multiple balanced dataframes based on a chosen strategy.
 
-        else:
-            raise ValueError(f"Unknown sampling strategy: {strategy}")
+#     Args:
+#         balanced_dfs (list): List of balanced dataframes.
+#         strategy (str): The combination strategy to use. Options are 'intersection' and 'union'.
 
-        balanced_dfs.append(balanced_df)
-        # add logging statement to see the shape of balanced dataframe
-        logger.debug(f'Dataframe shape after balancing for {target}: {balanced_df.shape}')
+#     Returns:
+#         DataFrame: A combined dataframe.
+#     """
 
-    return balanced_dfs # if combining mutliple target columns
+#     if strategy == 'intersection':
+#         # Use merge to get the intersection of all dataframes
+#         combined_df = balanced_dfs[0]
+#         for df in balanced_dfs[1:]:
+#             combined_df = combined_df.merge(df, how='inner')
+    
+#     elif strategy == 'union':
+#         # Use concat to get the union of all dataframes
+#         combined_df = pd.concat(balanced_dfs, axis=0).drop_duplicates().reset_index(drop=True)
+    
+#     else:
+#         raise ValueError(f"Unknown combination strategy: {strategy}")
+
+#     return combined_df
+
+
+# def balance_dataframe(df, target_columns, strategy='undersample'):
+#     """
+#     Balances a dataframe based on the target column(s) and the chosen strategy.
+
+#     Args:
+#         df (DataFrame): The dataframe to balance.
+#         target_columns (list): List of target column names.
+#         strategy (str): The sampling strategy to use. Options are 'undersample', 'oversample', 'smote', and 'none'.
+
+#     Returns:
+#         list: A list of balanced dataframes for each target column.
+#     """
+#     # Ensure target_columns is a list, even if it's a single column.
+#     if not isinstance(target_columns, list):
+#         target_columns = [target_columns]
+
+#     balanced_dfs = []
+
+#     for target in target_columns:
+#         # separate the majority and minority classes
+#         majority_class = df[df[target] == True]
+#         minority_class = df[df[target] == False]
+
+#         if strategy == 'undersample':
+#             n_samples = len(minority_class)
+#             sampled_majority = resample(majority_class, n_samples=n_samples, replace=False)
+#             balanced_df = pd.concat([sampled_majority, minority_class])
+
+#         elif strategy == 'oversample':
+#             n_samples = len(majority_class)
+#             sampled_minority = resample(minority_class, n_samples=n_samples, replace=True)
+#             balanced_df = pd.concat([sampled_minority, majority_class])
+        
+#         elif strategy == 'smote':
+#             raise NotImplementedError('SMOTE is not yet implemented')
+
+#         elif strategy == 'none':
+#             balanced_df = df
+
+#         else:
+#             raise ValueError(f"Unknown sampling strategy: {strategy}")
+
+#         balanced_dfs.append(balanced_df)
+#         # add logging statement to see the shape of balanced dataframe
+#         logger.debug(f'Dataframe shape after balancing for {target}: {balanced_df.shape}')
+
+#     return balanced_dfs # if combining mutliple target columns
 
 ################
 # Main script #
