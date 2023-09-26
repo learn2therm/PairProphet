@@ -84,7 +84,7 @@ LOGFILE = f'./logs/{os.path.basename(__file__)}.log'
 
 # Logan edit of combined dataframe function (need to change function call name in main script):
 
-def balance_data(dataframe, label_columns):
+def balance_data(dataframe, target_columns):
     """Resamples the dataframe to evenly distribute labels
 
     Args:
@@ -97,13 +97,13 @@ def balance_data(dataframe, label_columns):
     from sklearn.utils import resample
     
     # Ensure target_columns is a list, even if it's a single column.
-    if not isinstance(label_columns, list):
-        label_columns = [label_columns]
+    if not isinstance(target_columns, list):
+        target_columns = [target_columns]
 
-    for label in label_columns:
+    for target in target_columns:
         # separate the majority and minority classes
-        majority_class = dataframe[dataframe[label] == dataframe[label].value_counts().idxmax()]
-        minority_class = dataframe[dataframe[label] == dataframe[label].value_counts().idxmin()]
+        majority_class = dataframe[dataframe[target] == dataframe[target].value_counts().idxmax()]
+        minority_class = dataframe[dataframe[target] == dataframe[target].value_counts().idxmin()]
 
         #create new dataframe with len(minority_class)
         n_samples = len(minority_class)
@@ -112,7 +112,7 @@ def balance_data(dataframe, label_columns):
         # Combine the undersampled majority class with the minority class
         dataframe = pd.concat([undersampled_majority, minority_class])
         print(f'DF length reduced to {dataframe.shape}')
-        print(f'{label} value counts: {dataframe[label].value_counts()}')
+        print(f'{target} value counts: {dataframe[target].value_counts()}')
         
     return dataframe
 
@@ -399,16 +399,18 @@ def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
     else:
         raise NotImplementedError('Currently, you cannot train a model without hmmer or structure')
     
-    # balance the dataframe
-    balanced_dataframes = balance_dataframe(df, target_columns=target, strategy='undersample')
+    # balance the dataframe (Logan version)
+    df = balance_data(df, target_columns=target)
 
-    logger.debug(f"Number of balanced dataframes: {len(balanced_dataframes)}")
-    logger.debug(f"DataFrame shape before balancing: {df.shape}")
+    # balanced_dataframes = balance_dataframe(df, target_columns=target, strategy='undersample')
 
-    # combine the balanced dataframes
-    df = combine_balanced_dfs(balanced_dataframes, strategy='union')
+    # logger.debug(f"Number of balanced dataframes: {len(balanced_dataframes)}")
+    # logger.debug(f"DataFrame shape before balancing: {df.shape}")
 
-    logger.debug(f"DataFrame shape after balancing: {df.shape}")
+    # # combine the balanced dataframes
+    # df = combine_balanced_dfs(balanced_dataframes, strategy='union')
+
+    # logger.debug(f"DataFrame shape after balancing: {df.shape}")
 
     # you can use ifeature omega by enternig feature_list as feature
     if 'structure_match' in target:
