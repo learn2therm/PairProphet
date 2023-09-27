@@ -1,0 +1,8 @@
+version: '3.4'
+
+services:
+  validprot:
+    image: validprot
+    build:
+      context: .
+      dockerfile: ./Dockerfile
