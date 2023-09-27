@@ -85,7 +85,8 @@ LOGFILE = f'./logs/{os.path.basename(__file__)}.log'
 # Logan edit of combined dataframe function (need to change function call name in main script):
 
 def balance_data(dataframe, target_columns):
-    """Resamples the dataframe to evenly distribute labels
+    """
+    Resamples the dataframe to evenly distribute labels
 
     Args:
         dataframe (pandas dataframe): training dataframe
@@ -94,8 +95,6 @@ def balance_data(dataframe, target_columns):
     Returns:
         pandas dataframe: New DF with evenly sampled labels
     """
-    from sklearn.utils import resample
-    
     # Ensure target_columns is a list, even if it's a single column.
     if not isinstance(target_columns, list):
         target_columns = [target_columns]
@@ -111,86 +110,10 @@ def balance_data(dataframe, target_columns):
 
         # Combine the undersampled majority class with the minority class
         dataframe = pd.concat([undersampled_majority, minority_class])
-        print(f'DF length reduced to {dataframe.shape}')
-        print(f'{target} value counts: {dataframe[target].value_counts()}')
+        logger.debug(f'DF length reduced to {dataframe.shape}')
+        logger.debug(f'{target} value counts: {dataframe[target].value_counts()}')
         
     return dataframe
-
-# def combine_balanced_dfs(balanced_dfs, strategy='intersection'):
-#     """
-#     Combines multiple balanced dataframes based on a chosen strategy.
-
-#     Args:
-#         balanced_dfs (list): List of balanced dataframes.
-#         strategy (str): The combination strategy to use. Options are 'intersection' and 'union'.
-
-#     Returns:
-#         DataFrame: A combined dataframe.
-#     """
-
-#     if strategy == 'intersection':
-#         # Use merge to get the intersection of all dataframes
-#         combined_df = balanced_dfs[0]
-#         for df in balanced_dfs[1:]:
-#             combined_df = combined_df.merge(df, how='inner')
-    
-#     elif strategy == 'union':
-#         # Use concat to get the union of all dataframes
-#         combined_df = pd.concat(balanced_dfs, axis=0).drop_duplicates().reset_index(drop=True)
-    
-#     else:
-#         raise ValueError(f"Unknown combination strategy: {strategy}")
-
-#     return combined_df
-
-
-# def balance_dataframe(df, target_columns, strategy='undersample'):
-#     """
-#     Balances a dataframe based on the target column(s) and the chosen strategy.
-
-#     Args:
-#         df (DataFrame): The dataframe to balance.
-#         target_columns (list): List of target column names.
-#         strategy (str): The sampling strategy to use. Options are 'undersample', 'oversample', 'smote', and 'none'.
-
-#     Returns:
-#         list: A list of balanced dataframes for each target column.
-#     """
-#     # Ensure target_columns is a list, even if it's a single column.
-#     if not isinstance(target_columns, list):
-#         target_columns = [target_columns]
-
-#     balanced_dfs = []
-
-#     for target in target_columns:
-#         # separate the majority and minority classes
-#         majority_class = df[df[target] == True]
-#         minority_class = df[df[target] == False]
-
-#         if strategy == 'undersample':
-#             n_samples = len(minority_class)
-#             sampled_majority = resample(majority_class, n_samples=n_samples, replace=False)
-#             balanced_df = pd.concat([sampled_majority, minority_class])
-
-#         elif strategy == 'oversample':
-#             n_samples = len(majority_class)
-#             sampled_minority = resample(minority_class, n_samples=n_samples, replace=True)
-#             balanced_df = pd.concat([sampled_minority, majority_class])
-        
-#         elif strategy == 'smote':
-#             raise NotImplementedError('SMOTE is not yet implemented')
-
-#         elif strategy == 'none':
-#             balanced_df = df
-
-#         else:
-#             raise ValueError(f"Unknown sampling strategy: {strategy}")
-
-#         balanced_dfs.append(balanced_df)
-#         # add logging statement to see the shape of balanced dataframe
-#         logger.debug(f'Dataframe shape after balancing for {target}: {balanced_df.shape}')
-
-#     return balanced_dfs # if combining mutliple target columns
 
 ################
 # Main script #
@@ -211,10 +134,10 @@ def balance_data(dataframe, target_columns):
               help='List of features to use for the model')
 @click.option('--structure', default=False,
               help='Whether to use structure or not')
-@click.option('--MODEL_NAME', default='BASE',
-              help='Decide which flags to run during training')
+@click.option('--model_name', default='base',
+              help='Name of the model')
 def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
-                       vector_size, structure, features, MODEL_NAME):
+                       vector_size, structure, features, model_name):
     """
     Function to train a ML model to classify protein pairs
     """
@@ -342,7 +265,7 @@ def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
 
 
     # structure component
-    elif structure:
+    if structure:
         structure_df = con.execute(
             f"""SELECT pair_id, thermo_pid, thermo_pdb, meso_pid, meso_pdb FROM {db_name}.pairpro.final""").df()
         downloader = pairpro.structures.ProteinDownloader(pdb_dir=STRUCTURE_DIR)
@@ -401,23 +324,15 @@ def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
     
     # balance the dataframe (Logan version)
     df = balance_data(df, target_columns=target)
+    logger.debug(f"DataFrame shape after balancing: {df.shape}")
 
-    # balanced_dataframes = balance_dataframe(df, target_columns=target, strategy='undersample')
-
-    # logger.debug(f"Number of balanced dataframes: {len(balanced_dataframes)}")
-    # logger.debug(f"DataFrame shape before balancing: {df.shape}")
-
-    # # combine the balanced dataframes
-    # df = combine_balanced_dfs(balanced_dataframes, strategy='union')
-
-    # logger.debug(f"DataFrame shape after balancing: {df.shape}")
 
     # you can use ifeature omega by enternig feature_list as feature
     if 'structure_match' in target:
         accuracy_score, model = train_val_wrapper(df, target, True, features)
         logger.info(f'Accuracy score: {accuracy_score}')
 
-        joblib.dump(model, f'{MODEL_PATH}{MODEL_NAME}.pkl')
+        joblib.dump(model, f'{MODEL_PATH}{model_name}.pkl')
         logger.debug(f'model training data is {df.head()}')
         logger.info(f'Model saved to {MODEL_PATH}')
         con.close()
@@ -426,7 +341,7 @@ def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
         accuracy_score, model = train_val_wrapper(df, target, False, features)
         logger.info(f'Accuracy score: {accuracy_score}')
 
-        joblib.dump(model, f'{MODEL_PATH}{MODEL_NAME}.pkl')
+        joblib.dump(model, f'{MODEL_PATH}{model_name}.pkl')
         logger.debug(f'model training data is {df.head()}')
         logger.info(f'Model saved to {MODEL_PATH}')
         con.close()
