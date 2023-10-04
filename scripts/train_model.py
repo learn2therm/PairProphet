@@ -97,7 +97,7 @@ def balance_data(dataframe, target_columns):
     """
     # Ensure target_columns is a list, even if it's a single column.
     if not isinstance(target_columns, list):
-        target_columns = [target_columns]
+        target_columns = list(target_columns)
 
     for target in target_columns:
         # separate the majority and minority classes
