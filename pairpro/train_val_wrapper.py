@@ -7,7 +7,8 @@ from pairpro.train_val_input_cleaning import verify_input_data
 from pairpro.train_val_featuregen import create_new_dataframe
 
 
-def train_val_wrapper(dataframe, target, structure=False, features=False):
+def train_val_wrapper(dataframe, target, blast=False, 
+                      hmmer=False, structure=False, features=False):
     '''
     Takes dataframe and runs it through cleaning script.
     Generates features with iFeatureOmegaCLI.
@@ -23,7 +24,7 @@ def train_val_wrapper(dataframe, target, structure=False, features=False):
         Model score
     '''
     # clean input dataframe
-    dataframe = verify_input_data(dataframe, structure)
+    dataframe = verify_input_data(dataframe, blast, hmmer, structure)
 
     if features is True:
         feature_list = [
@@ -39,8 +40,8 @@ def train_val_wrapper(dataframe, target, structure=False, features=False):
     # drop sequences
     dataframe.drop(
         columns=[
-            'm_protein_seq',
-            't_protein_seq',
+            'subject',
+            'query',
             'pair_id'],
         inplace=True)
     # run through model

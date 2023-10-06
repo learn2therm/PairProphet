@@ -76,159 +76,77 @@ def evaluate_model(model, target: list, dataframe):
         auc,\
         roc_curve, f1_score, recall_score, matthews_corrcoef
 
-    if 'structure_match' not in target:
-        # initialize empty eval results file
-        F = open('evaluationResults.txt', 'w')
+    # initialize empty eval results file
+    F = open('evaluationResults.txt', 'w')
 
-        F.write('Evaluation Scale:' + '\n')
-        F.write('0.0% <=Accuracy<= 100.0%' + '\n')
-        F.write('0.0 <=AUC<= 1.0' + '\n')  # area under curve
-        F.write('0.0 <=auPR<= 1.0' + '\n')  # average_Precision
-        F.write('0.0 <=F1_Score<= 1.0' + '\n')
-        F.write('-1.0 <=MCC<= 1.0' + '\n')
-        F.write('_______________________________________' + '\n')
+    F.write('Evaluation Scale:' + '\n')
+    F.write('0.0% <=Accuracy<= 100.0%' + '\n')
+    F.write('0.0 <=AUC<= 1.0' + '\n')  # area under curve
+    F.write('0.0 <=auPR<= 1.0' + '\n')  # average_Precision
+    F.write('0.0 <=F1_Score<= 1.0' + '\n')
+    F.write('-1.0 <=MCC<= 1.0' + '\n')
+    F.write('_______________________________________' + '\n')
 
-        # need to figure out what seq 1 and seq2 are called
-        results_df = dataframe[['query', 'subject']]
+    # need to figure out what seq 1 and seq2 are called
+    results_df = dataframe[['query', 'subject']]
 
-        dataframe = dataframe.drop(columns=['query', 'subject'])
+    dataframe = dataframe.drop(columns=['query', 'subject'])
 
-        features = [columns for columns in dataframe.drop(columns=target)]
+    features = [columns for columns in dataframe.drop(columns=target)]
 
-        # split into input and output feature(s)
-        test_X = dataframe[features].values
-        test_y = dataframe[target].values.reshape(-1, 1)
+    # split into input and output feature(s)
+    test_X = dataframe[features].values
+    test_y = dataframe[target].values.reshape(-1, 1)
 
-        # scale data
-        scaler = sklearn.preprocessing.StandardScaler()
-        test_X = scaler.fit_transform(test_X)
+    # scale data
+    scaler = sklearn.preprocessing.StandardScaler()
+    test_X = scaler.fit_transform(test_X)
 
-        # test input arguments
-        assert "sklearn" in str(type(model))
-        assert "numpy.ndarray" in str(type(test_X))
-        assert "numpy.ndarray" in str(type(test_y))
+    # test input arguments
+    assert "sklearn" in str(type(model))
+    assert "numpy.ndarray" in str(type(test_X))
+    assert "numpy.ndarray" in str(type(test_y))
 
-        # vector of predictions
-        preds = model.predict(test_X)
+    # vector of predictions
+    preds = model.predict(test_X)
 
-        # Calculate ROC Curve and Area the Curve
-        proba_y = model.predict_proba(test_X)[:, 1]
-        FPR, TPR, _ = roc_curve(test_y, proba_y, pos_label=True)
-        roc_auc = auc(FPR, TPR)
+    # Calculate ROC Curve and Area the Curve
+    proba_y = model.predict_proba(test_X)[:, 1]
+    FPR, TPR, _ = roc_curve(test_y, proba_y, pos_label=True)
+    roc_auc = auc(FPR, TPR)
 
-        # calculate scoring metrics
-        # include option to return these scores
-        accuracy = 100 * (accuracy_score(y_pred=preds, y_true=test_y))
-        avg_precision = average_precision_score(
-            y_true=test_y,
-            y_score=proba_y,
-            pos_label=1)
-        F1_Score = f1_score(y_true=test_y, y_pred=preds, pos_label=True)
-        MCC = matthews_corrcoef(y_true=test_y, y_pred=preds)
-        Recall = recall_score(y_true=test_y, y_pred=preds, pos_label=True)
-        AUC = roc_auc
+    # calculate scoring metrics
+    # include option to return these scores
+    accuracy = 100 * (accuracy_score(y_pred=preds, y_true=test_y))
+    avg_precision = average_precision_score(
+        y_true=test_y,
+        y_score=proba_y,
+        pos_label=1)
+    F1_Score = f1_score(y_true=test_y, y_pred=preds, pos_label=True)
+    MCC = matthews_corrcoef(y_true=test_y, y_pred=preds)
+    Recall = recall_score(y_true=test_y, y_pred=preds, pos_label=True)
+    AUC = roc_auc
 
-        # confusion_matrix = sklearn.metrics.confusion_matrix(
-        #     y_pred=preds, y_true=test_y)
-        # sklearn.metrics.ConfusionMatrixDisplay(confusion_matrix).plot()
+    # confusion_matrix = sklearn.metrics.confusion_matrix(
+    #     y_pred=preds, y_true=test_y)
+    # sklearn.metrics.ConfusionMatrixDisplay(confusion_matrix).plot()
 
-        F.write('Accuracy: {0:.4f}%\n'.format(accuracy))
-        F.write('AUC: {0:.4f}\n'.format(AUC))
-        F.write(
-            'auPR: {0:.4f}\n'.format(avg_precision)
-        )  # average_Precision
-        F.write('F1_Score: {0:.4f}\n'.format(F1_Score))
-        F.write('MCC: {0:.4f}\n'.format(MCC))
+    F.write('Accuracy: {0:.4f}%\n'.format(accuracy))
+    F.write('AUC: {0:.4f}\n'.format(AUC))
+    F.write(
+        'auPR: {0:.4f}\n'.format(avg_precision)
+    )  # average_Precision
+    F.write('F1_Score: {0:.4f}\n'.format(F1_Score))
+    F.write('MCC: {0:.4f}\n'.format(MCC))
 
-    #         TN, FP, FN, TP = CM.ravel()
-        F.write('Recall: {0:.4f}\n'.format(Recall))
-        F.write('_______________________________________' + '\n')
+#         TN, FP, FN, TP = CM.ravel()
+    F.write('Recall: {0:.4f}\n'.format(Recall))
+    F.write('_______________________________________' + '\n')
 
-        # merge dataframes together to report results
-        results_df['prediction'] = preds
+    # merge dataframes together to report results
+    results_df['prediction'] = preds
 
-        # save to csv
-        results_df.to_csv('./data/user_predictions.csv')
-
-    else:
-        # initialize empty eval results file
-        F = open('evaluationResults.txt', 'w')
-
-        F.write('Evaluation Scale:' + '\n')
-        F.write('0.0% <=Accuracy<= 100.0%' + '\n')
-        F.write('0.0 <=AUC<= 1.0' + '\n')  # area under curve
-        F.write('0.0 <=auPR<= 1.0' + '\n')  # average_Precision
-        F.write('0.0 <=F1_Score<= 1.0' + '\n')
-        F.write('-1.0 <=MCC<= 1.0' + '\n')
-        F.write('_______________________________________' + '\n')
-
-        results_df = dataframe[['query', 'subject']]
-
-        dataframe = dataframe.drop(columns=['query', 'subject'])
-
-        features = [columns for columns in dataframe.drop(columns=target)]
-
-        # split into input and output feature(s)
-        test_X = dataframe[features].values
-        test_y = dataframe[target].values
-
-        # scale data
-        scaler = sklearn.preprocessing.StandardScaler()
-        test_X = scaler.fit_transform(test_X)
-
-        # test input arguments
-        assert "sklearn" in str(type(model))
-        assert "numpy.ndarray" in str(type(test_X))
-        assert "numpy.ndarray" in str(type(test_y))
-
-        # vector of predictions
-        preds = model.predict(test_X)
-        hmmer_preds = preds[:, 0]
-        structure_preds = preds[:, 1]
-        assert len(hmmer_preds) == len(structure_preds)
-
-        # calculate scoring metrics
-        accuracy = 100 * accuracy_score(y_pred=preds, y_true=test_y)
-        Precision = precision_score(
-            y_pred=preds,
-            y_true=test_y,
-            average=None,
-            pos_label=True
-        )
-        F1_Score = f1_score(
-            y_true=test_y,
-            y_pred=preds,
-            pos_label=True,
-            average=None)
-        Recall = recall_score(
-            y_true=test_y,
-            y_pred=preds,
-            pos_label=True,
-            average=None)
-
-        print(accuracy)
-        print(Precision)
-        print(F1_Score)
-        print(Recall)
-
-        # confusion_matrix = sklearn.metrics.confusion_matrix(
-        #     y_pred=preds, y_true=test_y)
-        # sklearn.metrics.ConfusionMatrixDisplay(confusion_matrix).plot()
-
-        F.write('Accuracy: {0:.4f}%\n'.format(accuracy))
-        F.write('Mean Precision: {0:.4f}\n'.format(np.mean(Precision)))
-        F.write('Mean F1_Score: {0:.4f}\n'.format(np.mean(F1_Score)))
-
-    #         TN, FP, FN, TP = CM.ravel()
-        F.write('Mean Recall: {0:.4f}\n'.format(np.mean(Recall)))
-        F.write('_______________________________________' + '\n')
-
-        # merge dataframes together to report results
-        results_df['hmmer_prediction'] = hmmer_preds
-        results_df['structure_prediction'] = structure_preds
-        results_df['hmmer_structure_match'] = results_df['hmmer_prediction'] == results_df['structure_prediction']
-
-        # save to csv
-        results_df.to_csv('./data/user_predictions.csv')
+    # save to csv
+    results_df.to_csv('./data/user_predictions.csv')
 
     return preds, results_df
