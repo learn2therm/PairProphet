@@ -55,7 +55,7 @@ if __name__ == "__main__":
     logger.info(f"Successfully connected to the databases.")
 
     # Step 1: create 'analysis' table with the overlapping schema
-    create_table_query = """CREATE TABLE analysis (
+    create_table_query = """CREATE OR REPLACE TABLE analysis (
         m_protein_seq VARCHAR,
         t_protein_seq VARCHAR,
         thermo_pid VARCHAR,
@@ -67,7 +67,8 @@ if __name__ == "__main__":
         query_align_cov DOUBLE,
         subject_align_len BIGINT,
         subject_align_cov DOUBLE,
-        bit_score DOUBLE
+        bit_score DOUBLE,
+        true_pair BOOLEAN
         );
         """
     conn_oma_pp.execute(create_table_query)
@@ -77,9 +78,12 @@ if __name__ == "__main__":
     # The "True" pairs are the pairs that are in the pairs table in OMA-pp_test.db
     insert_true_pairs_query = """
     INSERT INTO analysis
+        (m_protein_seq, t_protein_seq, thermo_pid, meso_pid, local_gap_compressed_percent_id,
+        scaled_local_query_percent_id, scaled_local_symmetric_percent_id, 
+        query_align_len, query_align_cov, subject_align_len, subject_align_cov, bit_score, true_pair)
     SELECT m_protein_seq, t_protein_seq, thermo_pid, meso_pid, local_gap_compressed_percent_id,
     scaled_local_query_percent_id, scaled_local_symmetric_percent_id, 
-    query_align_len, query_align_cov, subject_align_len, subject_align_cov, bit_score
+    query_align_len, query_align_cov, subject_align_len, subject_align_cov, bit_score, TRUE
     FROM pairs;
     """
     conn_oma_pp.execute(insert_true_pairs_query)
@@ -103,7 +107,8 @@ if __name__ == "__main__":
         query_align_cov,
         subject_align_len,
         subject_align_cov,
-        bit_score
+        bit_score,
+        true_pair
     )
     SELECT
         proteins_m.protein_seq,
@@ -117,10 +122,17 @@ if __name__ == "__main__":
         l2t.query_align_cov,
         l2t.subject_align_len,
         l2t.subject_align_cov,
-        l2t.bit_score
+        l2t.bit_score,
+        FALSE
     FROM l2t_subset.protein_pairs AS l2t
     JOIN l2t_subset.proteins AS proteins_m ON l2t.thermo_pid = proteins_m.pid
     JOIN l2t_subset.proteins AS proteins_t ON l2t.meso_pid = proteins_t.pid
+    WHERE NOT EXISTS (
+        SELECT 1 
+        FROM analysis 
+        WHERE analysis.meso_pid = l2t.meso_pid 
+        AND analysis.thermo_pid = l2t.thermo_pid
+    )
     LIMIT 63306;
     """
     conn_oma_pp.execute(insert_negative_pairs_query)
@@ -131,16 +143,35 @@ if __name__ == "__main__":
     row_count = conn_oma_pp.execute("SELECT COUNT(*) FROM analysis;").fetchone()[0]
     logger.info(f"Total number of entries in the 'analysis' table: {row_count}")
 
-    true_pair_count = 63306
-    negative_pair_count = row_count - true_pair_count
-    logger.info(f"Number of 'true' pairs: {true_pair_count}")
-    logger.info(f"Number of 'false' pairs: {negative_pair_count}")
+    # check the number of true/false pairs
+    true_pair_count = conn_oma_pp.execute("SELECT COUNT(*) FROM analysis WHERE true_pair = TRUE;").fetchone()[0]
+    negative_pair_count = conn_oma_pp.execute("SELECT COUNT(*) FROM analysis WHERE true_pair = FALSE;").fetchone()[0]
+    logger.info(f"Number of 'true' (true_pairs = TRUE) pairs: {true_pair_count}")
+    logger.info(f"Number of 'false' (false_pairs = FALSE) pairs: {negative_pair_count}")
 
     sample_rows = conn_oma_pp.execute("SELECT * FROM analysis LIMIT 5;").fetchall()
     for row in sample_rows:
         logger.info(row)
 
     logger.info("Successfully created the 'analysis' table with true/false pairs. Committed changes.")
+    # check for duplicates in the 'analysis' table
+    duplicates_pairs_query = """
+    SELECT meso_pid, thermo_pid, COUNT(*) as count_star
+    FROM analysis
+    GROUP BY meso_pid, thermo_pid
+    HAVING COUNT(*) > 1;
+    """
+
+    duplicate_pairs = conn_oma_pp.execute(duplicates_pairs_query).fetchall()
+
+    if len(duplicate_pairs) > 0:
+        logger.warning(f"Found {len(duplicate_pairs)} duplicate pairs in the 'analysis' table.")
+        for pair in duplicate_pairs:
+            logger.warning(f"Duplicate pair: meso_pid={pair[0]}, thermo_pid={pair[1]}, count={pair[2]}")
+    else:
+        logger.info("No duplicate pairs found in the 'analysis' table!")
+
+
     conn_oma_pp.close()
     conn_l2t_subset.close()
     logger.info("Successfully closed the database connections.")

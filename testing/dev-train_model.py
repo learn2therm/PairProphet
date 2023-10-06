@@ -1,21 +1,9 @@
 """
-Main script wrapper.
-This is pseudocode for our parent script.
+Python script to train the model on OMA data (migration of data)
 
-Directory: scipts
+Target: OMA label
+Features: BLAST, HMMER, Structure, iFeatureOmega
 
-Input:
-
-Output:
-
-Note:
-- We have two wrapping functions, but
-these can be developed as individual scripts.
-- Talk to Ryan about db_name and con
--
-
-Runtime:
-This script will take a long time to run.
 """
 # system dependencies
 import sys
@@ -32,29 +20,22 @@ from joblib import Parallel, delayed
 from sklearn.utils import resample
 from tqdm import tqdm
 
+
 # local dependencies
-
-# machine learning
-# from pairpro.evaluate_model import evaluate_model
-# from pairpro.train_val_featuregen import create_new_dataframe
-from pairpro.train_val_wrapper import train_val_wrapper
-# from pairpro.train_val_input_cleaning import columns_to_keep
-
-# build DB
-from pairpro.preprocessing import connect_db, build_pairpro
-from pairpro.user_blast import make_blast_df
-
+import pairpro.utils as pp_utils
 # hmmer
-import pairpro.hmmer
-import pairpro.utils
-
-
+import pairpro.hmmer as pp_hmmer
 # structure
-import pairpro.structures
+import pairpro.structures as pp_structures
+# ML
+from pairpro.train_val_wrapper import train_val_wrapper
 
 
+####################
+### PATHS & VARS ###
+####################
 # db Paths
-TEST_DB_PATH = 'l2t_500k.db'  # l2t_50k.db
+TEST_DB_PATH = '230830-truefalse_1k.csv'  # l2t_50k.db
 
 # HMMER Paths
 HMM_PATH = './data/pfam/Pfam-A.hmm'  # ./Pfam-A.hmm
@@ -121,6 +102,7 @@ def balance_data(dataframe, target_columns):
 
 
 @click.command()
+@click.option('--blast', default=False, help='Whether to run BLAST or not')
 @click.option('--hmmer', default=False, help='Whether to run HMMER or not')
 @click.option('--chunk_size', default=1,
               help='Number of sequences to process in each chunk. Size of 1 means 2048 sequences per chunk, 2 means 4096, etc. as it is vectorized.')
@@ -134,27 +116,61 @@ def balance_data(dataframe, target_columns):
               help='Whether to use structure or not')
 @click.option('--model_name', default='base',
               help='Name of the model')
-def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
+def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
                        structure, features, model_name):
     """
     Function to train a ML model to classify protein pairs
     """
-    # build DB
 
-    db_path = './tmp/pairpro.db'
+    ##### database construction #####
 
-    # connect to database
-    con, _ = connect_db(TEST_DB_PATH)
-    con, db_name = build_pairpro(con, db_path)
-    db_path = f'./tmp/{db_name}.db'
-    logger.info(f'Connected to database. Built pairpro table in {db_path}')
+    con = ddb.connect('./tmp/OMA_sample.db', read_only=False) # create a database. Has to be read_only=False
 
-    ml_feature_list = []
+    # create a main table
+    con.execute("""CREATE OR REPLACE TABLE OMA_1k AS SELECT query, subject, query_id, subject_id, pair_id, 
+                local_gap_compressed_percent_id, scaled_local_query_percent_id, scaled_local_symmetric_percent_id, query_align_len, 
+                query_align_cov, subject_align_len, subject_align_cov, bit_score, Pair, jaccard FROM read_csv_auto('230830-truefalse_1k.csv')""")
+    con.commit() # commit the changes. Otherwise, the table will not be created.
+    # create a table for proteins in pairs
+    con.execute("""CREATE OR REPLACE TABLE proteins AS 
+        (
+            SELECT DISTINCT pid, protein_seq
+            FROM 
+            (
+                SELECT query_id AS pid, query as protein_seq
+                FROM OMA_1k
+                UNION ALL
+                SELECT subject_id AS pid, subject as protein_seq
+                FROM OMA_1k
+            )   
+        );""")
+
+
+    # # build DB
+
+    # db_path = './tmp/pairpro.db'
+
+    # # connect to database
+    # con, _ = connect_db(TEST_DB_PATH)
+    # con, db_name = build_pairpro(con, db_path)
+    # db_path = f'./tmp/{db_name}.db'
+    # logger.info(f'Connected to database. Built pairpro table in {db_path}')
+
+    ml_feature_list = [] # list of features to use for ML
+
+    ##### feature construction #####
+
+    if blast:
+        # blast component
+        logger.info('Starting to run BLAST')
+        raise NotImplementedError("BLAST is not implemented yet")
+    else:
+        pass
     
     if hmmer:
 
         # press the HMM db
-        pairpro.hmmer.hmmpress_hmms(HMM_PATH, PRESS_PATH)
+        pp_hmmer.hmmpress_hmms(HMM_PATH, PRESS_PATH)
 
         logger.info(f'Pressed HMM DB: {PRESS_PATH}')
 
@@ -162,13 +178,13 @@ def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
 
         # get all the proteins in pairs
 
-        proteins_in_pair_count = con.execute(f"SELECT COUNT(*) FROM {db_name}.pairpro.proteins").fetchone()[0]
+        proteins_in_pair_count = con.execute(f"SELECT COUNT(*) FROM proteins").fetchone()[0]
         # proteins_in_pair_count = con.execute(f"""SELECT COUNT(*) FROM (SELECT * FROM {db_name}.pairpro.proteins LIMIT 100) sub""").fetchone()[0]
         logger.debug(
             f"Total number of protein in pairs: {proteins_in_pair_count} in pipeline")
 
         proteins_in_pair = con.execute(
-            f"SELECT pid, protein_seq FROM {db_name}.pairpro.proteins")
+            f"SELECT pid, protein_seq FROM proteins")
     
     
         # get number of hmms for evalue calc
@@ -178,9 +194,9 @@ def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
         logger.info(f"Number of HMMs: {n_hmms}")
 
         # run hmmsearch
-        targets = pairpro.hmmer.prefetch_targets(PRESS_PATH)
+        targets = pp_hmmer.prefetch_targets(PRESS_PATH)
         logger.debug(f"number of targets: {len(targets)}")
-        wrapper = lambda chunk_index, pid_chunk: pairpro.hmmer.local_hmmer_wrapper(
+        wrapper = lambda chunk_index, pid_chunk: pp_hmmer.local_hmmer_wrapper(
             chunk_index, pid_chunk, press_path=PRESS_PATH, hmm_path=HMM_PATH, out_dir=HMMER_OUTPUT_DIR, cpu=njobs, prefetch=targets, e_value=1.e-5, scan=False, Z=n_hmms)
 
         complete = False
@@ -220,9 +236,8 @@ def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
 
         logger.info(
             f'Created parse HMMER output directory: {PARSE_HMMER_OUTPUT_DIR}. Running parse HMMER algorithm.')
-        pairpro.hmmer.process_pairs_table(
+        pp_hmmer.process_pairs_table(
             con,
-            db_name,
             chunk_size,
             PARSE_HMMER_OUTPUT_DIR,
             jaccard_threshold)
@@ -236,39 +251,39 @@ def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
                     WHERE functional IS NOT NULL AND score IS NOT NULL
                     """)
         con.execute(
-            f"""ALTER TABLE {db_name}.pairpro.final ADD COLUMN hmmer_match BOOLEAN""")
-        con.execute(f"""UPDATE {db_name}.pairpro.final AS f
+            f"""ALTER TABLE OMA_1k ADD COLUMN hmmer_match BOOLEAN""")
+        con.execute(f"""UPDATE OMA_1k AS f
         SET hmmer_match = hmmer.functional::BOOLEAN
         FROM hmmer_results AS hmmer
         WHERE 
-            hmmer.meso_pid = f.meso_pid
-            AND hmmer.thermo_pid = f.thermo_pid
+            hmmer.query_id = f.query_id
+            AND hmmer.subject_id = f.subject_id
             AND hmmer.functional IS NOT NULL
             AND hmmer.score IS NOT NULL;
         """)
         # delete rows from pairpro.final where corresponding hmmer_results have NaN functional
         # Delete rows from pairpro.final where hmmer_match is NULL
-        con.execute(f"""DELETE FROM {db_name}.pairpro.final
+        con.execute(f"""DELETE FROM OMA_1k
         WHERE hmmer_match IS NULL;
         """)
         logger.info('Finished appending parsed HMMER output to table.')
         ml_feature_list.append('hmmer_match')
 
-        df = con.execute(f"""SELECT pair_id, m_protein_seq, t_protein_seq, bit_score, local_gap_compressed_percent_id,
+        df = con.execute(f"""SELECT pair_id, query, subject, bit_score, local_gap_compressed_percent_id,
         scaled_local_query_percent_id, scaled_local_symmetric_percent_id,
         query_align_len, query_align_cov, subject_align_len, subject_align_cov,
-        LENGTH(m_protein_seq) AS m_protein_len, LENGTH(t_protein_seq) AS t_protein_len, {', '.join(ml_feature_list)} FROM {db_name}.pairpro.final""").df()
+        LENGTH(query) AS query_len, LENGTH(subject) AS subject_len, {', '.join(ml_feature_list)} FROM OMA_1k""").df()
 
         logger.debug(f"DataFrame shape after HMMER processing: {df.shape}")
     else:
         pass
 
 
-    # structure component
+    # structure component ###leave this for now. Check with Ryan on OMA database
     if structure:
         structure_df = con.execute(
-            f"""SELECT pair_id, thermo_pid, thermo_pdb, meso_pid, meso_pdb FROM {db_name}.pairpro.final""").df()
-        downloader = pairpro.structures.ProteinDownloader(pdb_dir=STRUCTURE_DIR)
+            f"""SELECT pair_id, thermo_pid, thermo_pdb, meso_pid, meso_pdb FROM OMA_1k""").df()
+        downloader = pp_structures.ProteinDownloader(pdb_dir=STRUCTURE_DIR)
         logger.info(
             f'Downloading structures. Output directory: {STRUCTURE_DIR}')
         downloader.download_structure(
@@ -276,15 +291,15 @@ def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
         downloader.download_structure(
             structure_df, 'thermo_pdb', 'thermo_pid')
         logger.info('Finished downloading structures. Running FATCAT.')
-        processor = pairpro.structures.FatcatProcessor(pdb_dir=STRUCTURE_DIR)
+        processor = pp_structures.FatcatProcessor(pdb_dir=STRUCTURE_DIR)
         processor.run_fatcat_dict_job(
             structure_df, output_file=f'{STRUCTURE_OUTPUT_DIR}output.csv')
         logger.info('Finished running FATCAT.')
 
         con.execute("""CREATE OR REPLACE TEMP TABLE structure_results AS SELECT * FROM read_csv_auto('./data/protein_pairs/structures/*.csv', HEADER=TRUE)""")
         con.execute(
-            f"""ALTER TABLE {db_name}.pairpro.final ADD COLUMN structure_match BOOLEAN""")
-        con.execute(f"""UPDATE {db_name}.pairpro.final AS f
+            f"""ALTER TABLE OMA_1k ADD COLUMN structure_match BOOLEAN""")
+        con.execute(f"""UPDATE OMA_1k AS f
         SET structure_match = structure.p_value::BOOLEAN
         FROM structure_results AS structure
         WHERE structure.pair_id = f.pair_id
@@ -293,10 +308,10 @@ def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
 
         ml_feature_list.append('structure_match')
 
-        df = con.execute(f"""SELECT pair_id, m_protein_seq, t_protein_seq, bit_score, local_gap_compressed_percent_id,
+        df = con.execute(f"""SELECT pair_id, query, subjecy, bit_score, local_gap_compressed_percent_id,
         scaled_local_query_percent_id, scaled_local_symmetric_percent_id,
         query_align_len, query_align_cov, subject_align_len, subject_align_cov,
-        LENGTH(m_protein_seq) AS m_protein_len, LENGTH(t_protein_seq) AS t_protein_len, {', '.join(ml_feature_list)} FROM {db_name}.pairpro.final WHERE structure_match IS NOT NULL""").df()
+        LENGTH(query) AS query_len, LENGTH(subject) AS subject_len, {', '.join(ml_feature_list)} FROM OMA_1k WHERE structure_match IS NOT NULL""").df()
 
 
         logger.debug(f"DataFrame shape after structure processing: {df.shape}")
@@ -357,7 +372,7 @@ def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
         
 if __name__ == "__main__":
     # Initialize logger
-    logger = pairpro.utils.start_logger_if_necessary(
+    logger = pp_utils.utils.start_logger_if_necessary(
         LOGNAME, LOGFILE, LOGLEVEL, filemode='w')
     
     # Nested loggers

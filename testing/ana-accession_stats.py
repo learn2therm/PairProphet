@@ -27,6 +27,7 @@ Suggestion:
     Do the cursor. Save the chunk of the df locally. (caching)
 """
 # system dependencies
+import math
 import os
 import logging
 from collections import Counter
@@ -57,8 +58,7 @@ import pairpro.utils as pp_utils
 
 # Paths
 HMM_PATH = './data/pfam/Pfam-A.hmm'
-DB_PATH = './tmp/pairpro.db'
-TRUE_LABEL_PATH = 'OMA-pairpro_cross.db'
+DB_PATH = 'OMA-pp_test.db'
 PRESS_PATH = './data/pfam/pfam'
 
 ANALYSIS_OUTPUT_PATH = './data/analysis/'
@@ -90,11 +90,9 @@ LOGFILE = f'./logs/{os.path.basename(__file__)}.log'
               help='Number of parallel processes to use for HMMER')
 @click.option('--evalue', default=1.e-10,
                 help='E-value for HMMER')
-@click.option('--jaccard_threshold', default=0.7,
+@click.option('--jaccard_threshold', default=0.5,
               help='Jaccard threshold for filtering protein pairs')
-@click.option('--vector_size', default=1,
-              help='Size of the vector for the dataframe chunking') 
-def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, vector_size, **kwargs):
+def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, **kwargs):
     """
     This a wrapper function that will run the analysis for the accession data.
     """
@@ -102,23 +100,21 @@ def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, vector_size, *
     con = ddb.connect(DB_PATH, read_only=False)
 
     # get number of proteins in pairs
-    proteins_in_pair_count = con.execute(f"SELECT COUNT(*) FROM pairpro.pairpro.proteins").fetchone()[0]
+    proteins_in_pair_count = con.execute(f"SELECT COUNT(*) FROM proteins").fetchone()[0]
     logger.debug(
-        f"Total number of protein in pairs: {proteins_in_pair_count} in pipeline")
+        f"Total number of protein in pairs: {proteins_in_pair_count} in pipeline. Note: the analysis table has 126612 50/50 pairs.")
 
     # get proteins in pairs
     proteins_in_pair = con.execute(
-        f"SELECT pid, protein_seq FROM pairpro.pairpro.proteins")
+        f"SELECT pid, protein_seq FROM proteins")
     
-    # create empty lists to store statistics
-    evalue_values = []
-
     
     # Loop over e-value values
     for evalue_value in evalue_values_to_test:
 
         logger.info(f"Running analysis for e-value: {evalue_value}")
         ### Run HMMER ###
+
         # get number of hmms for evalue calc
         profiles = list(pyhmmer.plan7.HMMFile(HMM_PATH))
         n_hmms = len(profiles)
@@ -131,9 +127,9 @@ def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, vector_size, *
         wrapper = lambda chunk_index, pid_chunk: pp_hmmer.local_hmmer_wrapper(
             chunk_index, pid_chunk, press_path=PRESS_PATH, hmm_path=HMM_PATH, out_dir=HMMER_OUTPUT_DIR, cpu=njobs, prefetch=targets, e_value=evalue_value, scan=False, Z=n_hmms)
         
-        # get proteins in pairs
+        # get proteins in pairs (maybe not needed?)
         proteins_in_pair = con.execute(
-            f"SELECT pid, protein_seq FROM pairpro.pairpro.proteins")
+            f"SELECT pid, protein_seq FROM proteins")
         
         # the hmmsearch loop
         complete = False
@@ -167,8 +163,6 @@ def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, vector_size, *
         # parse the output
         logger.info('Parsing HMMER output...')
         
-        # arbitrary jaccard threshold
-        jaccard_threshold_value = 0.5
 
         # setup the database and get some pairs to run
         con.execute("""
@@ -181,17 +175,21 @@ def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, vector_size, *
         logger.info('creating pair table')
         pp_hmmer.process_pairs_table_ana(
             con,
-            'pairpro',
-            vector_size,
+            chunk_size,
             PARSE_HMMER_OUTPUT_DIR,
-            jaccard_threshold_value)
+            jaccard_threshold)
 
         logger.info('Finished parsing HMMER output.')
 
         logger.info('Finding ground truth...')
         ## load HMMER output data
+        row_count = con.execute("SELECT COUNT(*) FROM joined_pairs").fetchone()[0]
+        logger.info(f"Total number of entries in the 'joined_pairs' table: {row_count}")
+        chunks = math.ceil(row_count / (chunk_size*2048))
+        logger.info(f"Number of chunks: {chunks}")
+        
         parse_list = [] # initialize list to store dataframes
-        for chunk_index in range(1, chunk_index):
+        for chunk_index in range(1, chunks):
             output_file_path = f'{PARSE_HMMER_OUTPUT_DIR}{chunk_index}_output.csv'     
             df = pd.read_csv(output_file_path)
             logger.debug(f"Loaded chunk {chunk_index} with size {len(df)}")
@@ -201,10 +199,8 @@ def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, vector_size, *
         hmmer_df = pd.concat(parse_list, ignore_index=True).dropna().reset_index(drop=True)
 
         ## load the true labels
-        conn = ddb.connect(TRUE_LABEL_PATH, read_only=False)
-        true_pairs_query = 'SELECT meso_pid, thermo_pid FROM pairs'
-        true_pairs_df = conn.execute(true_pairs_query).fetch_df()
-        true_pairs_df['true_pairs'] = True
+        true_pairs_query = 'SELECT meso_pid, thermo_pid, true_pair FROM analysis'
+        true_pairs_df = con.execute(true_pairs_query).fetch_df()
 
         ## create 'true pairs' column based on merge
         merged_df = pd.merge(hmmer_df, true_pairs_df, how='left', on=['meso_pid', 'thermo_pid'])
@@ -212,29 +208,32 @@ def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, vector_size, *
         #### Test here ####
     
         logger.debug(f"merged_df: {merged_df.head()}")
-        logger.debug(f"let's see how many true pairs there are: {merged_df['true_pairs'].value_counts()}")
+        logger.debug(f"let's see how many true pairs there are: {merged_df['true_pair'].value_counts()}")
 
         # Add e-value column
         merged_df['e_value'] = evalue_value
 
-        # Fill NaN values with False
-        merged_df.loc[merged_df['true_pairs'].isnull(), 'true_pairs'] = False
-
         # save the merged dataframe
         merged_df.to_csv(f'{ANALYSIS_OUTPUT_PATH}merged_df.csv', index=False)
 
-        # # Calculate ROC curve
-        # fpr, tpr, thresholds = roc_curve(merged_df['true_pairs'], merged_df['score'])
+        logger.info("Finding evaluation metrics...")
 
-        # # Calculate cross-entropy
-        # cross_entropy = log_loss(merged_df['true_pairs'], merged_df['score'])
+        # Calculate ROC curve
+        fpr, tpr, thresholds = roc_curve(merged_df['true_pair'], merged_df['score'])
 
-        # # Save ROC curve data and cross-entropy result
-        # roc_data = pd.DataFrame({'FPR': fpr, 'TPR': tpr, 'Thresholds': thresholds})
-        # roc_data.to_csv(f'{ANALYSIS_OUTPUT_PATH}roc_curve_data_{evalue_value:.0e}.csv', index=False)
+        # Calculate cross-entropy
+        cross_entropy = log_loss(merged_df['true_pair'], merged_df['score'])
 
-        # with open(f'{ANALYSIS_OUTPUT_PATH}cross_entropy_{evalue_value:.0e}.txt', 'w') as f:
-        #     f.write(f'Cross-Entropy: {cross_entropy}')
+        # Save ROC curve data and cross-entropy result
+        roc_data = pd.DataFrame({'FPR': fpr, 'TPR': tpr, 'Thresholds': thresholds})
+        roc_data.to_csv(f'{ANALYSIS_OUTPUT_PATH}roc_curve_data_{evalue_value:.0e}.csv', index=False)
+
+        with open(f'{ANALYSIS_OUTPUT_PATH}cross_entropy_{evalue_value:.0e}.txt', 'w') as f:
+            f.write(f'Cross-Entropy: {cross_entropy}')
+
+    # close the connection
+    con.close()
+    logger.info('connection closed, analysis complete.')
         
 
     
