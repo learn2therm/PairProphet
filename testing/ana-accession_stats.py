@@ -214,7 +214,7 @@ def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, **kwargs):
         merged_df['e_value'] = evalue_value
 
         # save the merged dataframe
-        merged_df.to_csv(f'{ANALYSIS_OUTPUT_PATH}merged_df.csv', index=False)
+        merged_df.to_csv(f'{ANALYSIS_OUTPUT_PATH}{evalue_value:0e}merged_df.csv', index=False)
 
         logger.info("Finding evaluation metrics...")
 

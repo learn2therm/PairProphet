@@ -99,7 +99,7 @@ def save_to_digital_sequences(dataframe: pd.DataFrame):
 
     # Convert proteins in dataframe to suitable format
     for _, row in dataframe.iterrows():
-        pid = bytes(row['pid'], encoding='utf-8')
+        pid = bytes(str(row['pid']), encoding='utf-8')
         seq_str = row['protein_seq']
         sequences = pyhmmer.easel.TextSequence(name=pid, sequence=seq_str)
         sequences = sequences.digitize(amino_acids)

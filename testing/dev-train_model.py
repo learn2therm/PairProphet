@@ -35,7 +35,7 @@ from pairpro.train_val_wrapper import train_val_wrapper
 ### PATHS & VARS ###
 ####################
 # db Paths
-TEST_DB_PATH = '230830-truefalse_1k.csv'  # l2t_50k.db
+TEST_DB_PATH = '230830-truefalse_1k.csv' 
 
 # HMMER Paths
 HMM_PATH = './data/pfam/Pfam-A.hmm'  # ./Pfam-A.hmm
@@ -78,7 +78,7 @@ def balance_data(dataframe, target_columns):
     """
     # Ensure target_columns is a list, even if it's a single column.
     if not isinstance(target_columns, list):
-        target_columns = [target_columns]
+        target_columns = list(target_columns)
 
     for target in target_columns:
         # separate the majority and minority classes
@@ -167,7 +167,7 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
     else:
         pass
     
-    if hmmer:
+    if hmmer: #pids were strings in the original code
 
         # press the HMM db
         pp_hmmer.hmmpress_hmms(HMM_PATH, PRESS_PATH)
@@ -333,15 +333,17 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
 
     logger.info('Beginning to preprocess data for model training')
 
-    # specify target (this is tenative for now. Will be updated later)
-    if hmmer and structure:
-        target = ['hmmer_match', 'structure_match']
-    elif hmmer:
-        target = 'hmmer_match'
-    elif structure:
-        target = 'structure_match'
-    else:
-        raise NotImplementedError('Currently, you cannot train a model without hmmer or structure')
+    # # specify target (this is tenative for now. Will be updated later)
+    # if hmmer and structure:
+    #     target = ['hmmer_match', 'structure_match']
+    # elif hmmer:
+    #     target = 'hmmer_match'
+    # elif structure:
+    #     target = 'structure_match'
+    # else:
+    #     raise NotImplementedError('Currently, you cannot train a model without hmmer or structure')
+
+    target = ['Pair']
     
     # balance the dataframe (Logan version)
     df = balance_data(df, target_columns=target)
@@ -350,7 +352,7 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
 
     # you can use ifeature omega by enternig feature_list as feature
     if 'structure_match' in target:
-        accuracy_score, model = train_val_wrapper(df, target, True, features)
+        accuracy_score, model = train_val_wrapper(df, target, blast, hmmer, structure, features)
         logger.info(f'Accuracy score: {accuracy_score}')
 
         joblib.dump(model, f'{MODEL_PATH}{model_name}.pkl')
@@ -372,7 +374,7 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
         
 if __name__ == "__main__":
     # Initialize logger
-    logger = pp_utils.utils.start_logger_if_necessary(
+    logger = pp_utils.start_logger_if_necessary(
         LOGNAME, LOGFILE, LOGLEVEL, filemode='w')
     
     # Nested loggers
