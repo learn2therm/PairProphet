@@ -163,7 +163,8 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
     if blast:
         # blast component
         logger.info('Starting to run BLAST')
-        raise NotImplementedError("BLAST is not implemented yet")
+        pass
+        # raise NotImplementedError("BLAST is not implemented yet") ## uncomment this when switching away from OMA_1k
     else:
         pass
     
@@ -251,9 +252,9 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
                     WHERE functional IS NOT NULL AND score IS NOT NULL
                     """)
         con.execute(
-            f"""ALTER TABLE OMA_1k ADD COLUMN hmmer_match BOOLEAN""")
+            f"""ALTER TABLE OMA_1k ADD COLUMN hmmer_match DOUBLE""")
         con.execute(f"""UPDATE OMA_1k AS f
-        SET hmmer_match = hmmer.functional::BOOLEAN
+        SET hmmer_match = hmmer.score::DOUBLE
         FROM hmmer_results AS hmmer
         WHERE 
             hmmer.query_id = f.query_id
@@ -272,7 +273,7 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
         df = con.execute(f"""SELECT pair_id, query, subject, bit_score, local_gap_compressed_percent_id,
         scaled_local_query_percent_id, scaled_local_symmetric_percent_id,
         query_align_len, query_align_cov, subject_align_len, subject_align_cov,
-        LENGTH(query) AS query_len, LENGTH(subject) AS subject_len, {', '.join(ml_feature_list)} FROM OMA_1k""").df()
+        LENGTH(query) AS query_len, LENGTH(subject) AS subject_len, Pair, {', '.join(ml_feature_list)} FROM OMA_1k""").df()
 
         logger.debug(f"DataFrame shape after HMMER processing: {df.shape}")
     else:
@@ -311,7 +312,7 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
         df = con.execute(f"""SELECT pair_id, query, subjecy, bit_score, local_gap_compressed_percent_id,
         scaled_local_query_percent_id, scaled_local_symmetric_percent_id,
         query_align_len, query_align_cov, subject_align_len, subject_align_cov,
-        LENGTH(query) AS query_len, LENGTH(subject) AS subject_len, {', '.join(ml_feature_list)} FROM OMA_1k WHERE structure_match IS NOT NULL""").df()
+        LENGTH(query) AS query_len, LENGTH(subject) AS subject_len, Pair, {', '.join(ml_feature_list)} FROM OMA_1k WHERE structure_match IS NOT NULL""").df()
 
 
         logger.debug(f"DataFrame shape after structure processing: {df.shape}")
@@ -350,24 +351,23 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
     logger.debug(f"DataFrame shape after balancing: {df.shape}")
 
 
-    # you can use ifeature omega by enternig feature_list as feature
-    if 'structure_match' in target:
-        accuracy_score, model = train_val_wrapper(df, target, blast, hmmer, structure, features)
-        logger.info(f'Accuracy score: {accuracy_score}')
+    # # you can use ifeature omega by enternig feature_list as feature
+    # if 'structure_match' in target:
+    #     accuracy_score, model = train_val_wrapper(df, target, blast, hmmer, structure, features)
+    #     logger.info(f'Accuracy score: {accuracy_score}')
 
-        joblib.dump(model, f'{MODEL_PATH}{model_name}.pkl')
-        logger.debug(f'model training data is {df.head()}')
-        logger.info(f'Model saved to {MODEL_PATH}')
-        con.close()
+    #     joblib.dump(model, f'{MODEL_PATH}{model_name}.pkl')
+    #     logger.debug(f'model training data is {df.head()}')
+    #     logger.info(f'Model saved to {MODEL_PATH}')
+    #     con.close()
+    # else:
+    accuracy_score, model = train_val_wrapper(df, target, blast, hmmer, structure, features)
+    logger.info(f'Accuracy score: {accuracy_score}')
 
-    else:
-        accuracy_score, model = train_val_wrapper(df, target, False, features)
-        logger.info(f'Accuracy score: {accuracy_score}')
-
-        joblib.dump(model, f'{MODEL_PATH}{model_name}.pkl')
-        logger.debug(f'model training data is {df.head()}')
-        logger.info(f'Model saved to {MODEL_PATH}')
-        con.close()
+    joblib.dump(model, f'{MODEL_PATH}{model_name}.pkl')
+    logger.debug(f'model training data is {df.head()}')
+    logger.info(f'Model saved to {MODEL_PATH}')
+    con.close()
 
 
 

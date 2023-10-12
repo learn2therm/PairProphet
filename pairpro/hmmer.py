@@ -99,7 +99,7 @@ def save_to_digital_sequences(dataframe: pd.DataFrame):
 
     # Convert proteins in dataframe to suitable format
     for _, row in dataframe.iterrows():
-        pid = bytes(str(row['pid']), encoding='utf-8')
+        pid = bytes(row['pid'], encoding='utf-8')
         seq_str = row['protein_seq']
         sequences = pyhmmer.easel.TextSequence(name=pid, sequence=seq_str)
         sequences = sequences.digitize(amino_acids)
@@ -582,14 +582,14 @@ def preprocess_accessions_ana(meso_accession: str, thermo_accession: str):
         tuple: A tuple containing the preprocessed meso_accession and thermo_accession sets.
     """
     # Convert accessions to sets
-    if pd.isna(meso_accession):
+    if (pd.isna(meso_accession) or meso_accession == ''):
         meso_accession_set = set()
     else:
-        meso_accession_set = set(str(meso_accession.split(';')))
-    if pd.isna(thermo_accession):
+        meso_accession_set = set(meso_accession.split(';'))
+    if (pd.isna(thermo_accession) or thermo_accession == ''):
         thermo_accession_set = set()
     else:
-        thermo_accession_set = set(str(thermo_accession.split(';')))
+        thermo_accession_set = set(thermo_accession.split(';'))
     
     return meso_accession_set, thermo_accession_set
 
@@ -664,9 +664,9 @@ def process_pairs_table_ana(
         elif type(meso_acc) == list:
             meso_acc_set = set(meso_acc)
             thermo_acc_set = set(thermo_acc)
-        elif pd.isna(meso_acc) or pd.isna(thermo_acc):
-            meso_acc_set = set()
-            thermo_acc_set = set()
+        # elif pd.isna(meso_acc) or pd.isna(thermo_acc):
+        #     meso_acc_set = set()
+        #     thermo_acc_set = set()
         else:
             raise ValueError("meso_acc must be either a string or a list")
         
