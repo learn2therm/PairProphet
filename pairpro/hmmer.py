@@ -658,15 +658,18 @@ def process_pairs_table_ana(
         meso_acc = row['meso_accession']
         thermo_acc = row['thermo_accession']
         # logger.debug(f"meso_acc: {meso_acc}, thermo_acc: {thermo_acc}")
+        # logger.debug(f"meso_acc type: {type(meso_acc)}, thermo_acc type: {type(thermo_acc)}")
 
         if type(meso_acc) == str:
             meso_acc_set, thermo_acc_set = preprocess_accessions_ana(meso_acc, thermo_acc)
         elif type(meso_acc) == list:
             meso_acc_set = set(meso_acc)
             thermo_acc_set = set(thermo_acc)
-        # elif pd.isna(meso_acc) or pd.isna(thermo_acc):
-        #     meso_acc_set = set()
-        #     thermo_acc_set = set()
+        elif pd.isna(meso_acc) and pd.isna(thermo_acc):
+            meso_acc_set = None
+            thermo_acc_set = None
+        elif pd.isna(meso_acc) or pd.isna(thermo_acc):
+            meso_acc_set, thermo_acc_set = preprocess_accessions_ana(meso_acc, thermo_acc)
         else:
             raise ValueError("meso_acc must be either a string or a list")
         

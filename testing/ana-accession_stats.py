@@ -105,6 +105,9 @@ def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, **kwargs):
         f"Total number of protein in pairs: {proteins_in_pair_count} in pipeline. Note: the analysis table has 126612 50/50 pairs.")
 
     # get proteins in pairs
+    # logger.info(f"DEV-option: fetch proteins in pairs (5% sample)")
+    # proteins_in_pair = con.execute(
+    #     f"SELECT pid, protein_seq FROM proteins USING SAMPLE 5%;")
     proteins_in_pair = con.execute(
         f"SELECT pid, protein_seq FROM proteins")
     
@@ -128,6 +131,9 @@ def analysis_script(chunk_size, njobs, evalue, jaccard_threshold, **kwargs):
             chunk_index, pid_chunk, press_path=PRESS_PATH, hmm_path=HMM_PATH, out_dir=HMMER_OUTPUT_DIR, cpu=njobs, prefetch=targets, e_value=evalue_value, scan=False, Z=n_hmms)
         
         # get proteins in pairs (maybe not needed?)
+        # logger.info(f"DEV-option: fetch proteins in pairs (5% sample)")
+        # proteins_in_pair = con.execute(
+        # f"SELECT pid, protein_seq FROM proteins USING SAMPLE 5%;")
         proteins_in_pair = con.execute(
             f"SELECT pid, protein_seq FROM proteins")
         
