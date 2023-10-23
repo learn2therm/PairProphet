@@ -336,7 +336,7 @@ def local_hmmer_wrapper(chunk_index, chunked_inputs, press_path, hmm_path, out_d
 #################
 
 
-def preprocess_accessions(query_accession: str, subject_accession: str):
+def preprocess_accessions(query_accession, subject_accession):
     """
     Preprocesses query_accession and subject_accession by converting them to sets.
 
@@ -348,14 +348,14 @@ def preprocess_accessions(query_accession: str, subject_accession: str):
         tuple: A tuple containing the preprocessed query_accession and subject_accession sets.
     """
     # Convert accessions to sets
-    if pd.isna(query_accession):
+    if (pd.isna(query_accession) or query_accession == ''):
         query_accession_set = set()
     else:
-        query_accession_set = set(str(query_accession.split(';')))
-    if pd.isna(subject_accession):
+        query_accession_set = set(query_accession.split(';'))
+    if (pd.isna(subject_accession) or subject_accession == ''):
         subject_accession_set = set()
     else:
-        subject_accession_set = set(str(subject_accession.split(';')))
+        subject_accession_set = set(subject_accession.split(';'))
     
     return query_accession_set, subject_accession_set
 
@@ -432,9 +432,10 @@ def process_pairs_table(
         elif type(query_acc) == list:
             query_acc_set = set(query_acc)
             subject_acc_set = set(subject_acc)
+        elif pd.isna(query_acc) and pd.isna(subject_acc):
+            query_acc_set, subject_acc_set = None, None
         elif pd.isna(query_acc) or pd.isna(subject_acc):
-            query_acc_set = set()
-            subject_acc_set = set()
+            query_acc_set, subject_acc_set = preprocess_accessions_ana(query_acc, subject_acc)
         else:
             raise ValueError("query_acc must be either a string or a list")
         
@@ -674,17 +675,17 @@ def process_pairs_table_ana(
             raise ValueError("meso_acc must be either a string or a list")
         
         # parsing accessions logic
+        # Handle unmatched rows
+        score = 0.0
+        functional = False
+
         if not meso_acc_set and not thermo_acc_set:
             score = None
             functional = None
         elif meso_acc_set and thermo_acc_set:
             # Preprocess the accessions
             score = calculate_jaccard_similarity_ana(meso_acc_set, thermo_acc_set)
-            functional = score > jaccard_threshold
-        else:
-            # Handle unmatched rows
-            score = 0.0
-            functional = False
+            functional = score > jaccard_threshold    
 
         return {'functional': functional, 'score': score}
 
