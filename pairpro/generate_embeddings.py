@@ -6,12 +6,13 @@ import os
 import subprocess
 import re
 
-from train_val_featuregen import get_fasta_from_dataframe
+from pairpro.train_val_featuregen import get_fasta_from_dataframe
+# from scripts.extract import main
 
 
 def run_extract():
     # command for generating esm embeddings
-    command = ['python', 'pairpro/extract.py', 'esm2_t33_650M_UR50D', './notebooks/seq_a.fasta', 'data/pytorch_embeddings/', '--include', 'mean']
+    command = ['python', 'scripts/extract.py', 'esm2_t33_650M_UR50D', './notebooks/seq_a.fasta', 'data/pytorch_embeddings/', '--include', 'mean']
 
     # Run the command and capture the output
     output = subprocess.run(command, capture_output=True, text=True)
@@ -78,6 +79,3 @@ def update_dataframe(dataframe):
     dataframe = pd.merge(embeddings, dataframe, on='prot_pair_index')
 
     return dataframe
-
-
-
