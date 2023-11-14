@@ -23,7 +23,7 @@ import logging
 import os
 
 # library dependencies
-import click
+# import click
 import duckdb as ddb
 import pandas as pd
 import pyhmmer
