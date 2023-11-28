@@ -8,8 +8,8 @@ COPY . /PairProphet/
 # Create the environment:
 #COPY environment.yml .
 RUN conda config --add channels conda-forge
-RUN conda config --add channels defaults
-RUN conda env create -f environment.yml
+RUN conda install mamba
+RUN mamba env create -f environment.yml
 
 # Make RUN commands use the new environment:
 SHELL ["conda", "run", "-n", "pairpro", "/bin/bash", "-c"]
