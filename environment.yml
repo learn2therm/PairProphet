@@ -3,6 +3,11 @@ channels:
   - defaults
   - conda-forge
 dependencies:
+  - click
+  - httpx
+  - pylint
+  - httpx
+  - tqdm
   - biopython
   - autopep8
   - nest-asyncio
@@ -17,13 +22,9 @@ dependencies:
   - sphinx
   - dask
   - pip:
-      - click
       - duckdb==0.7.1
-      - httpx
       - sphinx
       - sphinx-rtd-theme
-      - tqdm
       - pyhmmer
-      - pylint
       - rdkit
       - iFeatureOmegaCLI
