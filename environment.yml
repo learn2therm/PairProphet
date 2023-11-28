@@ -8,6 +8,7 @@ dependencies:
   - nest-asyncio
   - numpy
   - pandas
+  - matplotlib
   - python
   - pip
   - ray-default
