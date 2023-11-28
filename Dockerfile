@@ -9,6 +9,7 @@ COPY . /PairProphet/
 #COPY environment.yml .
 RUN conda config --add channels conda-forge
 RUN conda install mamba
+RUN apt update && apt install -y build-essential
 RUN mamba env create -f environment.yml
 
 # Make RUN commands use the new environment:
