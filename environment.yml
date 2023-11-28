@@ -21,10 +21,10 @@ dependencies:
   - joblib
   - sphinx
   - dask
+  - sphinx
+  - sphinx-rtd-theme
   - pip:
       - duckdb==0.7.1
-      - sphinx
-      - sphinx-rtd-theme
       - pyhmmer
       - rdkit
       - iFeatureOmegaCLI
