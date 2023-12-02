@@ -14,21 +14,24 @@ RUN conda config --add channels conda-forge
 RUN conda install mamba
 
 # create the environment
-RUN mamba env create -f environment.yml && \
-    conda init bash && \
-    echo "conda activate myenv" >> ~/.bashrc
+RUN mamba env create -f environment.yml 
+#&& \
+    #conda init bash && \
+    #echo "conda activate myenv" >> ~/.bashrc
 
 # Make RUN commands use the new environment:
-SHELL ["conda", "run", "-n", "pairpro", "/bin/bash", "-c"]
+SHELL ["conda","run", "-n", "pairpro", "/bin/bash", "-c"]
+
+RUN activate pairpro
 
 # set working directory
 WORKDIR /PairProphet/scripts/
 
-RUN conda list
-
 # CMD ["ls"]
-# CMD ["python", "train_val_classification.py"]
-# CMD ["python", "train_model.py", "--blast", "True"]
+# CMD ["python", "train_val_classification.py"] < --- for pairpro/train_val_classification.py
+CMD ["python", "train_model.py", "--blast", "True"] 
+
+# commmand to build the image: docker build -t training_script .
 
 # need init.py to run training script out of container
 # The code to run when container is started:
