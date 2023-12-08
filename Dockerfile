@@ -22,14 +22,18 @@ RUN mamba env create -f environment.yml
 # Make RUN commands use the new environment:
 SHELL ["conda","run", "-n", "pairpro", "/bin/bash", "-c"]
 
-# RUN activate pairpro
+ENTRYPOINT ["pip", "install" , "."] 
 
-# set working directory
-WORKDIR /PairProphet/pairpro/
+# # set working directory
+WORKDIR /PairProphet/scripts/
 
-# CMD ["ls"]
+CMD ["python", "download_pfam.py"]
+# CMD ["python", "scripts/train_model.py", "--hmmer", "True"]
+ 
 
-ENTRYPOINT ["conda", "run", "-n", "pairpro", "python", "train_val_classification.py"]
+# CMD ["pwd"]
+
+# ENTRYPOINT ["conda", "run", "-n", "pairpro", "python", "train_val_classification.py"]
 
 # CMD ["python", "train_val_classification.py"] < --- for pairpro/train_val_classification.py
 # CMD ["python", "train_model.py", "--blast", "True"] 
