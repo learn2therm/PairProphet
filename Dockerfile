@@ -22,18 +22,24 @@ RUN mamba env create -f environment.yml
 # Make RUN commands use the new environment:
 SHELL ["conda","run", "-n", "pairpro", "/bin/bash", "-c"]
 
-RUN activate pairpro
+# RUN activate pairpro
 
 # set working directory
-WORKDIR /PairProphet/scripts/
+WORKDIR /PairProphet/pairpro/
 
 # CMD ["ls"]
+
+ENTRYPOINT ["conda", "run", "-n", "pairpro", "python", "train_val_classification.py"]
+
 # CMD ["python", "train_val_classification.py"] < --- for pairpro/train_val_classification.py
-CMD ["python", "train_model.py", "--blast", "True"] 
+# CMD ["python", "train_model.py", "--blast", "True"] 
 
 # commmand to build the image: docker build -t training_script .
 
 # need init.py to run training script out of container
 # The code to run when container is started:
 #ENTRYPOINT ["python",  "-c", "train_model.py", "--blast" , "True", "--hmmer", "True", "http.server", "8000"]
+
+# Make RUN commands use the new environment:
+
 
