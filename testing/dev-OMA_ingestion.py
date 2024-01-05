@@ -10,9 +10,12 @@ import gzip
 import logging
 import os
 import shutil
+import threading
 
 # library dependencies
 import duckdb as ddb
+import urllib.request
+from urllib.error import URLError, HTTPError
 from timeit import default_timer as timer
 
 # local dependencies
@@ -26,14 +29,14 @@ RAW_DATA_DIR = "./data/OMA"
 DB_DIR = "./tmp"
 DB_NAME = "oma.db"
 
-# set up ftp
-FTP_ADDRESS = 'omabrowser.org'
-
-# variables
-pair_file = '/All/oma-pairs.txt.gz'
-seq_file = '/All/oma-seqs.fa.gz'
-uniprot_file = '/All/oma-uniprot.txt.gz'
-prok = '/All/prokaryotes.cdna.fa.gz'
+# set up url address+files
+# pair_file = '/All/oma-pairs.txt.gz
+# seq_file = '/All/oma-seqs.fa.gz'
+# uniprot_file = '/All/oma-uniprot.txt.gz'
+# prok = '/All/prokaryotes.cdna.fa.gz'
+File_urls = [
+    'https://omabrowser.org/All/oma-uniprot.txt.gz', # orthologs
+]
 # parquet dir?
 
 # get environmental variables
@@ -48,18 +51,100 @@ LOGFILE = f'./logs/{os.path.basename(__file__)}.log'
 # Aux. functions #
 ##################
 
-def download_ftp_file(server, remote_file, local_file):
-    """
-    TODO: add docstring
-    """
-    ftp = FTP(server)
-    ftp.login(user="anonymous", passwd='')
-    ftp.cwd('/')  # Set the current directory (if needed)
+class FileDownloader:
+    def __init__(self):
+        self.download_directory = RAW_DATA_DIR
+         # create directory for raw data
+        try:
+            os.makedirs(RAW_DATA_DIR, exist_ok=True)
+        except OSError as e:
+            logger.error(f'Error creating directory: {e}')
+        logger.info(f'Created directory to store raw OMA data: {RAW_DATA_DIR}')
 
-    with open(local_file, 'wb') as file:
-        ftp.retrbinary('RETR ' + remote_file, file.write)
+    def download_file(self, url):
+        """
+        TODO: add docstring
+        """
+        file_name = url.split('/')[-1]
+        destination = os.path.join(self.download_directory, file_name)
+        try:
+            with urllib.request.urlopen(url) as response, open(destination, 'wb') as out_file:
+                shutil.copyfileobj(response, out_file)
+                logger.info(f"Downloaded {url} to {destination}")
+        except Exception as e:
+            logger.error(f"Error downloading {url}: {e}")
 
-    ftp.quit()
+    def unzip_file(self, gz_path):
+        """
+        Unzip a .gz file to a destination path.
+        """
+        if gz_path:
+            dest_path = gz_path.rsplit('.gz', 1)[0]
+            try:
+                with gzip.open(gz_path, 'rb') as f_in:
+                    with open(dest_path, 'wb') as f_out:
+                        shutil.copyfileobj(f_in, f_out)
+                logger.info(f"Unzipped {gz_path} to {dest_path}")
+                return dest_path
+            except Exception as e:
+                logger.error(f"Error unzipping {gz_path}: {e}")
+                return None
+            
+    def delete_file(self, file_path):
+        """
+        Delete a file from system.
+        """
+        if file_path and os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+                logger.info(f"Deleted {file_path}")
+            except Exception as e:
+                logger.error(f"Error deleting {file_path}: {e}")
+
+    def omabrowser_download(self, url):
+        """
+        wrapper function for downloading files from OMA browser
+        """
+        download_file = self.download_file(url)
+        unzipped_file = self.unzip_file(download_file)
+        self.delete_file(download_file)
+
+
+# def download_file(url, destination):
+#     """
+#     TODO
+#     """
+#     try:
+#         with urllib.request.urlopen(url) as response, open(destination, 'wb') as out_file:
+#             shutil.copyfileobj(response, out_file)
+#             logger.info(f"Downloaded {url} to {destination}")
+#     except Exception as e:
+#         logger.error(f"Error downloading {url}: {e}")
+
+
+# def unzip_file(gz_path, dest_path):
+#     """
+#     Unzip a .gz file to a destination path.
+#     """
+#     try:
+#         with gzip.open(gz_path, 'rb') as f_in, open(dest_path, 'wb') as f_out:
+#             shutil.copyfileobj(f_in, f_out)
+#             logger.info(f"Unzipped {gz_path} to {dest_path}")
+#     except Exception as e:
+#         logger.error(f"Error unzipping {gz_path}: {e}")
+
+
+# def delete_file(file_path):
+#     """
+#     Delete a file from system.
+#     """
+#     try:
+#         os.remove(file_path)
+#         logger.info(f"Deleted {file_path}")
+#     except Exception as e:
+#         logger.error(f"Error deleting {file_path}: {e}")
+    
+
 
 ################
 # Main script #
@@ -74,37 +159,22 @@ if __name__ == "__main__":
         LOGNAME, LOGFILE, LOGLEVEL, filemode='w')
     logger.info("Starting script. Logging to %s", LOGFILE)
 
-    # create directory for raw data
-    try:
-        os.makedirs(RAW_DATA_DIR, exist_ok=True)
-    except OSError as e:
-        logger.error(f'Error creating directory: {e}')
-
-    logger.info(f'Created directory to store raw OMA data: {RAW_DATA_DIR}')
-
-    # start timer
-    time_start = timer()
-
     # download the raw data
-    logger.info("Downloading raw data from OMA FTP server")
+    downloader = FileDownloader()
+    threads = []
+    logger.info("Downloading raw data from OMA server")
 
-    logger.info("Downloading OMA uniprot file. Saving to %s", f"{RAW_DATA_DIR}/{os.path.basename(uniprot_file)}. Should take a few minutes.")
-    download_ftp_file(FTP_ADDRESS, uniprot_file, f"{RAW_DATA_DIR}/{os.path.basename(uniprot_file)}")
+    time_start = timer()
+    for url in File_urls:
+        thread = threading.Thread(target=downloader.omabrowser_download, args=(url,))
+        thread.start()
+        threads.append(thread)
 
-    logger.info("Downloading OMA sequence file. Saving to %s", f"{RAW_DATA_DIR}/{os.path.basename(seq_file)}. Should take a couple of hours.")
-    # continue here later
+    for thread in threads:
+        thread.join()
 
-
-    # unzip the downloaded files
-    logger.info("Unzipping downloaded files")
-
-    # extracted_files? (list of extracted files?)
-
-    with gzip.open(RAW_DATA_DIR, 'rb') as f_in:
-        with open(extracted_file, 'wb') as f_out:
-            shutil.copyfileobj(f_in, f_out)
-
-    logger.info(f'Extracted the file can be found in: {extracted_file}')
+    logger.info("Finished downloading raw data from OMA server. Time elapsed: %s", timer() - time_start)
+    
 
     # save metrics
     date_pulled = str(datetime.datetime.now().strftime("%m/%d/%Y"))
