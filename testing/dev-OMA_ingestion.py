@@ -187,13 +187,13 @@ if __name__ == "__main__":
     pairs_cols = ["protein1", "protein2", "mult", "group"]
     uniprot_cols = ["oma_id", "uniprot_id"]
     # from utils, input file path as well as output parquet directory
-    pp_utils.split_txt(in_path=f"{RAW_DATA_DIR}/oma-pairs.txt", out_dir=f"{RAW_DATA_DIR}/parquet", cols=pairs_cols)
-    pp_utils.split_txt(in_path=f"{RAW_DATA_DIR}/oma-uniprot.txt", out_dir=f"{RAW_DATA_DIR}/parquet", cols=uniprot_cols)
+    pp_utils.split_txt(in_path=f"{RAW_DATA_DIR}/oma-pairs.txt", out_dir=f"{RAW_DATA_DIR}/parquet/pairs", cols=pairs_cols)
+    pp_utils.split_txt(in_path=f"{RAW_DATA_DIR}/oma-uniprot.txt", out_dir=f"{RAW_DATA_DIR}/parquet/uniprot", cols=uniprot_cols)
     logger.info("Large text files converted to Parquet")
 
     # make pair SQL tables from parquet
-    pp_utils.parqs_to_db(parq_dir=f"{RAW_DATA_DIR}/parquet/pairs", table_name=f"pairs", con=con, cols=['protein1', 'protein2'])
-    pp_utils.parqs_to_db(parq_dir=f"{RAW_DATA_DIR}/parquet/pairs", table_name='uniprot', con=con)
+    pp_utils.parqs_to_db(parq_dir=f"{RAW_DATA_DIR}/parquet/pairs", table_name="pairs", con=con, cols=["protein1", "protein2"])
+    pp_utils.parqs_to_db(parq_dir=f"{RAW_DATA_DIR}/parquet/uniprot", table_name="uniprot", con=con)
     logger.info("SQL tables created within database. Parquet built within: %s", timer() - time_start)
 
     time_start2 = timer()
