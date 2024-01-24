@@ -187,8 +187,8 @@ if __name__ == "__main__":
     pairs_cols = ["protein1", "protein2", "mult", "group"]
     uniprot_cols = ["oma_id", "uniprot_id"]
     # from utils, input file path as well as output parquet directory
-    pp_utils.split_txt(in_path=f"{RAW_DATA_DIR}/oma-pairs.txt", out_dir=f"{RAW_DATA_DIR}/parquet/pairs", cols=pairs_cols)
-    pp_utils.split_txt(in_path=f"{RAW_DATA_DIR}/oma-uniprot.txt", out_dir=f"{RAW_DATA_DIR}/parquet/uniprot", cols=uniprot_cols)
+    pp_utils.split_txt(in_path=f"{RAW_DATA_DIR}/oma-pairs.txt", out_dir=f"{RAW_DATA_DIR}/parquet/pairs", cols=pairs_cols, dtype={"protein1": str, "protein2": str, "mult": str, "group": str})
+    pp_utils.split_txt(in_path=f"{RAW_DATA_DIR}/oma-uniprot.txt", out_dir=f"{RAW_DATA_DIR}/parquet/uniprot", cols=uniprot_cols, dtype={"oma_id": str, "uniprot_id": str})
     logger.info("Large text files converted to Parquet")
 
     # make pair SQL tables from parquet
@@ -198,7 +198,7 @@ if __name__ == "__main__":
 
     time_start2 = timer()
     # create/read fasta files
-    con.execute(f"""CREATE OR REPLACE TABLE proteins AS SELECT description, sequence FROM read_fasta('{RAW_DATA_DIR}/oma-seqs.fa')""")
+    con.execute(f"""CREATE OR REPLACE TABLE proteins AS SELECT id, description, sequence FROM read_fasta('{RAW_DATA_DIR}/oma-seqs.fa')""")
     logger.info("Built proteins in: %s", timer() - time_start2)
 
     time_start3 = timer()
@@ -207,8 +207,8 @@ if __name__ == "__main__":
                 protein1 AS protein1_oma_id,
                 protein2 AS protein2_oma_id,
                 FROM pairs 
-                WHERE protein1 IN (SELECT description FROM read_fasta('{RAW_DATA_DIR}/prokaryotes.cdna.fa'))
-                AND protein2 IN (SELECT description FROM read_fasta('{RAW_DATA_DIR}/prokaryotes.cdna.fa'))""")
+                WHERE protein1 IN (SELECT id FROM read_fasta('{RAW_DATA_DIR}/prokaryotes.cdna.fa'))
+                AND protein2 IN (SELECT id FROM read_fasta('{RAW_DATA_DIR}/prokaryotes.cdna.fa'))""")
 
     # Updates the prok_pairs table with uniprot ids. This and the previous steps must be split to avoid memory issues.
     con.execute("""CREATE OR REPLACE TABLE prok_pairs AS SELECT
