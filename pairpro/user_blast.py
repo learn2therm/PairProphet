@@ -148,11 +148,14 @@ def make_blast_df(df_in, cpus, mode='local', path='./data/blast_db.db', module_p
     
     final_data = Parallel(n_jobs=cpus)(delayed(aligner_align)(row, aligner) for row in df.iterrows())
 
+    # Convert the list of results to a DataFrame
+    final_data_df = pd.DataFrame(final_data, columns=cols)
+
     # Construct temporary dataframe from collected metrics
     
 
     # Merge final_df with sequences and ids from input df
-    blast_df = df.merge(final_data, left_on=['query_id', 'subject_id'],
+    blast_df = df.merge(final_data_df, left_on=['query_id', 'subject_id'],
                         right_on=['query_id', 'subject_id'])
     con = duckdb.connect(path)
     cmd = """CREATE OR REPLACE TABLE protein_pairs
