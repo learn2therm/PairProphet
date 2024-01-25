@@ -1,6 +1,9 @@
 """
 To do: Raise exception for invalid inputs, try capitalization before removing
 rows
+
+OLD VERSION
+# TODO: Clean up ray implementation
 """
 import ray
 from Bio import Align
@@ -11,6 +14,7 @@ import pandas as pd
 import re
 import duckdb
 import pickle
+from joblib import Parallel, delayed
 
 
 
@@ -20,7 +24,7 @@ class PicklablePairwiseAligner(Align.PairwiseAligner):
     def __setstate__(self, state):
         return
 
-def make_blast_df(df_in, mode='local', path='./data/blast_db.db', module_path='.'):
+def make_blast_df(df_in, cpus, mode='local', path='./data/blast_db.db', module_path='.'):
     """
     This function generates pairwise alignment scores for a set of protein
     sequences.
@@ -35,7 +39,7 @@ def make_blast_df(df_in, mode='local', path='./data/blast_db.db', module_path='.
                                           pairs, associated id values, and
                                           alignment scores.
     """
-    # TODO: Clean up ray implementation
+    
     # Rename input data columns for compatibility
     original_cols = df_in.columns
     df = df_in.rename(columns={original_cols[0]: 'query', original_cols[1]: 'subject'})
@@ -108,9 +112,7 @@ def make_blast_df(df_in, mode='local', path='./data/blast_db.db', module_path='.
     cols = metrics + ['query_id', 'subject_id']
     final_data = pd.DataFrame(columns=cols)
 
-    ray.init(runtime_env={'working_dir': '/home/ryfran/PairProphet/pairpro'})
-    @ray.remote
-    def aligner_align(row):
+    def aligner_align(row, aligner):
   
         subject = row[1]['subject']
         query = row[1]['query']
@@ -144,8 +146,7 @@ def make_blast_df(df_in, mode='local', path='./data/blast_db.db', module_path='.
                 row[1]['query_id'], row[1]['subject_id']]
         return new_row
     
-    for row in df.iterrows():
-        final_data.loc[len(final_data)] = ray.get(aligner_align.remote(row))
+    final_data = Parallel(n_jobs=cpus)(delayed(aligner_align)(row, aligner) for row in df.iterrows())
 
     # Construct temporary dataframe from collected metrics
     

@@ -34,11 +34,13 @@ setup(
     ],
     keywords="proteins, function",
     packages=packages,
+    install_requires=[
+        'Click',
+    ],
     python_requires=">=3.10, <4",
     extras_require={ 
         "test": ["coverage", 'pytest'],
     },
-
     package_data={},
     data_files=None, 
     entry_points={},

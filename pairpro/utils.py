@@ -82,7 +82,7 @@ def make_pairs(seq1_list, seq2_list, seq1_name='seq1', seq2_name='seq2',
 
 # TODO: Check that skiprows fix is implemented in dask such that only first 
 # partition is shortened
-def split_txt(in_path, out_dir, cols, blocksize='10MB', skiprows=4, sep='\t'):
+def split_txt(in_path, out_dir, cols, blocksize='10MB', skiprows=4, sep='\t', **kwargs):
     '''
     Converts large text files into a set of parquet files.
 
@@ -97,7 +97,8 @@ def split_txt(in_path, out_dir, cols, blocksize='10MB', skiprows=4, sep='\t'):
     # Dask read_csv function is able to stream large text files to a dataframe
     # object.
     df = dask.dataframe.read_csv(f'{in_path}', names=cols, skiprows=skiprows, 
-                                 blocksize=blocksize, sep=sep, header=None)
+                                 blocksize=blocksize, sep=sep, header=None,
+                                 **kwargs)
     df.to_parquet(out_dir)
 
 def parqs_to_db(parq_dir, table_name, con, cols=['*']):
@@ -132,7 +133,7 @@ def oma_sample(con, size, oma_size = 1900000000):
     '''
 
     # Due to the size of OMA, it is necessary to sample efficiently. This is
-    #  done by selecting a random sample of the desired size from the 
+    # done by selecting a random sample of the desired size from the 
     # prokaryotic pairs table, then joining the protein sequences to the 
     # sample.
     df = con.execute(f"""SELECT protein1_uniprot_id,
@@ -141,8 +142,8 @@ def oma_sample(con, size, oma_size = 1900000000):
                          s2.sequence AS protein2_sequence
                          FROM prok_pairs
                          LEFT JOIN proteins s1 
-                         ON s1.description = protein1_oma_id
+                         ON s1.id = protein1_oma_id
                          LEFT JOIN proteins s2 
-                         ON s2.description = protein2_oma_id 
+                         ON s2.id = protein2_oma_id 
                          WHERE RANDOM() < {size/oma_size}""").fetchdf()
     return df
