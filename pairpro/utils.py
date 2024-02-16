@@ -147,3 +147,35 @@ def oma_sample(con, size, oma_size = 1900000000):
                          ON s2.id = protein2_oma_id 
                          WHERE RANDOM() < {size/oma_size}""").fetchdf()
     return df
+
+
+def nuprok_sample(con, size, oma_size = 1900000000):
+    '''
+    Collects sample of the desired size from the OMA database.
+
+    Args:
+        con (duckdb.DuckDBPyConnection): Connection to OMA database.
+        size (list): Desired number of samples.
+        oma_size (int): Total size of OMA database sample is drawn from. 
+                        Default 1.9 billion corresponds to total number of
+                        prokaryotic pairs before cleaning.
+
+    Returns:
+        df (pd.DataFrame): A dataframe containing sample IDs and sequences.
+    '''
+
+    # Due to the size of OMA, it is necessary to sample efficiently. This is
+    # done by selecting a random sample of the desired size from the 
+    # prokaryotic pairs table, then joining the protein sequences to the 
+    # sample.
+    con.execute(f"""CREATE OR REPLACE TABLE nuprok_pairs AS SELECT protein1_uniprot_id,
+                         protein2_uniprot_id,
+                         s1.sequence AS protein1_sequence,
+                         s2.sequence AS protein2_sequence
+                         FROM prok_pairs
+                         LEFT JOIN proteins s1 
+                         ON s1.id = protein1_oma_id
+                         LEFT JOIN proteins s2 
+                         ON s2.id = protein2_oma_id 
+                         WHERE RANDOM() < {size/oma_size}""")
+    return con
