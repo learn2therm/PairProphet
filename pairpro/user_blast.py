@@ -30,8 +30,8 @@ def make_blast_df(df_in, cpus, mode='local', path='./data/blast_db.db', module_p
     sequences.
 
     Args:
-        df (pandas.core.DataFrame): A 2-column DataFrame containing the query
-                                    and subject sequences for alignment.
+        df (pandas.core.DataFrame): A dataframe that should contain protein pair sequences
+                                    and their associated ids.
         mode (str): Alignment type is 'local' or 'global'. Default: 'local'.
 
     Returns:
@@ -41,53 +41,23 @@ def make_blast_df(df_in, cpus, mode='local', path='./data/blast_db.db', module_p
     """
     
     # Rename input data columns for compatibility
-    original_cols = df_in.columns
-    df = df_in.rename(columns={original_cols[0]: 'query', original_cols[1]: 'subject'})
+    df = df_in.rename(columns={'protein1_sequence': 'query', 'protein2_sequence': 'subject'})
 
 
     # Remove any rows with NaN or containing non-amino acid letters
-    rows_with_nan = []
-    for index, row in df.iterrows():
-        is_nan_series = row.isnull()
-        if is_nan_series.any():
-            rows_with_nan.append(index)
-
-    if len(rows_with_nan) != 0:
-
-        df.drop(np.unique(rows_with_nan), inplace=True)
-        print(f'Found and skipped {len(rows_with_nan)} row(s) containing NaN.')
-        df.reset_index(drop=True, inplace=True)
+    df = df.dropna().reset_index(drop=True)
 
     # All valid 1-letter amino acid codes.
     amino_acids = set("CSTAGPDEQNHRKMILVWYF")
 
     invalid_rows = []
-    for seqs in ['query', 'subject']:
-
-        for i, seq in enumerate(df[seqs]):
-
-            if sequence_validate(seq, amino_acids) is False:
-                invalid_rows.append(i)
-
-    if len(invalid_rows) != 0:
-
-        df.drop(np.unique(invalid_rows), inplace=True)
-        print(f"""Found and skipped {len(invalid_rows)} row(s) containing
-        invalid amino acid codes.""")
-        df.reset_index(drop=True, inplace=True)
-
-    # Generate protein ids for each unique query and subject sequence
-    n_unique_1 = np.unique(df['query'])
-    n_unique_2 = np.unique(df['subject'])
-
-    qid_dict = dict(zip(n_unique_1, range(len(n_unique_1))))
-    sid_dict = dict(zip(n_unique_2, range(len(n_unique_2))))
-
-    df['query_id'] = [qid_dict[i] for i in df.iloc[:, 0]]
-    df['subject_id'] = [sid_dict[i] for i in df.iloc[:, 1]]
-
-    # Use unique row index as a pair id
-    df['pair_id'] = df.index
+    for index, row in df.iterrows():
+        if not set(row['query']).issubset(amino_acids) or not set(row['subject']).issubset(amino_acids):
+            invalid_rows.append(index)
+    
+    if invalid_rows:
+        print(f"Found and skipped {len(invalid_rows)} invalid row(s) containing invalid amino acid sequences.")
+        df = df.drop(index=invalid_rows).reset_index(drop=True)
 
     # Metrics to be calculated
     metrics = ['local_gap_compressed_percent_id',
@@ -109,13 +79,14 @@ def make_blast_df(df_in, cpus, mode='local', path='./data/blast_db.db', module_p
     aligner.mode = mode
 
     # Iterate through all pairs and calculate best alignment and metrics
-    cols = metrics + ['query_id', 'subject_id']
+    cols = metrics + ['pair_id', 'protein1_uniprot_id', 'protein2_uniprot_id']
     final_data = pd.DataFrame(columns=cols)
 
     def aligner_align(row, aligner):
   
-        subject = row[1]['subject']
-        query = row[1]['query']
+        index, data = row  # Unpack the tuple into index and data (Series)
+        subject = data['subject']
+        query = data['query']
         alignment = aligner.align(subject, query)
         best_alignment = max(alignment, key=lambda x: x.score)
         alignment_str = format(best_alignment)
@@ -143,7 +114,7 @@ def make_blast_df(df_in, cpus, mode='local', path='./data/blast_db.db', module_p
         new_row = [gap_comp_pct_id, scaled_local_query_percent_id,
                 scaled_local_symmetric_percent_id, query_length,
                 query_cov, subject_length, subject_cov, best_alignment.score,
-                row[1]['query_id'], row[1]['subject_id']]
+                data['pair_id'], data['protein1_uniprot_id'], data['protein2_uniprot_id']]
         return new_row
     
     final_data = Parallel(n_jobs=cpus)(delayed(aligner_align)(row, aligner) for row in df.iterrows())
@@ -155,8 +126,7 @@ def make_blast_df(df_in, cpus, mode='local', path='./data/blast_db.db', module_p
     
 
     # Merge final_df with sequences and ids from input df
-    blast_df = df.merge(final_data_df, left_on=['query_id', 'subject_id'],
-                        right_on=['query_id', 'subject_id'])
+    blast_df = df.merge(final_data_df, on=['pair_id', 'protein1_uniprot_id', 'protein2_uniprot_id'])
     con = duckdb.connect(path)
     cmd = """CREATE OR REPLACE TABLE protein_pairs
              AS SELECT * FROM blast_df"""
