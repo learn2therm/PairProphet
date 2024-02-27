@@ -5,7 +5,6 @@ rows
 OLD VERSION
 # TODO: Clean up ray implementation
 """
-import ray
 from Bio import Align
 from Bio.Align import substitution_matrices
 import sys
@@ -69,8 +68,6 @@ def make_blast_df(df_in, cpus, mode='local', path='./data/blast_db.db', module_p
                'subject_align_cov',
                'bit_score']
 
-    #data_dict = df.to_dict('records')
-
     # Initialize PairWiseAligner with required parameters for model
     aligner = PicklablePairwiseAligner()
     aligner.substitution_matrix = substitution_matrices.load("BLOSUM62")
@@ -87,10 +84,13 @@ def make_blast_df(df_in, cpus, mode='local', path='./data/blast_db.db', module_p
         index, data = row  # Unpack the tuple into index and data (Series)
         subject = data['subject']
         query = data['query']
+
         alignment = aligner.align(subject, query)
         best_alignment = max(alignment, key=lambda x: x.score)
+
         alignment_str = format(best_alignment)
         alignment_lines = alignment_str.split('\n')
+
         seq1_aligned = alignment_lines[0]
         seq2_aligned = alignment_lines[2]
 
@@ -121,9 +121,6 @@ def make_blast_df(df_in, cpus, mode='local', path='./data/blast_db.db', module_p
 
     # Convert the list of results to a DataFrame
     final_data_df = pd.DataFrame(final_data, columns=cols)
-
-    # Construct temporary dataframe from collected metrics
-    
 
     # Merge final_df with sequences and ids from input df
     blast_df = df.merge(final_data_df, on=['pair_id', 'protein1_uniprot_id', 'protein2_uniprot_id'])
