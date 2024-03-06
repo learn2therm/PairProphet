@@ -23,7 +23,7 @@ class PicklablePairwiseAligner(Align.PairwiseAligner):
     def __setstate__(self, state):
         return
 
-def make_blast_df(df_in, cpus, mode='local', path='./data/blast_db.db', module_path='.'):
+def make_blast_df(df_in, cpus=2, mode='local', path='./data/blast_db.db', module_path='.'):
     """
     This function generates pairwise alignment scores for a set of protein
     sequences.
@@ -31,12 +31,18 @@ def make_blast_df(df_in, cpus, mode='local', path='./data/blast_db.db', module_p
     Args:
         df (pandas.core.DataFrame): A dataframe that should contain protein pair sequences
                                     and their associated ids.
+        cpus (int): The number of cores to use for parallelization. Default: 2.
         mode (str): Alignment type is 'local' or 'global'. Default: 'local'.
 
     Returns:
         blast_df (pandas.core.DataFrame): A dataframe with the input sequence
                                           pairs, associated id values, and
                                           alignment scores.
+
+    Notes:
+        This function uses joblib to parallelize the alignment process. The
+        number of cores used is determined by the cpus parameter. The 
+        alignment scores are calculated using the BLOSUM62 substitution matrix.
     """
     
     # Rename input data columns for compatibility
@@ -117,7 +123,7 @@ def make_blast_df(df_in, cpus, mode='local', path='./data/blast_db.db', module_p
                 data['pair_id'], data['protein1_uniprot_id'], data['protein2_uniprot_id']]
         return new_row
     
-    final_data = Parallel(n_jobs=cpus)(delayed(aligner_align)(row, aligner) for row in df.iterrows())
+    final_data = Parallel(n_jobs=cpus, prefer="threads")(delayed(aligner_align)(row, aligner) for row in df.iterrows())
 
     # Convert the list of results to a DataFrame
     final_data_df = pd.DataFrame(final_data, columns=cols)
