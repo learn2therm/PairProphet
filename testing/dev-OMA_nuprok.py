@@ -112,7 +112,7 @@ if __name__ == "__main__":
     logger.debug(f"CHECK-> module path: {module_path}")
 
     logger.info("Starting to align nuprok pairs")
-    df_align, con = pp_up.make_blast_df(df[['protein1_sequence', 'protein2_sequence']], cpus=num_cpus, path='./data/OMA/samples/oma_sample_2m.db', module_path=module_path)
+    df_align, con = pp_up.make_blast_df(df, cpus=num_cpus, path='./data/OMA/samples/oma_sample_2m.db', module_path=module_path)
     time_delta = timer() - start_time
     logger.info(f'Alignment time: {time_delta} seconds using {num_cpus} cpus')
     

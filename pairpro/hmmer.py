@@ -402,7 +402,7 @@ def process_pairs_table(
     query1 = f"""
         CREATE OR REPLACE TEMP TABLE joined_pairs AS
         SELECT p.query_id, p.subject_id, pr.accession AS query_accession, pr2.accession AS subject_accession
-        FROM OMA_1k AS p
+        FROM OMA_main AS p
         INNER JOIN proteins_from_pairs AS pr ON (p.query_id = pr.pid)
         INNER JOIN proteins_from_pairs AS pr2 ON (p.subject_id = pr2.pid)
     """
