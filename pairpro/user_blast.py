@@ -7,7 +7,9 @@ OLD VERSION
 """
 from Bio import Align
 from Bio.Align import substitution_matrices
+import functools
 import sys
+import multiprocessing
 import numpy as np
 import pandas as pd
 import re
@@ -149,77 +151,51 @@ def make_blast_df(df_in, cpus=2, mode='local', path='./data/blast_db.db', module
 
     return blast_df, con
 
-def blast_pairs(df_in, cpus=2, mode='local'):
+def preprocess_alignment_dataframe(df_in):
     """
-    This function generates pairwise alignment scores for a set of protein
-    sequences.
+    Preprocesses the input dataframe by removing rows with NaN values and
+    sequences containing non-amino acid letters.
 
     Args:
-        df (pandas.core.DataFrame): A dataframe that should contain protein pair sequences
-                                    and their associated ids.
-        cpus (int): The number of cores to use for parallelization. Default: 2.
-        mode (str): Alignment type is 'local' or 'global'. Default: 'local'.
-
+        df_in (pandas.core.DataFrame): A dataframe that should contain protein pair sequences
+                                       and their associated ids.
+    
     Returns:
-        blast_df (pandas.core.DataFrame): A dataframe with the input sequence
-                                          pairs, associated id values, and
-                                          alignment scores.
-
-    Notes:
-        This function uses joblib to parallelize the alignment process. The
-        number of cores used is determined by the cpus parameter. The 
-        alignment scores are calculated using the BLOSUM62 substitution matrix.
+        df (pandas.core.DataFrame): A cleaned dataframe with the input sequences and ids.
     """
-    get_reusable_executor().shutdown(wait=True)
     # Remove any rows with NaN or containing non-amino acid letters
     df = df_in.dropna().reset_index(drop=True)
 
     # All valid 1-letter amino acid codes.
     amino_acids = set("CSTAGPDEQNHRKMILVWYF")
 
-    invalid_rows = []
-    for index, row in df.iterrows():
-        if not set(row['query']).issubset(amino_acids) or not set(row['subject']).issubset(amino_acids):
-            invalid_rows.append(index)
-    
-    if invalid_rows:
-        print(f"Found and skipped {len(invalid_rows)} invalid row(s) containing invalid amino acid sequences.")
-        df = df.drop(index=invalid_rows).reset_index(drop=True)
+    # Check if all sequences are valid
+    valid_query = df['query'].apply(lambda x: set(x).issubset(amino_acids))
+    valid_subject = df['subject'].apply(lambda x: set(x).issubset(amino_acids))
+    valid_rows = valid_query & valid_subject
 
-    # Metrics to be calculated
-    metrics = ['local_gap_compressed_percent_id',
-               'scaled_local_query_percent_id',
-               'scaled_local_symmetric_percent_id',
-               'query_align_len',
-               'query_align_cov',
-               'subject_align_len',
-               'subject_align_cov',
-               'bit_score']
+    # Filter out invalid rows
+    df = df[valid_rows].reset_index(drop=True)
+    print(f"Found and skipped {len(df_in) - len(df)} invalid row(s) containing invalid amino acid sequences.")
 
-    # Initialize PairWiseAligner with required parameters for model
-    aligner = PicklablePairwiseAligner()
-    aligner.substitution_matrix = substitution_matrices.load("BLOSUM62")
-    aligner.open_gap_score = -11
-    aligner.extend_gap_score = -1
-    aligner.mode = mode
+    return df
 
-    # Iterate through all pairs and calculate best alignment and metrics
-    cols = metrics + ['pair_id', 'query_id', 'subject_id']
-    final_data = pd.DataFrame(columns=cols)
+def alignment_worker(chunk, aligner_params):
+    """
+    TODO
+    """
+    try:
+        # Initialize the aligner with the BLOSUM62 substitution matrix
+        aligner = PicklablePairwiseAligner()
+        aligner.substitution_matrix = aligner_params['substitution_matrix']
+        aligner.open_gap_score = aligner_params['open_gap_score']
+        aligner.extend_gap_score = aligner_params['extend_gap_score']
+        aligner.mode = aligner_params['mode']
 
-    def aligner_align(row):
 
-        try:
-            # Initialize PairWiseAligner with required parameters for model locally (messy code)
-            aligner = PicklablePairwiseAligner()
-            aligner.substitution_matrix = substitution_matrices.load("BLOSUM62")
-            aligner.open_gap_score = -11
-            aligner.extend_gap_score = -1
-            aligner.mode = mode
-    
-            # index, data = row  # Unpack the tuple into index and data (Series)
-            subject = row['subject']
-            query = row['query']
+        results = []
+        for _, row in chunk.iterrows():
+            subject, query = row['subject'], row['query']
 
             alignment = aligner.align(subject, query)
             best_alignment = max(alignment, key=lambda x: x.score)
@@ -227,39 +203,104 @@ def blast_pairs(df_in, cpus=2, mode='local'):
             alignment_str = format(best_alignment)
             alignment_lines = alignment_str.split('\n')
 
-            seq1_aligned = alignment_lines[0]
-            seq2_aligned = alignment_lines[2]
+            # for now, let's go simple
+            results.append({'bit_score': best_alignment.score})
+    except Exception as e:
+        print(f"Error in row: {row}: {e}")
+        results.append({'bit_score': None})
 
-            # Coverage and sequence length
-            subject_cov = sum(c != '-' for c in seq1_aligned)
-            query_cov = sum(c != '-' for c in seq2_aligned)
-            subject_length = len(seq1_aligned)
-            query_length = len(seq2_aligned)
-            subject_cov /= subject_length
-            query_cov /= query_length
+    return pd.DataFrame(results)
 
-            # Percent ids
-            n_matches, n_gaps, n_columns, n_comp_gaps = get_matches_gaps(
-                seq2_aligned, seq1_aligned)
-            gap_comp_pct_id = gap_compressed_percent_id(
-                n_matches, n_gaps, n_columns, n_comp_gaps)
-            scaled_local_symmetric_percent_id = 2*n_matches / (subject_length + query_length)
-            scaled_local_query_percent_id = n_matches / query_length
 
-            # Collect calculated metrics into a list for addition to final_data
-            new_row = [gap_comp_pct_id, scaled_local_query_percent_id,
-                    scaled_local_symmetric_percent_id, query_length,
-                    query_cov, subject_length, subject_cov, best_alignment.score,
-                    row['pair_id'], row['query_id'], row['subject_id']]
-            return new_row
-        except Exception as e:
-            print(f"Error in row: {row}: {e}")
-            return [None]*len(cols)
+    # # Metrics to be calculated
+    # metrics = ['local_gap_compressed_percent_id',
+    #            'scaled_local_query_percent_id',
+    #            'scaled_local_symmetric_percent_id',
+    #            'query_align_len',
+    #            'query_align_cov',
+    #            'subject_align_len',
+    #            'subject_align_cov',
+    #            'bit_score']
     
-    final_data = Parallel(n_jobs=cpus, verbose=50, timeout=2000)(delayed(aligner_align)((index, row)) for _, row in df.iterrows())
+    # # Iterate through all pairs and calculate best alignment and metrics
+    # cols = metrics + ['pair_id', 'query_id', 'subject_id']
 
-    # Convert the list of results to a DataFrame
-    blast_df = pd.DataFrame(final_data, columns=cols)
+    # try:
+    #     # Initialize empty list to store results
+    #     results = []
+    #     # Initialize PairWiseAligner with required parameters for model locally (messy code)
+    #     aligner = PicklablePairwiseAligner()
+    #     aligner.substitution_matrix = substitution_matrices.load("BLOSUM62")
+    #     aligner.open_gap_score = -11
+    #     aligner.extend_gap_score = -1
+    #     aligner.mode = mode
+    #     for _, row in chunk.iterrows():
+    #         # index, data = row  # Unpack the tuple into index and data (Series)
+    #         subject, query = row['subject'], row['query']
+
+    #         alignment = aligner.align(subject, query)
+    #         best_alignment = max(alignment, key=lambda x: x.score)
+
+    #         alignment_str = format(best_alignment)
+    #         alignment_lines = alignment_str.split('\n')
+
+    #         seq1_aligned = alignment_lines[0]
+    #         seq2_aligned = alignment_lines[2]
+
+    #         # Coverage and sequence length
+    #         subject_cov = sum(c != '-' for c in seq1_aligned)
+    #         query_cov = sum(c != '-' for c in seq2_aligned)
+    #         subject_length = len(seq1_aligned)
+    #         query_length = len(seq2_aligned)
+    #         subject_cov /= subject_length
+    #         query_cov /= query_length
+
+    #         # Percent ids
+    #         n_matches, n_gaps, n_columns, n_comp_gaps = get_matches_gaps(
+    #             seq2_aligned, seq1_aligned)
+    #         gap_comp_pct_id = gap_compressed_percent_id(
+    #             n_matches, n_gaps, n_columns, n_comp_gaps)
+    #         scaled_local_symmetric_percent_id = 2*n_matches / (subject_length + query_length)
+    #         scaled_local_query_percent_id = n_matches / query_length
+
+    #         # Collect calculated metrics into a list for addition to final_data
+    #         new_row = [gap_comp_pct_id, scaled_local_query_percent_id,
+    #                 scaled_local_symmetric_percent_id, query_length,
+    #                 query_cov, subject_length, subject_cov, best_alignment.score,
+    #                 row['pair_id'], row['query_id'], row['subject_id']]
+    #         results.append(new_row)
+    # except Exception as e:
+    #     print(f"Error in row: {row}: {e}")
+    #     # Append the error indicators to the 'results' list
+    #     results.append([None] * len(metrics + ['pair_id', 'query_id', 'subject_id']))
+    
+    # # 
+    # return pd.DataFrame(results, columns=cols)
+
+def blast_pairs(df_in, cpus=2):
+    """
+    TODO
+    """
+    # Preprocess the input dataframe
+    df_cleaned = preprocess_alignment_dataframe(df_in)
+
+    # Split the dataframe into chunks
+    chunks = np.array_split(df_cleaned, cpus)
+
+    # define the aligner parameters
+    aligner_params = {
+        'substitution_matrix': substitution_matrices.load("BLOSUM62"),
+        'open_gap_score': -11,
+        'extend_gap_score': -1,
+        'mode': 'local' # 'local' or 'global'
+    }
+
+    # Pool to procces each chunk in parallel
+    with multiprocessing.Pool(processes=cpus) as pool:
+        results = pool.starmap(alignment_worker, [(chunk, aligner_params) for chunk in chunks])
+
+    # Concatenate the results into a single dataframe
+    blast_df = pd.concat(results, ignore_index=True)
 
     return blast_df
 

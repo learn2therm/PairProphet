@@ -178,7 +178,7 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
         blast_df = pp_up.blast_pairs(dataframe_for_blast, cpus=njobs)
         logger.info(f'BLAST completed in {time.time()-s_time} seconds')
 
-        # save blast results to csv
+        # save blast results to csv/ tmp directory
         blast_df.to_csv(f'{BLAST_OUTPUT_DIR}blast_output.csv', index=False)
         
         # append blast results to the main table
