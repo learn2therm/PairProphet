@@ -191,25 +191,16 @@ def alignment_worker(chunk, aligner_params):
     aligner.open_gap_score = aligner_params['open_gap_score']
     aligner.extend_gap_score = aligner_params['extend_gap_score']
     aligner.mode = aligner_params['mode']
-
-
-    results = []
+    
+    results = [] # List to store results from each row in the chunk
     for _, row in chunk.iterrows():
-        # Directly access each identifier by column name
-        pair_id = row.get('pair_id', None)
-        query_id = row.get('query_id', None)
-        subject_id = row.get('subject_id', None)
-
         try:
-            # Extract identifiers and sequences
-            subject = row['subject'] 
+            subject = row['subject']
             query = row['query']
 
-            # Perform the alignment
             alignment = aligner.align(subject, query)
             best_alignment = max(alignment, key=lambda x: x.score)
 
-            # Process the best alignment to calculate metrics
             alignment_str = format(best_alignment)
             alignment_lines = alignment_str.split('\n')
 
@@ -232,33 +223,25 @@ def alignment_worker(chunk, aligner_params):
             scaled_local_symmetric_percent_id = 2*n_matches / (subject_length + query_length)
             scaled_local_query_percent_id = n_matches / query_length
 
-            # for now, let's go simple
-            results.append({'pair_id': pair_id,
-                            'query_id': query_id,
-                            'subject_id': subject_id,
-                            'bit_score': best_alignment.score,
-                            'local_gap_compressed_percent_id': gap_comp_pct_id,
-                            'scaled_local_query_percent_id': scaled_local_query_percent_id,
-                            'scaled_local_symmetric_percent_id': scaled_local_symmetric_percent_id,
-                            'query_align_len': query_length,
-                            'query_align_cov': query_cov,
-                            'subject_align_len': subject_length,
-                            'subject_align_cov': subject_cov,})
+            # Collect calculated metrics into a dict
+            new_row = {
+                'pair_id': row.get('pair_id'),
+                'query_id': row.get('query_id'),
+                'subject_id': row.get('subject_id'),
+                'bit_score': best_alignment.score,
+                'local_gap_compressed_percent_id': gap_comp_pct_id,
+                'scaled_local_query_percent_id': scaled_local_query_percent_id,
+                'scaled_local_symmetric_percent_id': scaled_local_symmetric_percent_id,
+                'query_align_len': query_length,
+                'query_align_cov': query_cov,
+                'subject_align_len': subject_length,
+                'subject_align_cov': subject_cov
+            }
+            # Append the new row to the results list
+            results.append(new_row)
         except Exception as e:
-            print(f"Error in row: {row['pair_id']}: {e}")
-            # Append None or suitable defaults for error rows, including identifiers
-            results.append({
-                'pair_id': row['pair_id'],
-                'query_id': row['query_id'],
-                'subject_id': row['subject_id'],
-                'bit_score': None,
-                'query_align_len': None,
-                'query_align_cov': None,
-                'subject_align_len': None,
-                'subject_align_cov': None,
-                'scaled_local_symmetric_percent_id': None,
-                'scaled_local_query_percent_id': None
-            })
+            print(f"Error processing pair_id: {row.get('pair_id')}: {e}")
+            results.append({col: None for col in new_row.keys()})
 
     return pd.DataFrame(results)
 
@@ -287,6 +270,10 @@ def blast_pairs(df_in, cpus=2):
 
     # Concatenate the results into a single dataframe
     blast_df = pd.concat(results, ignore_index=True)
+
+    # Closing the pool and joining the processes
+    pool.close()
+    pool.join()
 
     return blast_df
 
