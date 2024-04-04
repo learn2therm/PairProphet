@@ -182,100 +182,86 @@ def preprocess_alignment_dataframe(df_in):
 
 def alignment_worker(chunk, aligner_params):
     """
-    TODO
+    Processes a chunk of protein sequence pairs to calculate alignment metrics,
+    including returning identifiers from the original DataFrame.
     """
-    try:
-        # Initialize the aligner with the BLOSUM62 substitution matrix
-        aligner = PicklablePairwiseAligner()
-        aligner.substitution_matrix = aligner_params['substitution_matrix']
-        aligner.open_gap_score = aligner_params['open_gap_score']
-        aligner.extend_gap_score = aligner_params['extend_gap_score']
-        aligner.mode = aligner_params['mode']
+    # Initialize the aligner with the BLOSUM62 substitution matrix
+    aligner = PicklablePairwiseAligner()
+    aligner.substitution_matrix = aligner_params['substitution_matrix']
+    aligner.open_gap_score = aligner_params['open_gap_score']
+    aligner.extend_gap_score = aligner_params['extend_gap_score']
+    aligner.mode = aligner_params['mode']
 
 
-        results = []
-        for _, row in chunk.iterrows():
-            subject, query = row['subject'], row['query']
+    results = []
+    for _, row in chunk.iterrows():
+        # Directly access each identifier by column name
+        pair_id = row.get('pair_id', None)
+        query_id = row.get('query_id', None)
+        subject_id = row.get('subject_id', None)
 
+        try:
+            # Extract identifiers and sequences
+            subject = row['subject'] 
+            query = row['query']
+
+            # Perform the alignment
             alignment = aligner.align(subject, query)
             best_alignment = max(alignment, key=lambda x: x.score)
 
+            # Process the best alignment to calculate metrics
             alignment_str = format(best_alignment)
             alignment_lines = alignment_str.split('\n')
 
+            seq1_aligned = alignment_lines[0]
+            seq2_aligned = alignment_lines[2]
+
+            # Coverage and sequence length
+            subject_cov = sum(c != '-' for c in seq1_aligned)
+            query_cov = sum(c != '-' for c in seq2_aligned)
+            subject_length = len(seq1_aligned)
+            query_length = len(seq2_aligned)
+            subject_cov /= subject_length
+            query_cov /= query_length
+
+            # Percent ids
+            n_matches, n_gaps, n_columns, n_comp_gaps = get_matches_gaps(
+                seq2_aligned, seq1_aligned)
+            gap_comp_pct_id = gap_compressed_percent_id(
+                n_matches, n_gaps, n_columns, n_comp_gaps)
+            scaled_local_symmetric_percent_id = 2*n_matches / (subject_length + query_length)
+            scaled_local_query_percent_id = n_matches / query_length
+
             # for now, let's go simple
-            results.append({'bit_score': best_alignment.score})
-    except Exception as e:
-        print(f"Error in row: {row}: {e}")
-        results.append({'bit_score': None})
+            results.append({'pair_id': pair_id,
+                            'query_id': query_id,
+                            'subject_id': subject_id,
+                            'bit_score': best_alignment.score,
+                            'local_gap_compressed_percent_id': gap_comp_pct_id,
+                            'scaled_local_query_percent_id': scaled_local_query_percent_id,
+                            'scaled_local_symmetric_percent_id': scaled_local_symmetric_percent_id,
+                            'query_align_len': query_length,
+                            'query_align_cov': query_cov,
+                            'subject_align_len': subject_length,
+                            'subject_align_cov': subject_cov,})
+        except Exception as e:
+            print(f"Error in row: {row['pair_id']}: {e}")
+            # Append None or suitable defaults for error rows, including identifiers
+            results.append({
+                'pair_id': row['pair_id'],
+                'query_id': row['query_id'],
+                'subject_id': row['subject_id'],
+                'bit_score': None,
+                'query_align_len': None,
+                'query_align_cov': None,
+                'subject_align_len': None,
+                'subject_align_cov': None,
+                'scaled_local_symmetric_percent_id': None,
+                'scaled_local_query_percent_id': None
+            })
 
     return pd.DataFrame(results)
 
-
-    # # Metrics to be calculated
-    # metrics = ['local_gap_compressed_percent_id',
-    #            'scaled_local_query_percent_id',
-    #            'scaled_local_symmetric_percent_id',
-    #            'query_align_len',
-    #            'query_align_cov',
-    #            'subject_align_len',
-    #            'subject_align_cov',
-    #            'bit_score']
-    
-    # # Iterate through all pairs and calculate best alignment and metrics
-    # cols = metrics + ['pair_id', 'query_id', 'subject_id']
-
-    # try:
-    #     # Initialize empty list to store results
-    #     results = []
-    #     # Initialize PairWiseAligner with required parameters for model locally (messy code)
-    #     aligner = PicklablePairwiseAligner()
-    #     aligner.substitution_matrix = substitution_matrices.load("BLOSUM62")
-    #     aligner.open_gap_score = -11
-    #     aligner.extend_gap_score = -1
-    #     aligner.mode = mode
-    #     for _, row in chunk.iterrows():
-    #         # index, data = row  # Unpack the tuple into index and data (Series)
-    #         subject, query = row['subject'], row['query']
-
-    #         alignment = aligner.align(subject, query)
-    #         best_alignment = max(alignment, key=lambda x: x.score)
-
-    #         alignment_str = format(best_alignment)
-    #         alignment_lines = alignment_str.split('\n')
-
-    #         seq1_aligned = alignment_lines[0]
-    #         seq2_aligned = alignment_lines[2]
-
-    #         # Coverage and sequence length
-    #         subject_cov = sum(c != '-' for c in seq1_aligned)
-    #         query_cov = sum(c != '-' for c in seq2_aligned)
-    #         subject_length = len(seq1_aligned)
-    #         query_length = len(seq2_aligned)
-    #         subject_cov /= subject_length
-    #         query_cov /= query_length
-
-    #         # Percent ids
-    #         n_matches, n_gaps, n_columns, n_comp_gaps = get_matches_gaps(
-    #             seq2_aligned, seq1_aligned)
-    #         gap_comp_pct_id = gap_compressed_percent_id(
-    #             n_matches, n_gaps, n_columns, n_comp_gaps)
-    #         scaled_local_symmetric_percent_id = 2*n_matches / (subject_length + query_length)
-    #         scaled_local_query_percent_id = n_matches / query_length
-
-    #         # Collect calculated metrics into a list for addition to final_data
-    #         new_row = [gap_comp_pct_id, scaled_local_query_percent_id,
-    #                 scaled_local_symmetric_percent_id, query_length,
-    #                 query_cov, subject_length, subject_cov, best_alignment.score,
-    #                 row['pair_id'], row['query_id'], row['subject_id']]
-    #         results.append(new_row)
-    # except Exception as e:
-    #     print(f"Error in row: {row}: {e}")
-    #     # Append the error indicators to the 'results' list
-    #     results.append([None] * len(metrics + ['pair_id', 'query_id', 'subject_id']))
-    
-    # # 
-    # return pd.DataFrame(results, columns=cols)
 
 def blast_pairs(df_in, cpus=2):
     """
