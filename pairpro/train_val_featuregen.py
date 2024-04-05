@@ -32,7 +32,7 @@ def get_fasta_from_dataframe(
             f.write(
                 '>{}\n{}\n'.format(
                     (row['pair_id']),
-                    row['m_protein_seq']))
+                    row['query']))
 
     # thermo sequence to fasta
     with open(f'./tmp/{output_file_b}', 'w') as f:
@@ -40,7 +40,7 @@ def get_fasta_from_dataframe(
             f.write(
                 '>{}\n{}\n'.format(
                     (row['pair_id']),
-                    (row['t_protein_seq'])))
+                    (row['subject'])))
 
     # return output files
     return [output_file_a, output_file_b]

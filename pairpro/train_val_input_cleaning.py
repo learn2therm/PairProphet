@@ -24,7 +24,7 @@ columns_to_keep = [
     'norm_bit_score_subject',
     'query',
     'subject',
-    'Pair'
+    'true_labels'
 ]
 
 

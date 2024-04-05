@@ -108,7 +108,7 @@ def balance_data(dataframe, target_columns):
 
 
 @click.command()
-@click.option('--blast', default=False, help='Whether to run BLAST or not')
+@click.option('--blast', default=True, help='Whether to run BLAST or not')
 @click.option('--hmmer', default=False, help='Whether to run HMMER or not')
 @click.option('--chunk_size', default=1,
               help='Number of sequences to process in each chunk. Size of 1 means 2048 sequences per chunk, 2 means 4096, etc. as it is vectorized.')
@@ -169,7 +169,7 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
     if blast:
         # blast component
         logger.info('Starting to run BLAST')
-        dataframe_for_blast = con.execute("SELECT * FROM OMA_main").df()
+        dataframe_for_blast = con.execute("SELECT * FROM OMA_main LIMIT 10000").df()
         logger.debug(f"DataFrame shape before BLAST processing: {dataframe_for_blast.shape}")
 
         # run blast
@@ -183,34 +183,58 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
         
         # append blast results to the main table
         con.execute("""CREATE OR REPLACE TEMP TABLE blast_results AS 
-                    SELECT * FROM read_csv_auto('./data/protein_pairs/blast_output.csv', HEADER=TRUE)""")
+                    SELECT * FROM read_csv_auto('./data/protein_pairs/blast_output/blast_output.csv', HEADER=TRUE)""")
         
-        con.execute(
-            f"""ALTER TABLE OMA_main ADD COLUMN 
-            local_gap_compressed_percent_id DOUBLE,
-            scaled_local_query_percent_id DOUBLE,
-            scaled_local_symmetric_percent_id DOUBLE,
-            query_align_len DOUBLE,
-            query_align_cov DOUBLE,
-            subject_align_len DOUBLE,
-            subject_align_cov DOUBLE,
-            bit_score DOUBLE
-            """)
-        
-        con.execute(f"""UPDATE OMA_main AS f
-        SET local_gap_compressed_percent_id = blast.local_gap_compressed_percent_id::DOUBLE,
-        scaled_local_query_percent_id = blast.scaled_local_query_percent_id::DOUBLE,
-        scaled_local_symmetric_percent_id = blast.scaled_local_symmetric_percent_id::DOUBLE,
-        query_align_len = blast.query_align_len::DOUBLE,
-        query_align_cov = blast.query_align_cov::DOUBLE,
-        subject_align_len = blast.subject_align_len::DOUBLE,
-        subject_align_cov = blast.subject_align_cov::DOUBLE,
-        bit_score = blast.bit_score::DOUBLE
-        FROM blast_results AS blast
-        WHERE
-            blast.query_id = f.query_id
-            AND blast.subject_id = f.subject_id""")
 
+        # add columns to the main table
+        # the verbose way is to avoid errors
+        columns_to_add = [("local_gap_compressed_percent_id", "DOUBLE"),
+                          ("scaled_local_query_percent_id", "DOUBLE"),
+                          ("scaled_local_symmetric_percent_id", "DOUBLE"),
+                          ("query_align_len", "DOUBLE"),
+                          ("query_align_cov", "DOUBLE"),
+                          ("subject_align_len", "DOUBLE"),
+                          ("subject_align_cov", "DOUBLE"),
+                          ("bit_score", "DOUBLE"),
+                          ("query_len", "DOUBLE"),
+                          ("subject_len", "DOUBLE")]
+
+        for column_name, column_type in columns_to_add:
+            con.execute(f"""
+                ALTER TABLE OMA_main
+                ADD COLUMN {column_name} {column_type}
+            """)
+
+        
+        # update the main table with blast results
+        # this is verbose, but it avoids updating errors
+        update_columns = ["local_gap_compressed_percent_id",
+                          "scaled_local_query_percent_id",
+                          "scaled_local_symmetric_percent_id",
+                          "query_align_len",
+                          "query_align_cov",
+                          "subject_align_len",
+                          "subject_align_cov",
+                          "query_len",
+                          "subject_len",
+                          "bit_score"]
+        
+        for column in update_columns:
+            con.execute(f"""
+                        UPDATE OMA_main
+                        SET {column} = (
+                            SELECT b.{column}
+                            FROM blast_results AS b
+                            WHERE b.query_id = OMA_main.query_id
+                            AND b.subject_id = OMA_main.subject_id
+                            AND b.pair_id = OMA_main.pair_id
+                            )""")
+            
+        # commit the changes to the main table
+        con.commit()
+        
+        df = con.execute("""SELECT * FROM OMA_main LIMIT 10000""").df()
+        logger.debug(f"DataFrame shape after BLAST processing: {df.shape}")
 
     else:
         print("skipping blast")
@@ -234,7 +258,7 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
             f"Total number of protein in pairs: {proteins_in_pair_count} in pipeline")
 
         proteins_in_pair = con.execute(
-            f"SELECT pid, protein_seq FROM processed_proteins")
+            f"SELECT pid, protein_seq FROM processed_proteins LIMIT 10000")
     
     
         # get number of hmms for evalue calc
@@ -301,8 +325,8 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
                     WHERE functional IS NOT NULL AND score IS NOT NULL
                     """)
         con.execute(
-            f"""ALTER TABLE OMA_1k ADD COLUMN hmmer_match DOUBLE""")
-        con.execute(f"""UPDATE OMA_1k AS f
+            f"""ALTER TABLE OMA_main ADD COLUMN hmmer_match DOUBLE""")
+        con.execute(f"""UPDATE OMA_main AS f
         SET hmmer_match = hmmer.score::DOUBLE
         FROM hmmer_results AS hmmer
         WHERE 
@@ -313,7 +337,7 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
         """)
         # delete rows from pairpro.final where corresponding hmmer_results have NaN functional
         # Delete rows from pairpro.final where hmmer_match is NULL
-        con.execute(f"""DELETE FROM OMA_1k
+        con.execute(f"""DELETE FROM OMA_main
         WHERE hmmer_match IS NULL;
         """)
         logger.info('Finished appending parsed HMMER output to table.')
@@ -322,17 +346,18 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
         df = con.execute(f"""SELECT pair_id, query, subject, bit_score, local_gap_compressed_percent_id,
         scaled_local_query_percent_id, scaled_local_symmetric_percent_id,
         query_align_len, query_align_cov, subject_align_len, subject_align_cov,
-        LENGTH(query) AS query_len, LENGTH(subject) AS subject_len, Pair, {', '.join(ml_feature_list)} FROM OMA_1k""").df()
+        LENGTH(query) AS query_len, LENGTH(subject) AS subject_len, {', '.join(ml_feature_list)} FROM OMA_main""").df()
 
         logger.debug(f"DataFrame shape after HMMER processing: {df.shape}")
     else:
+        logger.info('No HMMER selected. Skipping.')
         pass
 
 
     # structure component ###leave this for now. Check with Ryan on OMA database
     if structure:
         structure_df = con.execute(
-            f"""SELECT pair_id, thermo_pid, thermo_pdb, meso_pid, meso_pdb FROM OMA_1k""").df()
+            f"""SELECT pair_id, thermo_pid, thermo_pdb, meso_pid, meso_pdb FROM OMA_main""").df()
         downloader = pp_structures.ProteinDownloader(pdb_dir=STRUCTURE_DIR)
         logger.info(
             f'Downloading structures. Output directory: {STRUCTURE_DIR}')
@@ -348,8 +373,8 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
 
         con.execute("""CREATE OR REPLACE TEMP TABLE structure_results AS SELECT * FROM read_csv_auto('./data/protein_pairs/structures/*.csv', HEADER=TRUE)""")
         con.execute(
-            f"""ALTER TABLE OMA_1k ADD COLUMN structure_match BOOLEAN""")
-        con.execute(f"""UPDATE OMA_1k AS f
+            f"""ALTER TABLE OMA_main ADD COLUMN structure_match BOOLEAN""")
+        con.execute(f"""UPDATE OMA_main AS f
         SET structure_match = structure.p_value::BOOLEAN
         FROM structure_results AS structure
         WHERE structure.pair_id = f.pair_id
@@ -361,19 +386,20 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
         df = con.execute(f"""SELECT pair_id, query, subjecy, bit_score, local_gap_compressed_percent_id,
         scaled_local_query_percent_id, scaled_local_symmetric_percent_id,
         query_align_len, query_align_cov, subject_align_len, subject_align_cov,
-        LENGTH(query) AS query_len, LENGTH(subject) AS subject_len, Pair, {', '.join(ml_feature_list)} FROM OMA_1k WHERE structure_match IS NOT NULL""").df()
+        LENGTH(query) AS query_len, LENGTH(subject) AS subject_len, Pair, {', '.join(ml_feature_list)} FROM OMA_main WHERE structure_match IS NOT NULL""").df()
 
 
         logger.debug(f"DataFrame shape after structure processing: {df.shape}")
 
     else:
+        logger.info('No structure selected. Skipping.')
         pass
 
-    if not hmmer and not structure:
-        logger.info('No features selected. Exiting.')
-        raise NotImplementedError('Currently, you cannot train a model without hmmer or structure')
-    else:
-        pass
+    # if not hmmer and not structure:
+    #     logger.info('No features selected. Exiting.')
+    #     raise NotImplementedError('Currently, you cannot train a model without hmmer or structure')
+    # else:
+    #     pass
         
     
     logger.debug(df.info(verbose=True))
@@ -384,9 +410,9 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
     logger.info('Beginning to preprocess data for model training')
 
 
-    target = ['true_label']
-    # Need to true label for confusion matrix
-    #data['true_labels'] = data['pair_id'].apply(lambda x: 'True Pair' if 'clean_' in x else 'Non-Pair')
+    target = ['true_labels']
+    # Need to true label for ML model
+    df['true_labels'] = df['pair_id'].apply(lambda x: 'True Pair' if 'clean_' in x else 'Non-Pair')
 
     # balance the dataframe (Logan version)
     df = balance_data(df, target_columns=target)

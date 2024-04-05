@@ -235,7 +235,9 @@ def alignment_worker(chunk, aligner_params):
                 'query_align_len': query_length,
                 'query_align_cov': query_cov,
                 'subject_align_len': subject_length,
-                'subject_align_cov': subject_cov
+                'subject_align_cov': subject_cov,
+                'query_len': len(query),
+                'subject_len': len(subject),
             }
             # Append the new row to the results list
             results.append(new_row)
