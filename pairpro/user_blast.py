@@ -30,7 +30,74 @@ class PicklablePairwiseAligner(Align.PairwiseAligner):
     def __setstate__(self, state):
         return
 
-def make_blast_df(df_in, cpus=2, mode='local', path='./data/blast_db.db', module_path='.'):
+def alignment_worker_og(chunk, aligner_params):
+    """
+    Processes a chunk of protein sequence pairs to calculate alignment metrics,
+    including returning identifiers from the original DataFrame.
+    """
+    # Initialize the aligner with the BLOSUM62 substitution matrix
+    aligner = PicklablePairwiseAligner()
+    aligner.substitution_matrix = aligner_params['substitution_matrix']
+    aligner.open_gap_score = aligner_params['open_gap_score']
+    aligner.extend_gap_score = aligner_params['extend_gap_score']
+    aligner.mode = aligner_params['mode']
+    
+    results = [] # List to store results from each row in the chunk
+    for _, row in chunk.iterrows():
+        try:
+            subject = row['subject']
+            query = row['query']
+
+            alignment = aligner.align(subject, query)
+            best_alignment = max(alignment, key=lambda x: x.score)
+
+            alignment_str = format(best_alignment)
+            alignment_lines = alignment_str.split('\n')
+
+            seq1_aligned = alignment_lines[0]
+            seq2_aligned = alignment_lines[2]
+
+            # Coverage and sequence length
+            subject_cov = sum(c != '-' for c in seq1_aligned)
+            query_cov = sum(c != '-' for c in seq2_aligned)
+            subject_length = len(seq1_aligned)
+            query_length = len(seq2_aligned)
+            subject_cov /= subject_length
+            query_cov /= query_length
+
+            # Percent ids
+            n_matches, n_gaps, n_columns, n_comp_gaps = get_matches_gaps(
+                seq2_aligned, seq1_aligned)
+            gap_comp_pct_id = gap_compressed_percent_id(
+                n_matches, n_gaps, n_columns, n_comp_gaps)
+            scaled_local_symmetric_percent_id = 2*n_matches / (subject_length + query_length)
+            scaled_local_query_percent_id = n_matches / query_length
+
+            # Collect calculated metrics into a dict
+            new_row = {
+                'pair_id': row.get('pair_id'),
+                'query_id': row.get('query_id'),
+                'subject_id': row.get('subject_id'),
+                'bit_score': best_alignment.score,
+                'local_gap_compressed_percent_id': gap_comp_pct_id,
+                'scaled_local_query_percent_id': scaled_local_query_percent_id,
+                'scaled_local_symmetric_percent_id': scaled_local_symmetric_percent_id,
+                'query_align_len': query_length,
+                'query_align_cov': query_cov,
+                'subject_align_len': subject_length,
+                'subject_align_cov': subject_cov,
+                'query_len': len(query),
+                'subject_len': len(subject),
+            }
+            # Append the new row to the results list
+            results.append(new_row)
+        except Exception as e:
+            print(f"Error processing pair_id: {row.get('pair_id')}: {e}")
+            results.append({col: None for col in new_row.keys()})
+
+    return pd.DataFrame(results)
+
+def make_blast_df(df_in, cpus=2, path='./data/blast_db.db'):
     """
     This function generates pairwise alignment scores for a set of protein
     sequences.
@@ -71,79 +138,29 @@ def make_blast_df(df_in, cpus=2, mode='local', path='./data/blast_db.db', module
         print(f"Found and skipped {len(invalid_rows)} invalid row(s) containing invalid amino acid sequences.")
         df = df.drop(index=invalid_rows).reset_index(drop=True)
 
-    # Metrics to be calculated
-    metrics = ['local_gap_compressed_percent_id',
-               'scaled_local_query_percent_id',
-               'scaled_local_symmetric_percent_id',
-               'query_align_len',
-               'query_align_cov',
-               'subject_align_len',
-               'subject_align_cov',
-               'bit_score']
+    # Split the dataframe into chunks
+    chunks = np.array_split(df, cpus)
 
-    # Initialize PairWiseAligner with required parameters for model
-    aligner = PicklablePairwiseAligner()
-    aligner.substitution_matrix = substitution_matrices.load("BLOSUM62")
-    aligner.open_gap_score = -11
-    aligner.extend_gap_score = -1
-    aligner.mode = mode
+    # define the aligner parameters
+    aligner_params = {
+        'substitution_matrix': substitution_matrices.load("BLOSUM62"),
+        'open_gap_score': -11,
+        'extend_gap_score': -1,
+        'mode': 'global' # 'local' or 'global'
+    }
 
-    # Iterate through all pairs and calculate best alignment and metrics
-    cols = metrics + ['pair_id', 'protein1_uniprot_id', 'protein2_uniprot_id']
-    final_data = pd.DataFrame(columns=cols)
+    # Pool to procces each chunk in parallel
+    with multiprocessing.Pool(processes=cpus) as pool:
+        results = pool.starmap(alignment_worker_og, [(chunk, aligner_params) for chunk in chunks])
 
-    def aligner_align(row, aligner):
+    # Concatenate the results into a single dataframe
+    blast_df = pd.concat(results, ignore_index=True)
 
-        # Initialize PairWiseAligner with required parameters for model locally (messy code)
-        aligner = PicklablePairwiseAligner()
-        aligner.substitution_matrix = substitution_matrices.load("BLOSUM62")
-        aligner.open_gap_score = -11
-        aligner.extend_gap_score = -1
-        aligner.mode = mode
-  
-        index, data = row  # Unpack the tuple into index and data (Series)
-        subject = data['subject']
-        query = data['query']
+    # Closing the pool and joining the processes
+    pool.close()
+    pool.join()
 
-        alignment = aligner.align(subject, query)
-        best_alignment = max(alignment, key=lambda x: x.score)
-
-        alignment_str = format(best_alignment)
-        alignment_lines = alignment_str.split('\n')
-
-        seq1_aligned = alignment_lines[0]
-        seq2_aligned = alignment_lines[2]
-
-        # Coverage and sequence length
-        subject_cov = sum(c != '-' for c in seq1_aligned)
-        query_cov = sum(c != '-' for c in seq2_aligned)
-        subject_length = len(seq1_aligned)
-        query_length = len(seq2_aligned)
-        subject_cov /= subject_length
-        query_cov /= query_length
-
-        # Percent ids
-        n_matches, n_gaps, n_columns, n_comp_gaps = get_matches_gaps(
-            seq2_aligned, seq1_aligned)
-        gap_comp_pct_id = gap_compressed_percent_id(
-            n_matches, n_gaps, n_columns, n_comp_gaps)
-        scaled_local_symmetric_percent_id = 2*n_matches / (subject_length + query_length)
-        scaled_local_query_percent_id = n_matches / query_length
-
-        # Collect calculated metrics into a list for addition to final_data
-        new_row = [gap_comp_pct_id, scaled_local_query_percent_id,
-                scaled_local_symmetric_percent_id, query_length,
-                query_cov, subject_length, subject_cov, best_alignment.score,
-                data['pair_id'], data['protein1_uniprot_id'], data['protein2_uniprot_id']]
-        return new_row
-    
-    final_data = Parallel(n_jobs=cpus)(delayed(aligner_align)(row, aligner) for row in df.iterrows())
-
-    # Convert the list of results to a DataFrame
-    blast_df = pd.DataFrame(final_data, columns=cols)
-
-    # Merge final_df with sequences and ids from input df
-    # blast_df = df.merge(final_data_df, on=['pair_id', 'protein1_uniprot_id', 'protein2_uniprot_id'])
+    # create a duckdb database and store the blast_df
     con = duckdb.connect(path)
     cmd = """CREATE OR REPLACE TABLE protein_pairs
              AS SELECT * FROM blast_df"""
@@ -263,7 +280,7 @@ def blast_pairs(df_in, cpus=2):
         'substitution_matrix': substitution_matrices.load("BLOSUM62"),
         'open_gap_score': -11,
         'extend_gap_score': -1,
-        'mode': 'local' # 'local' or 'global'
+        'mode': 'global' # 'local' or 'global'
     }
 
     # Pool to procces each chunk in parallel
