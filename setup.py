@@ -85,11 +85,6 @@ setup(
     extras_require={ 
         "test": ["coverage", 'pytest'],
     },
-    entry_points={
-        'console_scripts': [
-            'train_model = pairpro.scripts.train_model:model_construction',
-        ],
-    },
     package_data={},
     data_files=None
 )

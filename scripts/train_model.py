@@ -54,7 +54,7 @@ import pairpro.structures
 
 
 # db Paths
-TEST_DB_PATH = './data/l2t_50k.db'  # l2t_50k.db
+TEST_DB_PATH = 'l2t_500k.db'  # l2t_50k.db
 
 # HMMER Paths
 HMM_PATH = './data/pfam/Pfam-A.hmm'  # ./Pfam-A.hmm
@@ -123,13 +123,11 @@ def balance_data(dataframe, target_columns):
 @click.command()
 @click.option('--hmmer', default=False, help='Whether to run HMMER or not')
 @click.option('--chunk_size', default=1,
-              help='Number of sequences to process in each chunk')
+              help='Number of sequences to process in each chunk. Size of 1 means 2048 sequences per chunk, 2 means 4096, etc. as it is vectorized.')
 @click.option('--njobs', default=4,
               help='Number of parallel processes to use for HMMER')
 @click.option('--jaccard_threshold', default=0.7,
               help='Jaccard threshold for filtering protein pairs')
-@click.option('--vector_size', default=1,
-              help='Size of the vector for the dataframe chunking')
 @click.option('--features', default=False,
               help='List of features to use for the model')
 @click.option('--structure', default=False,
@@ -137,7 +135,7 @@ def balance_data(dataframe, target_columns):
 @click.option('--model_name', default='base',
               help='Name of the model')
 def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
-                       vector_size, structure, features, model_name):
+                       structure, features, model_name):
     """
     Function to train a ML model to classify protein pairs
     """
@@ -225,7 +223,7 @@ def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
         pairpro.hmmer.process_pairs_table(
             con,
             db_name,
-            vector_size,
+            chunk_size,
             PARSE_HMMER_OUTPUT_DIR,
             jaccard_threshold)
         
@@ -262,6 +260,8 @@ def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
         LENGTH(m_protein_seq) AS m_protein_len, LENGTH(t_protein_seq) AS t_protein_len, {', '.join(ml_feature_list)} FROM {db_name}.pairpro.final""").df()
 
         logger.debug(f"DataFrame shape after HMMER processing: {df.shape}")
+    else:
+        pass
 
 
     # structure component
@@ -302,7 +302,13 @@ def model_construction(hmmer, chunk_size, njobs, jaccard_threshold,
         logger.debug(f"DataFrame shape after structure processing: {df.shape}")
 
     else:
+        pass
+
+    if not hmmer and not structure:
+        logger.info('No features selected. Exiting.')
         raise NotImplementedError('Currently, you cannot train a model without hmmer or structure')
+    else:
+        pass
         
     
     logger.debug(df.info(verbose=True))

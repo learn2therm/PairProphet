@@ -8,6 +8,7 @@ from pairpro.eval_featuregen import create_new_dataframe
 
 
 def evaluate_model_wrapper(model, dataframe, target,
+                           blast=False, hmmer=False,
                            structure=False, features=False):
     '''
     Takes dataframe and runs it through cleaning script.
@@ -24,7 +25,7 @@ def evaluate_model_wrapper(model, dataframe, target,
         Model score
     '''
     # clean input dataframe
-    dataframe = verify_input_data(dataframe, structure)
+    dataframe = verify_input_data(dataframe, blast, hmmer, structure)
 
     if features is True:
         feature_list = [

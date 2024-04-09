@@ -336,46 +336,46 @@ def local_hmmer_wrapper(chunk_index, chunked_inputs, press_path, hmm_path, out_d
 #################
 
 
-def preprocess_accessions(meso_accession: str, thermo_accession: str):
+def preprocess_accessions(query_accession, subject_accession):
     """
-    Preprocesses meso_accession and thermo_accession by converting them to sets.
+    Preprocesses query_accession and subject_accession by converting them to sets.
 
     Args:
-        meso_accession (str): Meso accession string separated by ';'.
-        thermo_accession (str): Thermo accession string separated by ';'.
+        query_accession (str): query accession string separated by ';'.
+        subject_accession (str): subject accession string separated by ';'.
 
     Returns:
-        tuple: A tuple containing the preprocessed meso_accession and thermo_accession sets.
+        tuple: A tuple containing the preprocessed query_accession and subject_accession sets.
     """
     # Convert accessions to sets
-    if pd.isna(meso_accession):
-        meso_accession_set = set()
+    if (pd.isna(query_accession) or query_accession == ''):
+        query_accession_set = set()
     else:
-        meso_accession_set = set(str(meso_accession.split(';')))
-    if pd.isna(thermo_accession):
-        thermo_accession_set = set()
+        query_accession_set = set(query_accession.split(';'))
+    if (pd.isna(subject_accession) or subject_accession == ''):
+        subject_accession_set = set()
     else:
-        thermo_accession_set = set(str(thermo_accession.split(';')))
+        subject_accession_set = set(subject_accession.split(';'))
     
-    return meso_accession_set, thermo_accession_set
+    return query_accession_set, subject_accession_set
 
 
-def calculate_jaccard_similarity(meso_accession_set, thermo_accession_set):
+def calculate_jaccard_similarity(query_accession_set, subject_accession_set):
     """
-    Calculates the Jaccard similarity between meso_pid and thermo_pid pairs based on their accessions.
+    Calculates the Jaccard similarity between query_id and subject_id pairs based on their accessions.
 
     Jaccard similarity is defined as the size of the intersection divided by the size of the union of two sets.
 
     Args:
-        meso_accession_set (set): Set of meso_pid accessions.
-        thermo_accession_set (set): Set of thermo_pid accessions.
+        query_accession_set (set): Set of query_id accessions.
+        subject_accession_set (set): Set of subject_pid accessions.
 
     Returns:
         float: Jaccard similarity between the two sets of accessions. Returns 0 if the union is empty.
     """
     # Calculate Jaccard similarity
-    intersection = len(meso_accession_set.intersection(thermo_accession_set))
-    union = len(meso_accession_set.union(thermo_accession_set))
+    intersection = len(query_accession_set.intersection(subject_accession_set))
+    union = len(query_accession_set.union(subject_accession_set))
     jaccard_similarity = intersection / union if union > 0 else 0
 
     return jaccard_similarity
@@ -383,7 +383,6 @@ def calculate_jaccard_similarity(meso_accession_set, thermo_accession_set):
 
 def process_pairs_table(
         conn,
-        dbname,
         chunk_size: int,
         output_directory,
         jaccard_threshold):
@@ -392,7 +391,6 @@ def process_pairs_table(
 
     Parameters:
         conn (**): Path to the database file.
-        dbname (str): Name of the database.
         chunk_size (int): Size of each query chunk to fetch from the database.
         output_directory (str): Directory path to save the output CSV files.
         jaccard_threshold (float): Threshold value for Jaccard similarity.
@@ -403,50 +401,51 @@ def process_pairs_table(
     # Perform a join to get relevant information from the two tables
     query1 = f"""
         CREATE OR REPLACE TEMP TABLE joined_pairs AS
-        SELECT p.meso_pid, p.thermo_pid, pr.accession AS meso_accession, pr2.accession AS thermo_accession
-        FROM {dbname}.pairpro.final AS p
-        INNER JOIN proteins_from_pairs AS pr ON (p.meso_pid = pr.pid)
-        INNER JOIN proteins_from_pairs AS pr2 ON (p.thermo_pid = pr2.pid)
+        SELECT p.query_id, p.subject_id, pr.accession AS query_accession, pr2.accession AS subject_accession
+        FROM OMA_main AS p
+        INNER JOIN proteins_from_pairs AS pr ON (p.query_id = pr.pid)
+        INNER JOIN proteins_from_pairs AS pr2 ON (p.subject_id = pr2.pid)
     """
     conn.execute(query1)
 
     # Define the evaluation function for the apply function
     def evaluation_function(row, jaccard_threshold):
         """
-        Evaluates the Jaccard similarity between meso_pid and thermo_pid pairs based on their accessions.
+        Evaluates the Jaccard similarity between query_id and subject_id pairs based on their accessions.
 
         Notes:
             This function is used in the apply function to calculate the Jaccard similarity
-            between meso_pid and thermo_pid pairs based on their accessions.
+            between query_id and subject_id pairs based on their accessions.
             There is a parsing logic for the accessions, which is described below.
-            If both meso_accession and thermo_accession are nan, then the Jaccard similarity is None.
-            If either meso_accession or thermo_accession is empty, then the Jaccard similarity is 0.
-            If both meso_accession and thermo_accession are not empty, then the Jaccard similarity is calculated.
+            If both query_accession and subject_accession are nan, then the Jaccard similarity is None.
+            If either query_accession or subject_accession is empty, then the Jaccard similarity is 0.
+            If both query_accession and subject_accession are not empty, then the Jaccard similarity is calculated.
         """
         # Get the accessions
-        meso_acc = row['meso_accession']
-        thermo_acc = row['thermo_accession']
+        query_acc = row['query_accession']
+        subject_acc = row['subject_accession']
         
 
         # preprocessing accessions logic
-        if type(meso_acc) == str:
-            meso_acc_set, thermo_acc_set = preprocess_accessions(meso_acc, thermo_acc)
-        elif type(meso_acc) == list:
-            meso_acc_set = set(meso_acc)
-            thermo_acc_set = set(thermo_acc)
-        elif pd.isna(meso_acc) or pd.isna(thermo_acc):
-            meso_acc_set = set()
-            thermo_acc_set = set()
+        if type(query_acc) == str:
+            query_acc_set, subject_acc_set = preprocess_accessions(query_acc, subject_acc)
+        elif type(query_acc) == list:
+            query_acc_set = set(query_acc)
+            subject_acc_set = set(subject_acc)
+        elif pd.isna(query_acc) and pd.isna(subject_acc):
+            query_acc_set, subject_acc_set = None, None
+        elif pd.isna(query_acc) or pd.isna(subject_acc):
+            query_acc_set, subject_acc_set = preprocess_accessions_ana(query_acc, subject_acc)
         else:
-            raise ValueError("meso_acc must be either a string or a list")
+            raise ValueError("query_acc must be either a string or a list")
         
         # parsing accessions logic
-        if not meso_acc_set and not thermo_acc_set:
+        if not query_acc_set and not subject_acc_set:
             score = None
             functional = None
-        elif meso_acc_set and thermo_acc_set:
+        elif query_acc_set and subject_acc_set:
             # Preprocess the accessions
-            score = calculate_jaccard_similarity(meso_acc_set, thermo_acc_set)
+            score = calculate_jaccard_similarity(query_acc_set, subject_acc_set)
             functional = score > jaccard_threshold
         else:
             # Handle unmatched rows
@@ -481,8 +480,8 @@ def process_pairs_table(
                 f'{output_directory}{chunk_counter}_output.csv',
                 index=False,
                 columns=[
-                    'meso_pid',
-                    'thermo_pid',
+                    'query_id',
+                    'subject_id',
                     'functional',
                     'score'])
             logger.info(f'Chunk {chunk_counter} of size {len(query_chunk)} written to csv.')
@@ -570,18 +569,62 @@ def local_hmmer_wrapper_example(chunk_index, dbpath, chunked_pid_inputs,
         f'{out_dir}/{chunk_index}_output.csv',
         index=False)
 
+######### analysis #########
+
+def preprocess_accessions_ana(meso_accession: str, thermo_accession: str):
+    """
+    Preprocesses meso_accession and thermo_accession by converting them to sets.
+
+    Args:
+        meso_accession (str): Meso accession string separated by ';'.
+        thermo_accession (str): Thermo accession string separated by ';'.
+
+    Returns:
+        tuple: A tuple containing the preprocessed meso_accession and thermo_accession sets.
+    """
+    # Convert accessions to sets
+    if (pd.isna(meso_accession) or meso_accession == ''):
+        meso_accession_set = set()
+    else:
+        meso_accession_set = set(meso_accession.split(';'))
+    if (pd.isna(thermo_accession) or thermo_accession == ''):
+        thermo_accession_set = set()
+    else:
+        thermo_accession_set = set(thermo_accession.split(';'))
+    
+    return meso_accession_set, thermo_accession_set
+
+
+def calculate_jaccard_similarity_ana(meso_accession_set, thermo_accession_set):
+    """
+    Calculates the Jaccard similarity between meso_pid and thermo_pid pairs based on their accessions.
+
+    Jaccard similarity is defined as the size of the intersection divided by the size of the union of two sets.
+
+    Args:
+        meso_accession_set (set): Set of meso_pid accessions.
+        thermo_accession_set (set): Set of thermo_pid accessions.
+
+    Returns:
+        float: Jaccard similarity between the two sets of accessions. Returns 0 if the union is empty.
+    """
+    # Calculate Jaccard similarity
+    intersection = len(meso_accession_set.intersection(thermo_accession_set))
+    union = len(meso_accession_set.union(thermo_accession_set))
+    jaccard_similarity = intersection / union if union > 0 else 0
+
+    return jaccard_similarity
+
 def process_pairs_table_ana(
         conn,
-        dbname,
         chunk_size: int,
         output_directory,
         jaccard_threshold):
     """
-    Processes the pairs table, calculates Jaccard similarity, and generates output CSV.
+    Analysis Module: Processes the pairs table, calculates Jaccard similarity, and generates output CSV.
 
     Parameters:
         conn (**): Path to the database file.
-        dbname (str): Name of the database.
         chunk_size (int): Size of each query chunk to fetch from the database.
         output_directory (str): Directory path to save the output CSV files.
         jaccard_threshold (float): Threshold value for Jaccard similarity.
@@ -593,7 +636,7 @@ def process_pairs_table_ana(
     query1 = f"""
         CREATE OR REPLACE TEMP TABLE joined_pairs AS
         SELECT p.meso_pid, p.thermo_pid, pr.accession AS meso_accession, pr2.accession AS thermo_accession
-        FROM {dbname}.pairpro.final AS p
+        FROM analysis AS p
         INNER JOIN proteins_from_pairs4 AS pr ON (p.meso_pid = pr.pid)
         INNER JOIN proteins_from_pairs4 AS pr2 ON (p.thermo_pid = pr2.pid)
     """
@@ -615,21 +658,34 @@ def process_pairs_table_ana(
         # Get the accessions
         meso_acc = row['meso_accession']
         thermo_acc = row['thermo_accession']
+        # logger.debug(f"meso_acc: {meso_acc}, thermo_acc: {thermo_acc}")
+        # logger.debug(f"meso_acc type: {type(meso_acc)}, thermo_acc type: {type(thermo_acc)}")
+
+        if type(meso_acc) == str:
+            meso_acc_set, thermo_acc_set = preprocess_accessions_ana(meso_acc, thermo_acc)
+        elif type(meso_acc) == list:
+            meso_acc_set = set(meso_acc)
+            thermo_acc_set = set(thermo_acc)
+        elif pd.isna(meso_acc) and pd.isna(thermo_acc):
+            meso_acc_set = None
+            thermo_acc_set = None
+        elif pd.isna(meso_acc) or pd.isna(thermo_acc):
+            meso_acc_set, thermo_acc_set = preprocess_accessions_ana(meso_acc, thermo_acc)
+        else:
+            raise ValueError("meso_acc must be either a string or a list")
         
         # parsing accessions logic
-        if meso_acc == 'nan' and thermo_acc == 'nan':
+        # Handle unmatched rows
+        score = 0.0
+        functional = False
+
+        if not meso_acc_set and not thermo_acc_set:
             score = None
             functional = None
-        elif meso_acc and thermo_acc:
+        elif meso_acc_set and thermo_acc_set:
             # Preprocess the accessions
-            meso_acc_set, thermo_acc_set = preprocess_accessions(
-                meso_acc, thermo_acc)
-            score = calculate_jaccard_similarity(meso_acc_set, thermo_acc_set)
-            functional = score > jaccard_threshold
-        else:
-            # Handle unmatched rows
-            score = 0.0
-            functional = False
+            score = calculate_jaccard_similarity_ana(meso_acc_set, thermo_acc_set)
+            functional = score > jaccard_threshold    
 
         return {'functional': functional, 'score': score}
 

@@ -195,15 +195,7 @@ def rf_wrapper(dataframe, target):
     input_features = [columns for columns in dataframe.drop(columns=target)]
 
     # train the model based off data split
-    if 'structure_match' not in target:
-        # if target is one class
-        model, _, _, val_X, val_y = train_model(
-            dataframe, columns=input_features,
-            target=target
-        )
-    else:
-        # if target is two class
-        model, _, _, val_X, val_y = train_model_structure(
+    model, _, _, val_X, val_y = train_model(
             dataframe, columns=input_features,
             target=target
         )
