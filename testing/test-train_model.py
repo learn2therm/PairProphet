@@ -252,7 +252,7 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
 
         # get all the proteins in pairs
 
-        proteins_in_pair_count = con.execute(f"SELECT COUNT(*) FROM processed_proteins").fetchone()[0]
+        proteins_in_pair_count = con.execute(f"SELECT COUNT(*) FROM processed_proteins LIMIT 10000").fetchone()[0]
         # proteins_in_pair_count = con.execute(f"""SELECT COUNT(*) FROM (SELECT * FROM {db_name}.pairpro.proteins LIMIT 100) sub""").fetchone()[0]
         logger.debug(
             f"Total number of protein in pairs: {proteins_in_pair_count} in pipeline")
