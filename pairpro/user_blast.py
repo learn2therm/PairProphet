@@ -114,9 +114,10 @@ def make_blast_df(df_in, cpus=2, path='./data/blast_db.db'):
                                           alignment scores.
 
     Notes:
-        This function uses joblib to parallelize the alignment process. The
-        number of cores used is determined by the cpus parameter. The 
-        alignment scores are calculated using the BLOSUM62 substitution matrix.
+        This function parallelizes the alignment process across multiple cores
+        using the multiprocessing module. The number of cores (cpus) will always
+        be one less than the total number of available cores to prevent
+        freezing the system.
     """
     
     # Rename input data columns for compatibility
@@ -150,7 +151,7 @@ def make_blast_df(df_in, cpus=2, path='./data/blast_db.db'):
     }
 
     # Pool to procces each chunk in parallel
-    with multiprocessing.Pool(processes=cpus) as pool:
+    with multiprocessing.Pool(processes=cpus-1) as pool:
         results = pool.starmap(alignment_worker_og, [(chunk, aligner_params) for chunk in chunks])
 
     # Concatenate the results into a single dataframe
@@ -284,7 +285,7 @@ def blast_pairs(df_in, cpus=2):
     }
 
     # Pool to procces each chunk in parallel
-    with multiprocessing.Pool(processes=cpus) as pool:
+    with multiprocessing.Pool(processes=cpus-1) as pool:
         results = pool.starmap(alignment_worker, [(chunk, aligner_params) for chunk in chunks])
 
     # Concatenate the results into a single dataframe
