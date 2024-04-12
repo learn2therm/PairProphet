@@ -56,7 +56,7 @@ packages = find_packages()
 print(f"Found packages {packages}")
 setup(
     name="pairpro", # Required  
-    version="2023.6",  # Required
+    version="2024.4",  # Required
     long_description=long_description, 
     long_description_content_type="text/markdown", 
     url="https://github.com/learn2therm/PairProphet",
