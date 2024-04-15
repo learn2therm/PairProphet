@@ -102,6 +102,57 @@ def balance_data(dataframe, target_columns):
         
     return dataframe
 
+
+
+def auto_balance_data(dataframe, target_column):
+    """
+    Automatically balances the dataframe based on the label distribution in the target column.
+    Applies under-sampling, over-sampling, or a combination based on the label's distribution.
+
+    Args:
+        dataframe (pandas.DataFrame): The training dataframe.
+        target_column (str): The column whose labels should be balanced.
+
+    Returns:
+        pandas.DataFrame: A new DataFrame with balanced labels.
+    """
+    # Count the frequency of each class
+    class_counts = dataframe[target_column].value_counts()
+    max_count = class_counts.max()
+    min_count = class_counts.min()
+    
+    # Determine the ratio of the largest class to the smallest class
+    ratio = max_count / min_count
+    logger.debug(f'ratio of max to min: {ratio}')
+
+    # Decide the strategy based on the ratio
+    if ratio < 1.5:
+        # If ratio is small (fairly balanced already), over-sample the minority
+        over_sampled_dfs = []
+        for label in class_counts.index:
+            label_df = dataframe[dataframe[target_column] == label]
+            resampled_df = resample(label_df, replace=True, n_samples=max_count)
+            over_sampled_dfs.append(resampled_df)
+        balanced_df = pd.concat(over_sampled_dfs)
+    else:
+        # If the imbalance is significant, under-sample the majority and over-sample the minority
+        under_sampled_dfs = []
+        over_sampled_dfs = []
+        for label in class_counts.index:
+            label_df = dataframe[dataframe[target_column] == label]
+            if class_counts[label] == max_count:
+                # Under-sample the majority class
+                resampled_df = resample(label_df, replace=False, n_samples=min_count)
+                under_sampled_dfs.append(resampled_df)
+            else:
+                # Over-sample the minority class
+                resampled_df = resample(label_df, replace=True, n_samples=max_count)
+                over_sampled_dfs.append(resampled_df)
+        balanced_df = pd.concat(under_sampled_dfs + over_sampled_dfs)
+
+    return balanced_df
+
+
 ################
 # Main script #
 ################
@@ -114,7 +165,7 @@ def balance_data(dataframe, target_columns):
               help='Number of sequences to process in each chunk. Size of 1 means 2048 sequences per chunk, 2 means 4096, etc. as it is vectorized.')
 @click.option('--njobs', default=4,
               help='Number of parallel processes to use for BLAST and/or HMMER')
-@click.option('--jaccard_threshold', default=0.7,
+@click.option('--jaccard_threshold', default=0.4,
               help='Jaccard threshold for filtering protein pairs')
 @click.option('--features', default=False,
               help='List of features to use for the model')
@@ -252,7 +303,7 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
 
         # get all the proteins in pairs
 
-        proteins_in_pair_count = con.execute(f"SELECT COUNT(*) FROM processed_proteins LIMIT 10000").fetchone()[0]
+        proteins_in_pair_count = con.execute(f"SELECT COUNT(*) FROM (SELECT * FROM processed_proteins LIMIT 10000) sub").fetchone()[0]
         # proteins_in_pair_count = con.execute(f"""SELECT COUNT(*) FROM (SELECT * FROM {db_name}.pairpro.proteins LIMIT 100) sub""").fetchone()[0]
         logger.debug(
             f"Total number of protein in pairs: {proteins_in_pair_count} in pipeline")
@@ -319,8 +370,8 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
 
         logger.info('Finished parsing HMMER output.')
 
-        # checking if the parsed output is appended to table
-        con.execute("""CREATE OR REPLACE TEMP TABLE hmmer_results AS 
+        # checking if the parsed output is appended to table (make TEMP later)
+        con.execute("""CREATE OR REPLACE TABLE hmmer_results AS 
                     SELECT * FROM read_csv_auto('./data/protein_pairs/parsed_hmmer_output/*.csv', HEADER=TRUE)
                     WHERE functional IS NOT NULL AND score IS NOT NULL
                     """)
@@ -331,22 +382,20 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
         FROM hmmer_results AS hmmer
         WHERE 
             hmmer.query_id = f.query_id
-            AND hmmer.subject_id = f.subject_id
-            AND hmmer.functional IS NOT NULL
-            AND hmmer.score IS NOT NULL;
+            AND hmmer.subject_id = f.subject_id;
         """)
-        # delete rows from pairpro.final where corresponding hmmer_results have NaN functional
-        # Delete rows from pairpro.final where hmmer_match is NULL
-        con.execute(f"""DELETE FROM OMA_main
-        WHERE hmmer_match IS NULL;
-        """)
+        
+        # Delete rows from OMA_main where hmmer_match is NULL
+        # con.execute(f"""DELETE FROM OMA_main
+        # WHERE hmmer_match IS NULL;
+        # """)
         logger.info('Finished appending parsed HMMER output to table.')
         ml_feature_list.append('hmmer_match')
 
-        df = con.execute(f"""SELECT pair_id, query, subject, bit_score, local_gap_compressed_percent_id,
+        df = con.execute(f"""SELECT query_id, subject_id, pair_id, query, subject, bit_score, local_gap_compressed_percent_id,
         scaled_local_query_percent_id, scaled_local_symmetric_percent_id,
         query_align_len, query_align_cov, subject_align_len, subject_align_cov,
-        LENGTH(query) AS query_len, LENGTH(subject) AS subject_len, {', '.join(ml_feature_list)} FROM OMA_main""").df()
+        LENGTH(query) AS query_len, LENGTH(subject) AS subject_len, {', '.join(ml_feature_list)} FROM OMA_main LIMIT 10000""").df()
 
         logger.debug(f"DataFrame shape after HMMER processing: {df.shape}")
     else:
@@ -383,10 +432,10 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
 
         ml_feature_list.append('structure_match')
 
-        df = con.execute(f"""SELECT pair_id, query, subjecy, bit_score, local_gap_compressed_percent_id,
+        df = con.execute(f"""SELECT query_id, subject_id, pair_id, query, subjecy, bit_score, local_gap_compressed_percent_id,
         scaled_local_query_percent_id, scaled_local_symmetric_percent_id,
         query_align_len, query_align_cov, subject_align_len, subject_align_cov,
-        LENGTH(query) AS query_len, LENGTH(subject) AS subject_len, Pair, {', '.join(ml_feature_list)} FROM OMA_main WHERE structure_match IS NOT NULL""").df()
+        LENGTH(query) AS query_len, LENGTH(subject) AS subject_len, {', '.join(ml_feature_list)} FROM OMA_main WHERE structure_match IS NOT NULL""").df()
 
 
         logger.debug(f"DataFrame shape after structure processing: {df.shape}")
@@ -415,8 +464,11 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
     df['true_labels'] = df['pair_id'].apply(lambda x: 'True Pair' if 'clean_' in x else 'Non-Pair')
 
     # balance the dataframe (Logan version)
-    df = balance_data(df, target_columns=target)
-    logger.debug(f"DataFrame shape after balancing: {df.shape}")
+    # df = auto_balance_data(df, target_column='true_labels')
+    # logger.debug(f"DataFrame shape after balancing: {df.shape}")
+    # logger.debug(df.keys())
+    # df = balance_data(df, target_columns=target)
+    # logger.debug(f"DataFrame shape after balancing: {df.shape}")
 
     # model training
     accuracy_score, model = train_val_wrapper(df, target, blast, hmmer, structure, features)

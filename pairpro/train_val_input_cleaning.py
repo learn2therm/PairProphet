@@ -10,6 +10,8 @@ import pandas as pd
 # keep columns that can be used as features
 columns_to_keep = [
     'pair_id',
+    'query_id',
+    'subject_id',
     'bit_score',
     'local_gap_compressed_percent_id',
     'scaled_local_query_percent_id',

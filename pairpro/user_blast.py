@@ -281,7 +281,7 @@ def blast_pairs(df_in, cpus=2):
         'substitution_matrix': substitution_matrices.load("BLOSUM62"),
         'open_gap_score': -11,
         'extend_gap_score': -1,
-        'mode': 'global' # 'local' or 'global'
+        'mode': 'local' # 'local' or 'global'
     }
 
     # Pool to procces each chunk in parallel
