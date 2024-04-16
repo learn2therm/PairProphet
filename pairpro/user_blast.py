@@ -121,7 +121,8 @@ def make_blast_df(df_in, cpus=2, path='./data/blast_db.db'):
     """
     
     # Rename input data columns for compatibility
-    df = df_in.rename(columns={'protein1_sequence': 'query', 'protein2_sequence': 'subject'})
+    df = df_in.rename(columns={'protein1_sequence': 'query', 'protein2_sequence': 'subject', 
+                               'protein1_uniprot_id': 'query_id', 'protein2_uniprot_id': 'subject_id'})
 
 
     # Remove any rows with NaN or containing non-amino acid letters

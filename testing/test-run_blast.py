@@ -49,10 +49,10 @@ if __name__ == "__main__":
 
     start_time = timer()
     logger.info(f"Obtaining combined nuprok pairs")
-    df = con.execute("SELECT * FROM combined_pairs").fetchdf()
+    df = con.execute("SELECT * FROM combined_pairs LIMIT 5000").fetchdf()
 
     logger.info(f"Starting blast function")
-    blast_df, con = pp_up.make_blast_df(df, cpus=num_cpus, path=OMA_DIR)
+    blast_df, con = pp_up.make_blast_df(df, cpus=num_cpus, path="./tmp/test_blast.db")
     logger.info(f"Completed blast function: {timer()-start_time} seconds")
 
     # close connection
@@ -63,5 +63,5 @@ if __name__ == "__main__":
     # save aligned dataframe
     logger.info("Saving aligned dataframe...")
     blast_df[['protein1_alphafold_id', 'protein2_alphafold_id']] = df[['protein1_uniprot_id', 'protein2_uniprot_id']]
-    blast_df.to_csv('./data/OMA/samples/oma_sample_2m_aligned.csv', index=False)
-    logger.info("Completed alignment. Saved to ./data/OMA/samples/oma_sample_2m_aligned.csv")
+    blast_df.to_csv('./data/OMA/samples/oma_tests.csv', index=False)
+    logger.info("Completed alignment. Saved to ./data/OMA/samples/oma_tests.csv")
