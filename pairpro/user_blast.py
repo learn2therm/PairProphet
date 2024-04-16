@@ -76,8 +76,8 @@ def alignment_worker_og(chunk, aligner_params):
             # Collect calculated metrics into a dict
             new_row = {
                 'pair_id': row.get('pair_id'),
-                'query_id': row.get('query_id'),
-                'subject_id': row.get('subject_id'),
+                'protein1_uniprot_id': row.get('protein1_uniprot_id'),
+                'protein2_uniprot_id': row.get('protein2_uniprot_id'),
                 'bit_score': best_alignment.score,
                 'local_gap_compressed_percent_id': gap_comp_pct_id,
                 'scaled_local_query_percent_id': scaled_local_query_percent_id,
@@ -121,8 +121,7 @@ def make_blast_df(df_in, cpus=2, path='./data/blast_db.db'):
     """
     
     # Rename input data columns for compatibility
-    df = df_in.rename(columns={'protein1_sequence': 'query', 'protein2_sequence': 'subject', 
-                               'protein1_uniprot_id': 'query_id', 'protein2_uniprot_id': 'subject_id'})
+    df = df_in.rename(columns={'protein1_sequence': 'query', 'protein2_sequence': 'subject'})
 
 
     # Remove any rows with NaN or containing non-amino acid letters
