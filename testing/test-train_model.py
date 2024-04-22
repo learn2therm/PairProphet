@@ -406,14 +406,14 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
     # structure component ###leave this for now. Check with Ryan on OMA database
     if structure:
         structure_df = con.execute(
-            f"""SELECT pair_id, thermo_pid, thermo_pdb, meso_pid, meso_pdb FROM OMA_main""").df()
+            f"""SELECT pair_id, query_id, subject_id FROM OMA_main LIMIT 10000""").df()
         downloader = pp_structures.ProteinDownloader(pdb_dir=STRUCTURE_DIR)
         logger.info(
             f'Downloading structures. Output directory: {STRUCTURE_DIR}')
         downloader.download_structure(
-            structure_df, 'meso_pdb', 'meso_pid')
+            structure_df, 'query_id', 'query_id')
         downloader.download_structure(
-            structure_df, 'thermo_pdb', 'thermo_pid')
+            structure_df, 'subject_id', 'subject_id')
         logger.info('Finished downloading structures. Running FATCAT.')
         processor = pp_structures.FatcatProcessor(pdb_dir=STRUCTURE_DIR)
         processor.run_fatcat_dict_job(

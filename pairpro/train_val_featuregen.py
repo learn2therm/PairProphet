@@ -158,7 +158,11 @@ def create_new_dataframe(dataframe, output_files: list, descriptors=[]):
             features,
             how='outer',
             left_index=True,
-            right_index=True)
+            right_index=True,
+            suffixes=('', f'_{desc}'), # add descriptor suffix
+            )
+        # drop unnecessary columns
+        df.drop(columns=['index'], inplace=True)
 
     df = clean_new_dataframe(df)
 
