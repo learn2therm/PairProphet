@@ -10,6 +10,7 @@ import subprocess
 import time
 import logging
 import json
+import requests
 
 import asyncio
 import httpx
@@ -112,6 +113,15 @@ class ProteinDownloader:
         execution_time = end_time - start_time
         logger.info(f"Execution time: {execution_time} seconds")
 
+    def download_sifts_file(file_url, save_path):
+        response = requests.get(file_url, stream=True)
+        if response.status_code == 200:
+            with open(save_path, 'wb') as f:
+                f.write(response.raw.read())
+            logger.info("Downloaded file")
+        else:
+            logger.info("Failed to download file")
+
 
 class FatcatProcessor:
     def __init__(self, pdb_dir, cache_file="./tmp/fatcat_cache.json"):
@@ -198,15 +208,15 @@ class FatcatProcessor:
 
 
     def process_row(self, row):
-        if not pd.isna(row['meso_pdb']):
-            p1 = row['meso_pdb']
+        if not pd.isna(row['query_pdb_id']):
+            p1 = row['query_pdb_id']
         else:
-            p1 = row['meso_pid']
+            p1 = row['query_id']
 
-        if not pd.isna(row['thermo_pdb']):
-            p2 = row['thermo_pdb']
+        if not pd.isna(row['subject_pdb_id']):
+            p2 = row['subject_pdb_id']
         else:
-            p2 = row['thermo_pid']
+            p2 = row['subject_id']
 
         p1_file = f'{p1}.pdb'
         p2_file = f'{p2}.pdb'

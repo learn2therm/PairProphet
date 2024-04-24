@@ -405,15 +405,61 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
 
     # structure component ###leave this for now. Check with Ryan on OMA database
     if structure:
+        logger.info('Starting to run structure component')
+
+        # obtaining PDB/uniprot mappings
+        # run this after downloading the PDBs
+
+        logger.info('Creating a temporary table for PDB to UniProt mappings')
+        # Create a temporary table for the PDB to UniProt mappings
+        con.execute("CREATE OR REPLACE TEMP TABLE pdb_chain_uniprot AS SELECT * FROM read_csv_auto('./tmp/pdb_chain_uniprot.csv', HEADER=TRUE)")
+
+        logger.info('adding the PDB IDs to the main table')
+        # Assigning the PDB IDs to the query and subject columns
+        columns_to_add = [("query_pdb_id", "VARCHAR"),
+                        ("subject_pdb_id", "VARCHAR")]
+        
+        # Adding the columns to the main table
+        for column_name, column_type in columns_to_add:
+            con.execute(f"""
+                ALTER TABLE OMA_main
+                ADD COLUMN {column_name} {column_type}
+            """)
+
+        logger.info('Inserting the PDB IDs into the main table')
+        logger.info('Updating the query_pdb_id column...')
+        # Update query_pdb_id based on matching UniProt ID in the mapping table
+        con.execute("""
+            UPDATE OMA_main
+            SET query_pdb_id = (
+                SELECT PDB
+                FROM pdb_chain_uniprot
+                WHERE OMA_main.query_id = pdb_chain_uniprot.SP_PRIMARY
+                LIMIT 1  -- Ensures only one PDB ID is selected in case there are multiple matches
+            )
+        """)
+
+        logger.info('Updating the subject_pdb_id column...')
+        # Update subject_pdb_id based on matching UniProt ID in the mapping table
+        con.execute("""
+            UPDATE OMA_main
+            SET subject_pdb_id = (
+                SELECT PDB
+                FROM pdb_chain_uniprot
+                WHERE OMA_main.subject_id = pdb_chain_uniprot.SP_PRIMARY
+                LIMIT 1  -- Ensures only one PDB ID is selected in case there are multiple matches
+            )
+        """)
+
         structure_df = con.execute(
-            f"""SELECT pair_id, query_id, subject_id FROM OMA_main LIMIT 10000""").df()
+            f"""SELECT pair_id, query_id, subject_id, query_pdb_id, subject_pdb_id FROM OMA_main LIMIT 100""").df()
         downloader = pp_structures.ProteinDownloader(pdb_dir=STRUCTURE_DIR)
         logger.info(
             f'Downloading structures. Output directory: {STRUCTURE_DIR}')
         downloader.download_structure(
-            structure_df, 'query_id', 'query_id')
+            structure_df, 'query_pdb_id', 'query_id')
         downloader.download_structure(
-            structure_df, 'subject_id', 'subject_id')
+            structure_df, 'subject_pdb_id', 'subject_id')
         logger.info('Finished downloading structures. Running FATCAT.')
         processor = pp_structures.FatcatProcessor(pdb_dir=STRUCTURE_DIR)
         processor.run_fatcat_dict_job(
@@ -432,7 +478,7 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
 
         ml_feature_list.append('structure_match')
 
-        df = con.execute(f"""SELECT query_id, subject_id, pair_id, query, subjecy, bit_score, local_gap_compressed_percent_id,
+        df = con.execute(f"""SELECT query_id, subject_id, pair_id, query, subject, bit_score, local_gap_compressed_percent_id,
         scaled_local_query_percent_id, scaled_local_symmetric_percent_id,
         query_align_len, query_align_cov, subject_align_len, subject_align_cov,
         LENGTH(query) AS query_len, LENGTH(subject) AS subject_len, {', '.join(ml_feature_list)} FROM OMA_main WHERE structure_match IS NOT NULL""").df()
