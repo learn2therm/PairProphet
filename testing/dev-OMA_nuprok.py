@@ -43,8 +43,8 @@ if __name__ == "__main__":
     logger.info("Connected to database %s", OMA_DIR)
 
     start_time = timer()
-    logger.info(f'Starting sample to generate nuprok pairs; 6M pairs')
-    pp_utils.nuprok_sample(con=con, size=6000000)
+    logger.info(f'Starting sample to generate nuprok pairs; 12M pairs')
+    pp_utils.nuprok_sample(con=con, size=12000000)
     logger.info(f'Completed nuprok pairs: {timer()-start_time} seconds')
 
     logger.info(f"Proceeding to process and clean the table")
@@ -112,17 +112,15 @@ if __name__ == "__main__":
     logger.debug(f"CHECK-> module path: {module_path}")
 
     logger.info("Starting to align nuprok pairs")
-    df_align, con = pp_up.make_blast_df(df, cpus=num_cpus, path='./data/OMA/samples/oma_sample_6m.db')
+    df_align = pp_up.make_blast_df(df, cpus=num_cpus, path='./data/OMA/samples/oma_sample_12m.db')
     time_delta = timer() - start_time
     logger.info(f'Alignment time: {time_delta} seconds using {num_cpus} cpus')
     
-    # close connection
-    con.close()
-    logger.info("Closed connection to database %s", OMA_DIR)
+    
     logger.info("Completed database operations!!")
 
     # save aligned dataframe
     logger.info("Saving aligned dataframe...")
     df_align[['protein1_alphafold_id', 'protein2_alphafold_id']] = df[['protein1_uniprot_id', 'protein2_uniprot_id']]
-    df_align.to_csv('./data/OMA/samples/oma_sample_6m_aligned.csv', index=False)
-    logger.info("Completed alignment. Saved to ./data/OMA/samples/oma_sample_6m_aligned.csv")
+    df_align.to_csv('./data/OMA/samples/oma_sample_12m_aligned.csv', index=False)
+    logger.info("Completed alignment. Saved to ./data/OMA/samples/oma_sample_12m_aligned.csv")
