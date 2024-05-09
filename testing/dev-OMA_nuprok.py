@@ -93,9 +93,9 @@ if __name__ == "__main__":
             protein1_sequence, protein2_sequence
         FROM clean_nuprok_pairs
     )
-    SELECT * FROM clean_pairs
+    SELECT * FROM clean_pairs WHERE LENGTH(protein1_sequence) < 250 AND LENGTH(protein2_sequence) < 250
     UNION ALL
-    SELECT * FROM bad_pairs
+    SELECT * FROM bad_pairs WHERE LENGTH(protein1_sequence) < 250 AND LENGTH(protein2_sequence) < 250
     """
 
     # execute the query to combine clean and bad pairs

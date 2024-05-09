@@ -25,7 +25,8 @@ from joblib.externals.loky import get_reusable_executor
 logger = logging.getLogger(__name__)
 # logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-
+# Global variable in the worker process
+global_aligner = None
 
 class PicklablePairwiseAligner(Align.PairwiseAligner):
     """
@@ -36,8 +37,6 @@ class PicklablePairwiseAligner(Align.PairwiseAligner):
     def __setstate__(self, state):
         return
 
-# Global variable in the worker process
-global_aligner = None
     
 def worker_init():
     """
@@ -346,7 +345,7 @@ def blast_pairs(df_in, cpus=2):
     # Pool to procces each chunk in parallel
     with multiprocessing.Pool(processes=cpus-1, initializer=worker_init) as pool:
         logging.debug("Multiprocessing pool opened with %d processes", cpus)
-        results = pool.starmap(alignment_worker_og, chunk_tuples)
+        results = pool.starmap(alignment_worker, chunk_tuples)
         logging.debug("Data processing complete, closing multiprocessing pool")
 
     # Concatenate the results into a single dataframe
