@@ -239,9 +239,9 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
 
         # add columns to the main table
         # the verbose way is to avoid errors
-        columns_to_add = [("local_gap_compressed_percent_id", "DOUBLE"),
-                          ("scaled_local_query_percent_id", "DOUBLE"),
-                          ("scaled_local_symmetric_percent_id", "DOUBLE"),
+        columns_to_add = [("global_gap_compressed_percent_id", "DOUBLE"),
+                          ("scaled_global_query_percent_id", "DOUBLE"),
+                          ("scaled_global_symmetric_percent_id", "DOUBLE"),
                           ("query_align_len", "DOUBLE"),
                           ("query_align_cov", "DOUBLE"),
                           ("subject_align_len", "DOUBLE"),
@@ -259,9 +259,9 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
         
         # update the main table with blast results
         # this is verbose, but it avoids updating errors
-        update_columns = ["local_gap_compressed_percent_id",
-                          "scaled_local_query_percent_id",
-                          "scaled_local_symmetric_percent_id",
+        update_columns = ["global_gap_compressed_percent_id",
+                          "scaled_global_query_percent_id",
+                          "scaled_global_symmetric_percent_id",
                           "query_align_len",
                           "query_align_cov",
                           "subject_align_len",
@@ -392,8 +392,8 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
         logger.info('Finished appending parsed HMMER output to table.')
         ml_feature_list.append('hmmer_match')
 
-        df = con.execute(f"""SELECT query_id, subject_id, pair_id, query, subject, bit_score, local_gap_compressed_percent_id,
-        scaled_local_query_percent_id, scaled_local_symmetric_percent_id,
+        df = con.execute(f"""SELECT query_id, subject_id, pair_id, query, subject, bit_score, global_gap_compressed_percent_id,
+        scaled_global_query_percent_id, scaled_global_symmetric_percent_id,
         query_align_len, query_align_cov, subject_align_len, subject_align_cov,
         LENGTH(query) AS query_len, LENGTH(subject) AS subject_len, {', '.join(ml_feature_list)} FROM OMA_main LIMIT 10000""").df()
 
@@ -478,8 +478,8 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
 
         ml_feature_list.append('structure_match')
 
-        df = con.execute(f"""SELECT query_id, subject_id, pair_id, query, subject, bit_score, local_gap_compressed_percent_id,
-        scaled_local_query_percent_id, scaled_local_symmetric_percent_id,
+        df = con.execute(f"""SELECT query_id, subject_id, pair_id, query, subject, bit_score, global_gap_compressed_percent_id,
+        scaled_global_query_percent_id, scaled_global_symmetric_percent_id,
         query_align_len, query_align_cov, subject_align_len, subject_align_cov,
         LENGTH(query) AS query_len, LENGTH(subject) AS subject_len, {', '.join(ml_feature_list)} FROM OMA_main WHERE structure_match IS NOT NULL""").df()
 

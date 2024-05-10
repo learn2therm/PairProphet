@@ -81,8 +81,8 @@ def process_row_nuprok(row):
             seq2_aligned, seq1_aligned)
         gap_comp_pct_id = gap_compressed_percent_id(
             n_matches, n_gaps, n_columns, n_comp_gaps)
-        scaled_local_symmetric_percent_id = 2*n_matches / (subject_length + query_length)
-        scaled_local_query_percent_id = n_matches / query_length
+        scaled_global_symmetric_percent_id = 2*n_matches / (subject_length + query_length)
+        scaled_global_query_percent_id = n_matches / query_length
 
         # Collect calculated metrics
         new_row = {
@@ -90,9 +90,9 @@ def process_row_nuprok(row):
             'protein1_uniprot_id': row.get('protein1_uniprot_id'),
             'protein2_uniprot_id': row.get('protein2_uniprot_id'),
             'bit_score': best_alignment.score,
-            'local_gap_compressed_percent_id': gap_comp_pct_id,
-            'scaled_local_query_percent_id': scaled_local_query_percent_id,
-            'scaled_local_symmetric_percent_id': scaled_local_symmetric_percent_id,
+            'global_gap_compressed_percent_id': gap_comp_pct_id,
+            'scaled_global_query_percent_id': scaled_global_query_percent_id,
+            'scaled_global_symmetric_percent_id': scaled_global_symmetric_percent_id,
             'query_align_len': query_length,
             'query_align_cov': query_cov,
             'subject_align_len': subject_length,
@@ -137,8 +137,8 @@ def process_row(row):
             seq2_aligned, seq1_aligned)
         gap_comp_pct_id = gap_compressed_percent_id(
             n_matches, n_gaps, n_columns, n_comp_gaps)
-        scaled_local_symmetric_percent_id = 2*n_matches / (subject_length + query_length)
-        scaled_local_query_percent_id = n_matches / query_length
+        scaled_global_symmetric_percent_id = 2*n_matches / (subject_length + query_length)
+        scaled_global_query_percent_id = n_matches / query_length
 
         # Collect calculated metrics
         new_row = {
@@ -146,9 +146,9 @@ def process_row(row):
             'query_id': row.get('query_id'),
             'subject_id': row.get('subject_id'),
             'bit_score': best_alignment.score,
-            'local_gap_compressed_percent_id': gap_comp_pct_id,
-            'scaled_local_query_percent_id': scaled_local_query_percent_id,
-            'scaled_local_symmetric_percent_id': scaled_local_symmetric_percent_id,
+            'global_gap_compressed_percent_id': gap_comp_pct_id,
+            'scaled_global_query_percent_id': scaled_global_query_percent_id,
+            'scaled_global_symmetric_percent_id': scaled_global_symmetric_percent_id,
             'query_align_len': query_length,
             'query_align_cov': query_cov,
             'subject_align_len': subject_length,
