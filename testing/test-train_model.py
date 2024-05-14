@@ -371,7 +371,7 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
         logger.info('Finished parsing HMMER output.')
 
         # checking if the parsed output is appended to table (make TEMP later)
-        con.execute("""CREATE OR REPLACE TABLE hmmer_results AS 
+        con.execute("""CREATE OR REPLACE TEMP TABLE hmmer_results AS 
                     SELECT * FROM read_csv_auto('./data/protein_pairs/parsed_hmmer_output/*.csv', HEADER=TRUE)
                     WHERE functional IS NOT NULL AND score IS NOT NULL
                     """)
@@ -386,9 +386,9 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
         """)
         
         # Delete rows from OMA_main where hmmer_match is NULL
-        # con.execute(f"""DELETE FROM OMA_main
-        # WHERE hmmer_match IS NULL;
-        # """)
+        con.execute(f"""DELETE FROM OMA_main
+        WHERE hmmer_match IS NULL;
+        """)
         logger.info('Finished appending parsed HMMER output to table.')
         ml_feature_list.append('hmmer_match')
 

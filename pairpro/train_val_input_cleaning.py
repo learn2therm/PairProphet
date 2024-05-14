@@ -11,9 +11,9 @@ import pandas as pd
 columns_to_keep = [
     'pair_id',
     'bit_score',
-    'local_gap_compressed_percent_id',
-    'scaled_local_query_percent_id',
-    'scaled_local_symmetric_percent_id',
+    'global_gap_compressed_percent_id',
+    'scaled_global_query_percent_id',
+    'scaled_global_symmetric_percent_id',
     'query_align_len',
     'query_align_cov',
     'subject_align_len',
