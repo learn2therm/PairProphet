@@ -405,7 +405,6 @@ def process_pairs_table(
         FROM OMA_main AS p
         INNER JOIN proteins_from_pairs AS pr ON (p.query_id = pr.pid)
         INNER JOIN proteins_from_pairs AS pr2 ON (p.subject_id = pr2.pid)
-        LIMIT 10000
     """
     conn.execute(query1)
 

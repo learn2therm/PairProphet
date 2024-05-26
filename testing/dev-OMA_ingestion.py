@@ -205,22 +205,34 @@ if __name__ == "__main__":
     # create table with only prokrayotic pairs
     con.execute(f"""CREATE OR REPLACE TABLE prok_pairs AS SELECT
                 protein1 AS protein1_oma_id,
-                protein2 AS protein2_oma_id,
+                protein2 AS protein2_oma_id
                 FROM pairs 
                 WHERE protein1 IN (SELECT id FROM read_fasta('{RAW_DATA_DIR}/prokaryotes.cdna.fa'))
                 AND protein2 IN (SELECT id FROM read_fasta('{RAW_DATA_DIR}/prokaryotes.cdna.fa'))""")
+    logger.debug(f"Total rows in prok_pairs: {con.execute('SELECT COUNT(*) FROM prok_pairs').fetchone()[0]}")
+    logger.debug("Verifying prokaryotic pairs table...")
+    logger.debug(f"Rows with Null values: {con.execute('SELECT COUNT(*) FROM prok_pairs WHERE protein1_oma_id IS NULL OR protein2_oma_id IS NULL').fetchone()[0]}")
+    logger.debug(f"Rows with duplicate values: {con.execute('SELECT COUNT(*) FROM prok_pairs WHERE protein1_oma_id = protein2_oma_id').fetchone()[0]}")
+    logger.debug(f"Sanity check: {con.execute('SELECT * FROM prok_pairs LIMIT 5').fetchall()}")
 
     # Updates the prok_pairs table with uniprot ids. This and the previous steps must be split to avoid memory issues.
     con.execute("""CREATE OR REPLACE TABLE prok_pairs AS SELECT
                 protein1_oma_id,
                 protein2_oma_id,
                 u1.uniprot_id AS protein1_uniprot_id,
-                u2.uniprot_id AS protein2_uniprot_id,
+                u2.uniprot_id AS protein2_uniprot_id
                 FROM prok_pairs
                 LEFT JOIN uniprot u1 ON u1.oma_id = protein1_oma_id
                 LEFT JOIN uniprot u2 ON u2.oma_id = protein2_oma_id""")
+    logger.debug("Verifying prokaryotic pairs table...")
+    logger.debug(f"Rows with Null values: {con.execute('SELECT COUNT(*) FROM prok_pairs WHERE protein1_uniprot_id IS NULL OR protein2_uniprot_id IS NULL').fetchone()[0]}")
+    logger.debug(f"Duplicate entries: {con.execute('SELECT protein1_uniprot_id, protein2_uniprot_id, COUNT(*) FROM prok_pairs GROUP BY protein1_uniprot_id, protein2_uniprot_id HAVING COUNT(*) > 1').fetchone()[0]}")
+    logger.debug(f"Sanity check (post-join): {con.execute('SELECT * FROM prok_pairs LIMIT 5').fetchall()}")
+
     
     logger.info("completed building OMA in: %s", timer() -time_start3)
+    logger.debug(f"Size of OMA with non-null uniprot ids: {con.execute('SELECT COUNT(*) FROM prok_pairs WHERE protein1_uniprot_id IS NOT NULL AND protein2_uniprot_id IS NOT NULL').fetchone()[0]}")
+    logger.debug("last time it was 259630308")
     con.close()
     logger.debug("connection close. Script done.")
 

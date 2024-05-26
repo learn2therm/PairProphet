@@ -46,13 +46,15 @@ if __name__ == "__main__":
     logger.info(f'Starting sample to generate nuprok pairs; 12M pairs')
     pp_utils.nuprok_sample(con=con, size=12000000)
     logger.info(f'Completed nuprok pairs: {timer()-start_time} seconds')
+    logger.debug('Data duplication check (should be zero/empty)')
+    logger.debug(f'Checking for data duplication: {con.execute("SELECT protein1_uniprot_id, protein2_uniprot_id, COUNT(*) FROM nuprok_pairs GROUP BY protein1_uniprot_id, protein2_uniprot_id HAVING COUNT(*) > 1").df()}')
 
     logger.info(f"Proceeding to process and clean the table")
 
     # create 'clean' nuprok pairs
     start_time = timer()
     con.execute("""CREATE OR REPLACE TABLE clean_nuprok_pairs 
-                AS SELECT * FROM nuprok_pairs 
+                AS SELECT DISTINCT * FROM nuprok_pairs 
                 WHERE protein1_uniprot_id <> protein2_uniprot_id AND protein1_sequence <> protein2_sequence 
                 AND protein1_uniprot_id IS NOT NULL 
                 AND protein2_uniprot_id IS NOT NULL 
@@ -60,6 +62,8 @@ if __name__ == "__main__":
                 AND protein2_sequence IS NOT NULL""")
     logger.info(f'Completed processing nuprok pairs: {timer()-start_time} seconds')
     logger.info(f'clean_nuprok_pairs table created. {con.execute("SELECT COUNT(*) FROM clean_nuprok_pairs").fetchdf()} rows, and has the following columns: {con.execute("DESCRIBE clean_nuprok_pairs").fetchall()}')
+    logger.debug('Data duplication check (should be zero/empty)')
+    logger.debug(f'Checking for data duplication: {con.execute("SELECT protein1_uniprot_id, protein2_uniprot_id, COUNT(*) FROM clean_nuprok_pairs GROUP BY protein1_uniprot_id, protein2_uniprot_id HAVING COUNT(*) > 1").df()}')
 
     # create 'bad' sample from clean_nuprok_pairs
     start_time = timer()
@@ -69,14 +73,14 @@ if __name__ == "__main__":
             row_number() OVER (ORDER BY random()) AS rn,
             protein1_uniprot_id, protein1_sequence
         FROM clean_nuprok_pairs
-        USING SAMPLE 100%
+        TABLESAMPLE SYSTEM (100%)
     ),
     shuffled_protein2 AS (
         SELECT
             row_number() OVER (ORDER BY random()) AS rn,
             protein2_uniprot_id, protein2_sequence
         FROM clean_nuprok_pairs
-        USING SAMPLE 100%
+        TABLESAMPLE SYSTEM (100%)
     ),
     bad_pairs AS (
         SELECT
@@ -93,18 +97,52 @@ if __name__ == "__main__":
             protein1_sequence, protein2_sequence
         FROM clean_nuprok_pairs
     )
-    SELECT * FROM clean_pairs WHERE LENGTH(protein1_sequence) < 251 AND LENGTH(protein2_sequence) < 251
-    UNION ALL
-    SELECT * FROM bad_pairs WHERE LENGTH(protein1_sequence) < 251 AND LENGTH(protein2_sequence) < 251
+    SELECT DISTINCT * FROM (
+        SELECT * FROM clean_pairs WHERE LENGTH(protein1_sequence) < 251 AND LENGTH(protein2_sequence) < 251
+        UNION ALL
+        SELECT * FROM bad_pairs WHERE LENGTH(protein1_sequence) < 251 AND LENGTH(protein2_sequence) < 251
+        ) as combined_pairs
     """
 
     # execute the query to combine clean and bad pairs
     con.execute(f"""CREATE OR REPLACE TABLE combined_pairs AS ({combined_pairs_query})""")
     logger.info(f'Completed creating combined_pairs: {timer()-start_time} seconds')
+    logger.debug("Checking for data duplication: %s", con.execute("SELECT protein1_uniprot_id, protein2_uniprot_id, COUNT(*) FROM combined_pairs GROUP BY protein1_uniprot_id, protein2_uniprot_id HAVING COUNT(*) > 1").df())
+
+    # take out duplicates/isoforms
+    start_time = timer()
+    remove_duplicates_query = """
+    CREATE OR REPLACE TABLE deduplicated_combined_pairs AS
+    WITH ranked_pairs AS (
+        SELECT
+            pair_id,
+            protein1_uniprot_id,
+            protein2_uniprot_id,
+            protein1_sequence,
+            protein2_sequence,
+            ROW_NUMBER() OVER (
+                PARTITION BY protein1_uniprot_id, protein2_uniprot_id 
+                ORDER BY LENGTH(protein1_sequence) + LENGTH(protein2_sequence) DESC
+            ) AS rn
+        FROM combined_pairs
+    )
+    SELECT 
+        pair_id,
+        protein1_uniprot_id,
+        protein2_uniprot_id,
+        protein1_sequence,
+        protein2_sequence
+    FROM ranked_pairs
+    WHERE rn = 1;
+    """
+    con.execute(remove_duplicates_query)
+    con.commit()
+    logger.info(f'Completed removing duplicates: {timer()-start_time} seconds')
+    logger.debug("Checking for data duplication: %s", con.execute("SELECT protein1_uniprot_id, protein2_uniprot_id, COUNT(*), ARRAY_AGG(DISTINCT pair_id) AS pair_ids FROM deduplicated_combined_pairs GROUP BY protein1_uniprot_id, protein2_uniprot_id HAVING COUNT(*) > 1;").df())
 
 
     logger.info(f"Proceeding to align nuprok pairs. Making into dataframe to BLAST.")
-    df = con.execute("SELECT * FROM combined_pairs").fetchdf()
+    df = con.execute("SELECT * FROM deduplicated_combined_pairs").fetchdf()
 
     # align combined pairs
     start_time = timer()

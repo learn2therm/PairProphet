@@ -142,7 +142,7 @@ def validate_model(model, val_X, val_y):
     preds = model.predict(val_X)
 
     # not printed during model validation step
-    precision_score = sklearn.metrics.precision_score(val_y, preds)
+    precision_score = sklearn.metrics.precision_score(val_y, preds, pos_label='True Pair')
 
     return preds, precision_score
 

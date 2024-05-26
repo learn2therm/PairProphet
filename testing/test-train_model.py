@@ -190,7 +190,7 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
                 FROM
                 (
                     SELECT protein1_uniprot_id AS query_id, protein2_uniprot_id AS subject_id, pair_id, protein1_sequence AS query, protein2_sequence AS subject
-                    FROM combined_pairs
+                    FROM deduplicated_combined_pairs
                 ) 
                 );""")
     
@@ -203,10 +203,10 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
             FROM 
             (
                 SELECT protein1_uniprot_id AS pid, protein2_sequence as protein_seq
-                FROM combined_pairs
+                FROM deduplicated_combined_pairs
                 UNION ALL
                 SELECT protein2_uniprot_id AS pid, protein2_sequence as protein_seq
-                FROM combined_pairs
+                FROM deduplicated_combined_pairs
             )   
         );""")
     
@@ -220,7 +220,7 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
     if blast:
         # blast component
         logger.info('Starting to run BLAST')
-        dataframe_for_blast = con.execute("SELECT * FROM OMA_main LIMIT 10000").df()
+        dataframe_for_blast = con.execute("SELECT * FROM OMA_main").df()
         logger.debug(f"DataFrame shape before BLAST processing: {dataframe_for_blast.shape}")
 
         # run blast
@@ -284,13 +284,16 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
         # commit the changes to the main table
         con.commit()
         
-        df = con.execute("""SELECT * FROM OMA_main LIMIT 10000""").df()
+        df = con.execute("""SELECT * FROM OMA_main""").df()
         logger.debug(f"DataFrame shape after BLAST processing: {df.shape}")
+        print('BLAST results dataframe: ')
+        print(df.info)
 
     else:
-        print("skipping blast")
-        logger.info('No BLAST selected. Skipping.')
-        pass # possibly raise an error here
+        print('No BLAST selected. That is not allowed. Model training will not proceed. Exiting...')
+        logger.error('No BLAST selected. That is not allowed. Model training will not proceed. Exiting...')
+        con.close()
+        raise ValueError('No BLAST selected. That is not allowed. Model training will not proceed. Exiting...')
     
     if hmmer: #pids were strings in the original code
 
@@ -303,13 +306,14 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
 
         # get all the proteins in pairs
 
-        proteins_in_pair_count = con.execute(f"SELECT COUNT(*) FROM (SELECT * FROM processed_proteins LIMIT 10000) sub").fetchone()[0]
+        proteins_in_pair_count = con.execute(f"SELECT COUNT(*) FROM processed_proteins").fetchone()[0]
         # proteins_in_pair_count = con.execute(f"""SELECT COUNT(*) FROM (SELECT * FROM {db_name}.pairpro.proteins LIMIT 100) sub""").fetchone()[0]
+        # f"SELECT COUNT(*) FROM (SELECT * FROM processed_proteins LIMIT 10000) sub"
         logger.debug(
             f"Total number of protein in pairs: {proteins_in_pair_count} in pipeline")
 
         proteins_in_pair = con.execute(
-            f"SELECT pid, protein_seq FROM processed_proteins LIMIT 10000")
+            f"SELECT pid, protein_seq FROM processed_proteins")
     
     
         # get number of hmms for evalue calc
@@ -371,7 +375,7 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
         logger.info('Finished parsing HMMER output.')
 
         # checking if the parsed output is appended to table (make TEMP later)
-        con.execute("""CREATE OR REPLACE TEMP TABLE hmmer_results AS 
+        con.execute("""CREATE OR REPLACE TABLE hmmer_results AS 
                     SELECT * FROM read_csv_auto('./data/protein_pairs/parsed_hmmer_output/*.csv', HEADER=TRUE)
                     WHERE functional IS NOT NULL AND score IS NOT NULL
                     """)
@@ -385,17 +389,17 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
             AND hmmer.subject_id = f.subject_id;
         """)
         
-        # Delete rows from OMA_main where hmmer_match is NULL
-        con.execute(f"""DELETE FROM OMA_main
-        WHERE hmmer_match IS NULL;
-        """)
+        # # # Delete rows from OMA_main where hmmer_match is NULL
+        # con.execute(f"""DELETE FROM OMA_main
+        # WHERE hmmer_match IS NULL;
+        # """)
         logger.info('Finished appending parsed HMMER output to table.')
         ml_feature_list.append('hmmer_match')
 
         df = con.execute(f"""SELECT query_id, subject_id, pair_id, query, subject, bit_score, global_gap_compressed_percent_id,
         scaled_global_query_percent_id, scaled_global_symmetric_percent_id,
         query_align_len, query_align_cov, subject_align_len, subject_align_cov,
-        LENGTH(query) AS query_len, LENGTH(subject) AS subject_len, {', '.join(ml_feature_list)} FROM OMA_main LIMIT 10000""").df()
+        LENGTH(query) AS query_len, LENGTH(subject) AS subject_len, {', '.join(ml_feature_list)} FROM OMA_main""").df()
 
         logger.debug(f"DataFrame shape after HMMER processing: {df.shape}")
     else:
@@ -452,7 +456,7 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
         """)
 
         structure_df = con.execute(
-            f"""SELECT pair_id, query_id, subject_id, query_pdb_id, subject_pdb_id FROM OMA_main LIMIT 100""").df()
+            f"""SELECT pair_id, query_id, subject_id, query_pdb_id, subject_pdb_id FROM OMA_main""").df()
         downloader = pp_structures.ProteinDownloader(pdb_dir=STRUCTURE_DIR)
         logger.info(
             f'Downloading structures. Output directory: {STRUCTURE_DIR}')
@@ -489,12 +493,6 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
     else:
         logger.info('No structure selected. Skipping.')
         pass
-
-    # if not hmmer and not structure:
-    #     logger.info('No features selected. Exiting.')
-    #     raise NotImplementedError('Currently, you cannot train a model without hmmer or structure')
-    # else:
-    #     pass
         
     
     logger.debug(df.info(verbose=True))
@@ -534,6 +532,10 @@ if __name__ == "__main__":
         LOGNAME, LOGFILE, LOGLEVEL, filemode='w')
     
     # Nested loggers
+    blast_logger = logging.getLogger('pairpro.user_blast')
+    blast_logger.setLevel(getattr(logging, LOGLEVEL))
+    blast_logger.addHandler(logging.FileHandler(LOGFILE))
+
     hmmer_logger = logging.getLogger('pairpro.hmmer')
     hmmer_logger.setLevel(getattr(logging, LOGLEVEL))
     hmmer_logger.addHandler(logging.FileHandler(LOGFILE))

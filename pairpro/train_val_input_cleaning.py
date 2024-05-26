@@ -66,12 +66,14 @@ def verify_input_data(dataframe, blast=False, hmmer=False, structure=False):
     assert 'query' in dataframe.columns, 'Dataframe missing query sequence!' 
     assert 'subject' in dataframe.columns, 'Dataframe missing subject sequence!' 
 
+    print(f'The shape of the dataframe is: {dataframe.shape} before cleaning.')
+
     # Clean out unnecessary columns
     dataframe.drop(columns=dataframe.columns.difference(columns_to_keep), inplace=True)
 
     # Drop rows with NaN values
     dataframe.dropna(subset=columns_to_keep, inplace=True)
 
-    print('The new shape of the dataframe is: {}'.format(dataframe.shape))
+    print(f'The new shape of the dataframe is: {dataframe.shape} after cleaning.')
 
     return dataframe
