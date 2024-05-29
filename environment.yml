@@ -28,3 +28,4 @@ dependencies:
       - pyhmmer
       - rdkit
       - iFeatureOmegaCLI
+      - tenacity

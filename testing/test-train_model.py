@@ -416,7 +416,7 @@ def model_construction(blast, hmmer, chunk_size, njobs, jaccard_threshold,
 
         logger.info('Creating a temporary table for PDB to UniProt mappings')
         # Create a temporary table for the PDB to UniProt mappings
-        con.execute("CREATE OR REPLACE TEMP TABLE pdb_chain_uniprot AS SELECT * FROM read_csv_auto('./tmp/pdb_chain_uniprot.csv', HEADER=TRUE)")
+        con.execute("CREATE OR REPLACE TEMP TABLE pdb_chain_uniprot AS SELECT * FROM read_csv_auto('./data/SIFTS/pdb_chain_uniprot.csv', HEADER=TRUE)")
 
         logger.info('adding the PDB IDs to the main table')
         # Assigning the PDB IDs to the query and subject columns

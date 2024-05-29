@@ -18,6 +18,7 @@ import nest_asyncio
 
 import duckdb as db
 import numpy as np
+from tenacity import retry, wait_exponential, stop_after_attempt
 import csv
 from multiprocessing import Pool
 
@@ -39,6 +40,7 @@ class ProteinDownloader:
         if not os.path.exists(self.pdb_dir):
             os.makedirs(self.pdb_dir)
 
+    @retry(wait=wait_exponential(min=1, max=10), stop=stop_after_attempt(5))
     async def _download_aff(self, session, url, filename, semaphore):
         # Check if the file already exists (cache check)
         if os.path.exists(filename):
@@ -58,7 +60,7 @@ class ProteinDownloader:
                     return False
         except httpx.RequestError as e:
             logger.info(f"Error while downloading file: {filename}. Exception: {str(e)}")
-            return False
+            raise # Reraise the exception to retry
         
     async def _download_af(self, row, u_column, semaphore):
         uniprot_id = getattr(row, u_column)
@@ -236,7 +238,7 @@ class FatcatProcessor:
 
         num_cores = os.cpu_count() # get the number of available cores
         p_values = []
-        with Pool(processes=num_cores) as pool: # use the dynamic number of processes
+        with Pool(processes=num_cores-1) as pool: # use the dynamic number of processes
             args_list = [self.process_row(row) for _, row in df.iterrows() if self.process_row(row) is not None]
             chunk_size = max(1, len(args_list) // (2 * num_cores))  # Adjust this as needed
             results = pool.map(partial(self.compare_fatcat, cache=cache), args_list, chunksize=chunk_size)
